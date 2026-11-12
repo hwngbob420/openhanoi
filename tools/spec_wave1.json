@@ -1,0 +1,90 @@
+{
+ "th_flat_lemon_front": {
+  "raw": "th_flat_lemon_front.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "front_L",
+  "group": "th_flat_lemon",
+  "mirror": true
+ },
+ "th_flat_lemon_back": {
+  "raw": "th_flat_lemon_back.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "back_L",
+  "group": "th_flat_lemon",
+  "mirror": true
+ },
+ "th_flat_mint_front": {
+  "raw": "th_flat_mint_front.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "front_L",
+  "group": "th_flat_mint",
+  "mirror": true
+ },
+ "th_flat_mint_back": {
+  "raw": "th_flat_mint_back.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "back_L",
+  "group": "th_flat_mint",
+  "mirror": true
+ },
+ "th_flat_sky_front": {
+  "raw": "th_flat_sky_front.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "front_L",
+  "group": "th_flat_sky",
+  "mirror": true
+ },
+ "th_flat_sky_back": {
+  "raw": "th_flat_sky_back.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "back_L",
+  "group": "th_flat_sky",
+  "mirror": true
+ },
+ "th_flat_salmon_front": {
+  "raw": "th_flat_salmon_front.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "front_L",
+  "group": "th_flat_salmon",
+  "mirror": true
+ },
+ "th_flat_salmon_back": {
+  "raw": "th_flat_salmon_back.png",
+  "kind": "building",
+  "fp": [
+   1,
+   3
+  ],
+  "facing": "back_L",
+  "group": "th_flat_salmon",
+  "mirror": true
+ }
+}

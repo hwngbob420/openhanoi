@@ -1,0 +1,22 @@
+{
+ "tile": [
+  32,
+  32
+ ],
+ "order": [
+  "road",
+  "road_dash_h",
+  "road_dash_v",
+  "zebra_v",
+  "zebra_h",
+  "sidewalk",
+  "sidewalk_kerb_b",
+  "sidewalk_kerb_r",
+  "sidewalk_kerb_t",
+  "sidewalk_kerb_l",
+  "sidewalk_corner_br",
+  "sidewalk_corner_bl",
+  "sidewalk_corner_tr",
+  "sidewalk_corner_tl"
+ ]
+}

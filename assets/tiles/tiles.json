@@ -1,0 +1,23 @@
+{
+ "tile": [
+  72,
+  36
+ ],
+ "order": [
+  "road",
+  "road_lane_x",
+  "road_lane_y",
+  "road_worn",
+  "sidewalk",
+  "sidewalk_kerb_br",
+  "sidewalk_kerb_bl",
+  "grass",
+  "grass_dark",
+  "water",
+  "water2",
+  "paving_brick",
+  "dirt_alley",
+  "rail_x",
+  "rail_y"
+ ]
+}

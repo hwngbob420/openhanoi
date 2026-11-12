@@ -1,0 +1,20 @@
+{
+ "tile": [
+  144,
+  72
+ ],
+ "order": [
+  "road",
+  "road_lane_x",
+  "road_lane_y",
+  "zebra_a",
+  "zebra_b",
+  "sidewalk",
+  "kerb_ur",
+  "kerb_lr",
+  "kerb_ll",
+  "kerb_ul",
+  "cobble",
+  "grass"
+ ]
+}

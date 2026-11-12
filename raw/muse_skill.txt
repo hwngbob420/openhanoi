@@ -1,0 +1,40 @@
+1. Bí quyết đồng bộ hóa "Vibe" cho toàn bộ Asset
+Khi tạo từng vật thể rời rạc, AI rất dễ bị lệch tỷ lệ hoặc đổi tông màu. Bạn hãy tuân thủ 4 quy tắc cốt lõi sau trong mọi câu lệnh:
+Sử dụng một "Đuôi Prompt cố định" (Master Style Suffix): Tạo một đoạn mô tả chuẩn về góc nhìn, nét vẽ, ánh sáng và dán y hệt đoạn này vào cuối mọi prompt. Không thay đổi bất kỳ từ nào trong đoạn đuôi này.
+Khóa hướng chiếu sáng (Consistent Lighting Direction): Luôn chỉ định một hướng sáng duy nhất (ví dụ: ánh sáng chiếu từ góc trên bên trái xuống) để bóng đổ của ngôi nhà, cái cây và chiếc xe khớp nhau khi ghép vào bản đồ game.
+Nền đơn sắc tách lớp (Clean Background): Luôn yêu cầu vẽ trên nền trắng tinh (isolated on a pure solid white background) hoặc nền xanh lá (chroma key green background) và cấm đổ bóng lan ra nền quá xa (no background clutter) để dễ dàng tách nền bằng công cụ tự động.
+Dùng kỹ thuật Seed & Reference: Sau khi tạo được 1 asset ưng ý nhất (ví dụ một ngôi nhà ống), hãy lấy chính hình ảnh đó làm Reference Image (ảnh tham chiếu phong cách) và cố định mã Seed (nếu công cụ hỗ trợ) cho toàn bộ các asset tiếp theo.
+2. Đoạn "Đuôi Prompt Cố Định" (Style Anchor)
+Hãy sao chép đoạn mã tiếng Anh dưới đây và gắn vào phần cuối của tất cả các prompt tạo asset bên dưới:
+, isometric top-down orthographic view, Witchbrook game art style, detailed 16-bit hand-crafted pixel art, crisp dark outlines, warm sunlit afternoon lighting from top-left, soft subtle drop shadows, nostalgic pastel and earthy color palette, isolated on a solid pure white background, clean sprite sheet asset, no background clutter.
+3. Bộ Prompt tạo từng nhóm Asset Hà Nội (Copy-Paste)
+Bạn chỉ cần ghép Phần mô tả vật thể dưới đây với Đoạn đuôi cố định ở mục 2 để tạo ra từng bộ tài nguyên.
+Nhóm 1: Kiến trúc & Nhà cửa (Buildings)
+Nhà ống mặt tiền Pháp cổ:
+A narrow two-story Hanoi French-colonial tube house, weathered mustard-yellow plaster walls, dark green wooden louvered shutters, small wrought-iron balcony with potted ferns, red tiled roof, and a traditional wooden storefront sign + [Đuôi Prompt Cố Định]
+Quán Phở / Bún chả mở mặt tiền:
+A cozy open-front Hanoi street-level noodle shop, striped fabric awning, steaming stainless steel broth pots at the entrance, glass display cabinet with ingredients, warm interior glow + [Đuôi Prompt Cố Định]
+Tập thể cũ Hà Nội (Khu tập thể):
+A vintage Hanoi Soviet-style apartment block unit (nha tap the), weathered concrete walls, enclosed metal-cage balcony (chuong cop) filled with hanging laundry and potted plants, mossy tiled roof + [Đuôi Prompt Cố Định]
+Nhóm 2: Phương tiện giao thông (Vehicles)
+Bộ xe máy đặc trưng:
+A collection of 3 isometric pixel art vehicles spaced apart: a classic mint-green Honda Cub scooter, a red Vespa scooter, and a vintage black bicycle with a woven front basket + [Đuôi Prompt Cố Định]
+Xe xích lô & Xe ba gác:
+A traditional Hanoi passenger cyclo (xich lo) with a striped canopy next to a small blue three-wheeled cargo truck + [Đuôi Prompt Cố Định]
+Nhóm 3: Vật thể vỉa hè & Đời sống (Street Props)
+Combo quán Trà đá / Cà phê cóc:
+A set of Hanoi sidewalk cafe props spaced apart: low weathered wooden tables, tiny blue and red plastic stools, a glass jar of iced tea, and a large faded beach umbrella + [Đuôi Prompt Cố Định]
+Xe đẩy Bánh mì & Gánh hàng rong:
+A glass-case Vietnamese banh mi street food cart with a colorful umbrella next to a bamboo shoulder pole (ganh hang rong) with two woven baskets full of tropical fruits + [Đuôi Prompt Cố Định]
+Cột điện & Hạ tầng phố cổ:
+A set of Hanoi street infrastructure props spaced apart: a concrete utility pole with tangled black overhead wires, a vintage dark green street lamp, and a green public trash bin + [Đuôi Prompt Cố Định]
+Nhóm 4: Cây cối & Thiên nhiên (Foliage)
+Cây đặc trưng Hà Nội:
+A set of 3 Hanoi urban trees spaced apart: an ancient sprawling banyan tree with aerial roots, a blooming pink bougainvillea vine bush in a terracotta pot, and a lush green sidewalk tree + [Đuôi Prompt Cố Định]
+Nhóm 5: Nhân vật (Characters)
+Cư dân Hà Nội:
+A sprite sheet of 4 distinct Hanoi town characters spaced apart in neutral standing poses: a street vendor wearing a conical hat (non la) and floral shirt, a young person on a scooter wearing a helmet, an elderly man reading a newspaper, and a student with a backpack + [Đuôi Prompt Cố Định]
+4. Mẹo hậu kỳ để đưa vào Engine làm game (Godot / Unity)
+Sau khi Muse xuất ra các hình ảnh trên, bạn nên chạy qua 2 bước xử lý nhanh trước khi đưa vào game:
+Chuẩn hóa lưới Pixel (Pixel Grid Alignment): Ảnh AI sinh ra thường có kích thước điểm ảnh không đều (mixel). Bạn có thể dùng các công cụ mã nguồn mở như Pixeloe hoặc Aseprite để ép ảnh về đúng độ phân giải chuẩn (ví dụ: nhân vật cao 32x32 hoặc 64x64 pixel).
+Đồng bộ bảng màu (Color Palette Locking): Trích xuất bảng màu (Palette) từ bức ảnh đầu tiên bạn ưng ý nhất, sau đó áp dụng chế độ Indexed Color trong Aseprite hoặc Photoshop cho toàn bộ các ảnh còn lại để màu vàng của tường nhà và màu xanh của cây cối đồng nhất 100%.

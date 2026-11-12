@@ -1,0 +1,1574 @@
+{
+ "tile": {
+  "w": 108,
+  "h": 54
+ },
+ "sprites": {
+  "th_tile_front": {
+   "file": "sprites/th_tile_front.png",
+   "pivot": [
+    56,
+    264
+   ],
+   "size": [
+    161,
+    264
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    2
+   ],
+   "facing": "front_L",
+   "group": "th_tile"
+  },
+  "th_tile_front_m": {
+   "file": "sprites/th_tile_front_m.png",
+   "pivot": [
+    105,
+    264
+   ],
+   "size": [
+    161,
+    264
+   ],
+   "kind": "building",
+   "fp": [
+    2,
+    1
+   ],
+   "facing": "front_L_m",
+   "group": "th_tile"
+  },
+  "th_tile_back": {
+   "file": "sprites/th_tile_back.png",
+   "pivot": [
+    59,
+    239
+   ],
+   "size": [
+    206,
+    239
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "back_L",
+   "group": "th_tile"
+  },
+  "th_tile_back_m": {
+   "file": "sprites/th_tile_back_m.png",
+   "pivot": [
+    147,
+    239
+   ],
+   "size": [
+    206,
+    239
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "back_L_m",
+   "group": "th_tile"
+  },
+  "th_flat_a_front": {
+   "file": "sprites/th_flat_a_front.png",
+   "pivot": [
+    55,
+    269
+   ],
+   "size": [
+    222,
+    269
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "front_L",
+   "group": "th_flat_a"
+  },
+  "th_flat_a_front_m": {
+   "file": "sprites/th_flat_a_front_m.png",
+   "pivot": [
+    167,
+    269
+   ],
+   "size": [
+    222,
+    269
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "front_L_m",
+   "group": "th_flat_a"
+  },
+  "th_flat_b_front": {
+   "file": "sprites/th_flat_b_front.png",
+   "pivot": [
+    54,
+    271
+   ],
+   "size": [
+    208,
+    271
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "front_L",
+   "group": "th_flat_b"
+  },
+  "th_flat_b_front_m": {
+   "file": "sprites/th_flat_b_front_m.png",
+   "pivot": [
+    154,
+    271
+   ],
+   "size": [
+    208,
+    271
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "front_L_m",
+   "group": "th_flat_b"
+  },
+  "th_flat_a_back": {
+   "file": "sprites/th_flat_a_back.png",
+   "pivot": [
+    55,
+    227
+   ],
+   "size": [
+    198,
+    227
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "back_L",
+   "group": "th_flat_a"
+  },
+  "th_flat_a_back_m": {
+   "file": "sprites/th_flat_a_back_m.png",
+   "pivot": [
+    143,
+    227
+   ],
+   "size": [
+    198,
+    227
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "back_L_m",
+   "group": "th_flat_a"
+  },
+  "th_flat_b_back": {
+   "file": "sprites/th_flat_b_back.png",
+   "pivot": [
+    56,
+    249
+   ],
+   "size": [
+    210,
+    249
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "back_L",
+   "group": "th_flat_b"
+  },
+  "th_flat_b_back_m": {
+   "file": "sprites/th_flat_b_back_m.png",
+   "pivot": [
+    154,
+    249
+   ],
+   "size": [
+    210,
+    249
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "back_L_m",
+   "group": "th_flat_b"
+  },
+  "colonial_a_front": {
+   "file": "sprites/colonial_a_front.png",
+   "pivot": [
+    54,
+    187
+   ],
+   "size": [
+    199,
+    187
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "front_L",
+   "group": "colonial_a"
+  },
+  "colonial_a_front_m": {
+   "file": "sprites/colonial_a_front_m.png",
+   "pivot": [
+    145,
+    187
+   ],
+   "size": [
+    199,
+    187
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "front_L_m",
+   "group": "colonial_a"
+  },
+  "colonial_b_front": {
+   "file": "sprites/colonial_b_front.png",
+   "pivot": [
+    52,
+    214
+   ],
+   "size": [
+    191,
+    214
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "front_L",
+   "group": "colonial_b"
+  },
+  "colonial_b_front_m": {
+   "file": "sprites/colonial_b_front_m.png",
+   "pivot": [
+    139,
+    214
+   ],
+   "size": [
+    191,
+    214
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "front_L_m",
+   "group": "colonial_b"
+  },
+  "colonial_a_back": {
+   "file": "sprites/colonial_a_back.png",
+   "pivot": [
+    57,
+    227
+   ],
+   "size": [
+    206,
+    227
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "back_L",
+   "group": "colonial_a"
+  },
+  "colonial_a_back_m": {
+   "file": "sprites/colonial_a_back_m.png",
+   "pivot": [
+    149,
+    227
+   ],
+   "size": [
+    206,
+    227
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "back_L_m",
+   "group": "colonial_a"
+  },
+  "colonial_b_back": {
+   "file": "sprites/colonial_b_back.png",
+   "pivot": [
+    58,
+    219
+   ],
+   "size": [
+    200,
+    219
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "back_L",
+   "group": "colonial_b"
+  },
+  "colonial_b_back_m": {
+   "file": "sprites/colonial_b_back_m.png",
+   "pivot": [
+    142,
+    219
+   ],
+   "size": [
+    200,
+    219
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "back_L_m",
+   "group": "colonial_b"
+  },
+  "low_a_front": {
+   "file": "sprites/low_a_front.png",
+   "pivot": [
+    57,
+    157
+   ],
+   "size": [
+    204,
+    157
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "front_L",
+   "group": "low_a"
+  },
+  "low_a_front_m": {
+   "file": "sprites/low_a_front_m.png",
+   "pivot": [
+    147,
+    157
+   ],
+   "size": [
+    204,
+    157
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "front_L_m",
+   "group": "low_a"
+  },
+  "low_b_front": {
+   "file": "sprites/low_b_front.png",
+   "pivot": [
+    56,
+    168
+   ],
+   "size": [
+    214,
+    168
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "front_L",
+   "group": "low_b"
+  },
+  "low_b_front_m": {
+   "file": "sprites/low_b_front_m.png",
+   "pivot": [
+    158,
+    168
+   ],
+   "size": [
+    214,
+    168
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "front_L_m",
+   "group": "low_b"
+  },
+  "turtle_tower": {
+   "file": "sprites/turtle_tower.png",
+   "pivot": [
+    54,
+    198
+   ],
+   "size": [
+    109,
+    198
+   ],
+   "kind": "landmark",
+   "fp": [
+    1,
+    1
+   ],
+   "facing": "none",
+   "group": "turtle_tower"
+  },
+  "bridge_huc": {
+   "file": "sprites/bridge_huc.png",
+   "pivot": [
+    44,
+    108
+   ],
+   "size": [
+    201,
+    108
+   ],
+   "kind": "landmark",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "bridge_y",
+   "group": "bridge_huc"
+  },
+  "bridge_huc_m": {
+   "file": "sprites/bridge_huc_m.png",
+   "pivot": [
+    157,
+    108
+   ],
+   "size": [
+    201,
+    108
+   ],
+   "kind": "landmark",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "bridge_y_m",
+   "group": "bridge_huc"
+  },
+  "low_a_back": {
+   "file": "sprites/low_a_back.png",
+   "pivot": [
+    57,
+    152
+   ],
+   "size": [
+    215,
+    152
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "back_L",
+   "group": "low_a"
+  },
+  "low_a_back_m": {
+   "file": "sprites/low_a_back_m.png",
+   "pivot": [
+    158,
+    152
+   ],
+   "size": [
+    215,
+    152
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "back_L_m",
+   "group": "low_a"
+  },
+  "low_b_back": {
+   "file": "sprites/low_b_back.png",
+   "pivot": [
+    56,
+    160
+   ],
+   "size": [
+    234,
+    160
+   ],
+   "kind": "building",
+   "fp": [
+    1,
+    3
+   ],
+   "facing": "back_L",
+   "group": "low_b"
+  },
+  "low_b_back_m": {
+   "file": "sprites/low_b_back_m.png",
+   "pivot": [
+    178,
+    160
+   ],
+   "size": [
+    234,
+    160
+   ],
+   "kind": "building",
+   "fp": [
+    3,
+    1
+   ],
+   "facing": "back_L_m",
+   "group": "low_b"
+  },
+  "tree_bang_big": {
+   "file": "sprites/tree_bang_big.png",
+   "pivot": [
+    50,
+    109
+   ],
+   "size": [
+    100,
+    109
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_bang_big"
+  },
+  "tree_bang_small": {
+   "file": "sprites/tree_bang_small.png",
+   "pivot": [
+    42,
+    94
+   ],
+   "size": [
+    84,
+    94
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_bang_small"
+  },
+  "tree_phuong": {
+   "file": "sprites/tree_phuong.png",
+   "pivot": [
+    47,
+    99
+   ],
+   "size": [
+    93,
+    99
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_phuong"
+  },
+  "tree_da": {
+   "file": "sprites/tree_da.png",
+   "pivot": [
+    46,
+    95
+   ],
+   "size": [
+    98,
+    95
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_da"
+  },
+  "tree_palm": {
+   "file": "sprites/tree_palm.png",
+   "pivot": [
+    38,
+    111
+   ],
+   "size": [
+    77,
+    111
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_palm"
+  },
+  "tree_banana": {
+   "file": "sprites/tree_banana.png",
+   "pivot": [
+    43,
+    94
+   ],
+   "size": [
+    89,
+    94
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_banana"
+  },
+  "tree_willow": {
+   "file": "sprites/tree_willow.png",
+   "pivot": [
+    42,
+    106
+   ],
+   "size": [
+    90,
+    106
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_willow"
+  },
+  "tree_ficus_pot": {
+   "file": "sprites/tree_ficus_pot.png",
+   "pivot": [
+    40,
+    95
+   ],
+   "size": [
+    82,
+    95
+   ],
+   "kind": "tree",
+   "fp": null,
+   "facing": "none",
+   "group": "tree_ficus_pot"
+  },
+  "moto_t_red": {
+   "file": "sprites/moto_t_red.png",
+   "pivot": [
+    23,
+    55
+   ],
+   "size": [
+    47,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_red"
+  },
+  "moto_t_red_m": {
+   "file": "sprites/moto_t_red_m.png",
+   "pivot": [
+    24,
+    58
+   ],
+   "size": [
+    47,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_red"
+  },
+  "moto_t_blue": {
+   "file": "sprites/moto_t_blue.png",
+   "pivot": [
+    23,
+    55
+   ],
+   "size": [
+    47,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_blue"
+  },
+  "moto_t_blue_m": {
+   "file": "sprites/moto_t_blue_m.png",
+   "pivot": [
+    24,
+    58
+   ],
+   "size": [
+    47,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_blue"
+  },
+  "moto_t_delivery": {
+   "file": "sprites/moto_t_delivery.png",
+   "pivot": [
+    25,
+    55
+   ],
+   "size": [
+    50,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_delivery"
+  },
+  "moto_t_delivery_m": {
+   "file": "sprites/moto_t_delivery_m.png",
+   "pivot": [
+    25,
+    58
+   ],
+   "size": [
+    50,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_delivery"
+  },
+  "moto_t_woman": {
+   "file": "sprites/moto_t_woman.png",
+   "pivot": [
+    23,
+    55
+   ],
+   "size": [
+    47,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_woman"
+  },
+  "moto_t_woman_m": {
+   "file": "sprites/moto_t_woman_m.png",
+   "pivot": [
+    24,
+    58
+   ],
+   "size": [
+    47,
+    58
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_woman"
+  },
+  "moto_t_family": {
+   "file": "sprites/moto_t_family.png",
+   "pivot": [
+    23,
+    57
+   ],
+   "size": [
+    47,
+    60
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_family"
+  },
+  "moto_t_family_m": {
+   "file": "sprites/moto_t_family_m.png",
+   "pivot": [
+    24,
+    60
+   ],
+   "size": [
+    47,
+    60
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_family"
+  },
+  "moto_t_flowers": {
+   "file": "sprites/moto_t_flowers.png",
+   "pivot": [
+    31,
+    58
+   ],
+   "size": [
+    63,
+    61
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_flowers"
+  },
+  "moto_t_flowers_m": {
+   "file": "sprites/moto_t_flowers_m.png",
+   "pivot": [
+    32,
+    61
+   ],
+   "size": [
+    63,
+    61
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_flowers"
+  },
+  "moto_t_rain": {
+   "file": "sprites/moto_t_rain.png",
+   "pivot": [
+    26,
+    57
+   ],
+   "size": [
+    52,
+    60
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_rain"
+  },
+  "moto_t_rain_m": {
+   "file": "sprites/moto_t_rain_m.png",
+   "pivot": [
+    26,
+    60
+   ],
+   "size": [
+    52,
+    60
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_rain"
+  },
+  "moto_t_bicycle": {
+   "file": "sprites/moto_t_bicycle.png",
+   "pivot": [
+    28,
+    56
+   ],
+   "size": [
+    57,
+    59
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "moto_t_bicycle"
+  },
+  "moto_t_bicycle_m": {
+   "file": "sprites/moto_t_bicycle_m.png",
+   "pivot": [
+    29,
+    59
+   ],
+   "size": [
+    57,
+    59
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "moto_t_bicycle"
+  },
+  "moto_a_red": {
+   "file": "sprites/moto_a_red.png",
+   "pivot": [
+    24,
+    61
+   ],
+   "size": [
+    49,
+    64
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_red"
+  },
+  "moto_a_red_m": {
+   "file": "sprites/moto_a_red_m.png",
+   "pivot": [
+    25,
+    64
+   ],
+   "size": [
+    49,
+    64
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_red"
+  },
+  "moto_a_blue": {
+   "file": "sprites/moto_a_blue.png",
+   "pivot": [
+    24,
+    61
+   ],
+   "size": [
+    48,
+    64
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_blue"
+  },
+  "moto_a_blue_m": {
+   "file": "sprites/moto_a_blue_m.png",
+   "pivot": [
+    24,
+    64
+   ],
+   "size": [
+    48,
+    64
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_blue"
+  },
+  "moto_a_delivery": {
+   "file": "sprites/moto_a_delivery.png",
+   "pivot": [
+    26,
+    62
+   ],
+   "size": [
+    53,
+    65
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_delivery"
+  },
+  "moto_a_delivery_m": {
+   "file": "sprites/moto_a_delivery_m.png",
+   "pivot": [
+    27,
+    65
+   ],
+   "size": [
+    53,
+    65
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_delivery"
+  },
+  "moto_a_woman": {
+   "file": "sprites/moto_a_woman.png",
+   "pivot": [
+    24,
+    65
+   ],
+   "size": [
+    48,
+    68
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_woman"
+  },
+  "moto_a_woman_m": {
+   "file": "sprites/moto_a_woman_m.png",
+   "pivot": [
+    24,
+    68
+   ],
+   "size": [
+    48,
+    68
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_woman"
+  },
+  "moto_a_family": {
+   "file": "sprites/moto_a_family.png",
+   "pivot": [
+    24,
+    65
+   ],
+   "size": [
+    49,
+    68
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_family"
+  },
+  "moto_a_family_m": {
+   "file": "sprites/moto_a_family_m.png",
+   "pivot": [
+    25,
+    68
+   ],
+   "size": [
+    49,
+    68
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_family"
+  },
+  "moto_a_flowers": {
+   "file": "sprites/moto_a_flowers.png",
+   "pivot": [
+    28,
+    64
+   ],
+   "size": [
+    57,
+    67
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_flowers"
+  },
+  "moto_a_flowers_m": {
+   "file": "sprites/moto_a_flowers_m.png",
+   "pivot": [
+    29,
+    67
+   ],
+   "size": [
+    57,
+    67
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_flowers"
+  },
+  "moto_a_rain": {
+   "file": "sprites/moto_a_rain.png",
+   "pivot": [
+    27,
+    65
+   ],
+   "size": [
+    55,
+    68
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_rain"
+  },
+  "moto_a_rain_m": {
+   "file": "sprites/moto_a_rain_m.png",
+   "pivot": [
+    28,
+    68
+   ],
+   "size": [
+    55,
+    68
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_rain"
+  },
+  "moto_a_bicycle": {
+   "file": "sprites/moto_a_bicycle.png",
+   "pivot": [
+    26,
+    68
+   ],
+   "size": [
+    53,
+    71
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "moto_a_bicycle"
+  },
+  "moto_a_bicycle_m": {
+   "file": "sprites/moto_a_bicycle_m.png",
+   "pivot": [
+    27,
+    71
+   ],
+   "size": [
+    53,
+    71
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "moto_a_bicycle"
+  },
+  "prop_cafe": {
+   "file": "sprites/prop_cafe.png",
+   "pivot": [
+    23,
+    40
+   ],
+   "size": [
+    47,
+    40
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_cafe"
+  },
+  "prop_cart": {
+   "file": "sprites/prop_cart.png",
+   "pivot": [
+    18,
+    58
+   ],
+   "size": [
+    50,
+    58
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_cart"
+  },
+  "prop_pho": {
+   "file": "sprites/prop_pho.png",
+   "pivot": [
+    28,
+    64
+   ],
+   "size": [
+    49,
+    64
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_pho"
+  },
+  "prop_grill": {
+   "file": "sprites/prop_grill.png",
+   "pivot": [
+    38,
+    59
+   ],
+   "size": [
+    47,
+    59
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_grill"
+  },
+  "prop_banhmi": {
+   "file": "sprites/prop_banhmi.png",
+   "pivot": [
+    16,
+    54
+   ],
+   "size": [
+    43,
+    54
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_banhmi"
+  },
+  "prop_fruit": {
+   "file": "sprites/prop_fruit.png",
+   "pivot": [
+    20,
+    60
+   ],
+   "size": [
+    47,
+    60
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_fruit"
+  },
+  "prop_drinks": {
+   "file": "sprites/prop_drinks.png",
+   "pivot": [
+    28,
+    53
+   ],
+   "size": [
+    46,
+    53
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_drinks"
+  },
+  "prop_tea": {
+   "file": "sprites/prop_tea.png",
+   "pivot": [
+    23,
+    50
+   ],
+   "size": [
+    53,
+    50
+   ],
+   "kind": "prop",
+   "fp": null,
+   "facing": "none",
+   "group": "prop_tea"
+  },
+  "car_t_car": {
+   "file": "sprites/car_t_car.png",
+   "pivot": [
+    40,
+    56
+   ],
+   "size": [
+    81,
+    59
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "car_t_car"
+  },
+  "car_t_car_m": {
+   "file": "sprites/car_t_car_m.png",
+   "pivot": [
+    41,
+    59
+   ],
+   "size": [
+    81,
+    59
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "car_t_car"
+  },
+  "car_t_taxi": {
+   "file": "sprites/car_t_taxi.png",
+   "pivot": [
+    48,
+    63
+   ],
+   "size": [
+    97,
+    66
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "car_t_taxi"
+  },
+  "car_t_taxi_m": {
+   "file": "sprites/car_t_taxi_m.png",
+   "pivot": [
+    49,
+    66
+   ],
+   "size": [
+    97,
+    66
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "car_t_taxi"
+  },
+  "car_t_bus": {
+   "file": "sprites/car_t_bus.png",
+   "pivot": [
+    67,
+    94
+   ],
+   "size": [
+    134,
+    97
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "car_t_bus"
+  },
+  "car_t_bus_m": {
+   "file": "sprites/car_t_bus_m.png",
+   "pivot": [
+    67,
+    97
+   ],
+   "size": [
+    134,
+    97
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "car_t_bus"
+  },
+  "car_t_truck": {
+   "file": "sprites/car_t_truck.png",
+   "pivot": [
+    51,
+    88
+   ],
+   "size": [
+    102,
+    91
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+x",
+   "group": "car_t_truck"
+  },
+  "car_t_truck_m": {
+   "file": "sprites/car_t_truck_m.png",
+   "pivot": [
+    51,
+    91
+   ],
+   "size": [
+    102,
+    91
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "+y",
+   "group": "car_t_truck"
+  },
+  "car_a_car": {
+   "file": "sprites/car_a_car.png",
+   "pivot": [
+    40,
+    54
+   ],
+   "size": [
+    81,
+    57
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "car_a_car"
+  },
+  "car_a_car_m": {
+   "file": "sprites/car_a_car_m.png",
+   "pivot": [
+    41,
+    57
+   ],
+   "size": [
+    81,
+    57
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "car_a_car"
+  },
+  "car_a_taxi": {
+   "file": "sprites/car_a_taxi.png",
+   "pivot": [
+    47,
+    59
+   ],
+   "size": [
+    95,
+    62
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "car_a_taxi"
+  },
+  "car_a_taxi_m": {
+   "file": "sprites/car_a_taxi_m.png",
+   "pivot": [
+    48,
+    62
+   ],
+   "size": [
+    95,
+    62
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "car_a_taxi"
+  },
+  "car_a_bus": {
+   "file": "sprites/car_a_bus.png",
+   "pivot": [
+    67,
+    95
+   ],
+   "size": [
+    134,
+    98
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "car_a_bus"
+  },
+  "car_a_bus_m": {
+   "file": "sprites/car_a_bus_m.png",
+   "pivot": [
+    67,
+    98
+   ],
+   "size": [
+    134,
+    98
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "car_a_bus"
+  },
+  "car_a_truck": {
+   "file": "sprites/car_a_truck.png",
+   "pivot": [
+    50,
+    82
+   ],
+   "size": [
+    101,
+    85
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-x",
+   "group": "car_a_truck"
+  },
+  "car_a_truck_m": {
+   "file": "sprites/car_a_truck_m.png",
+   "pivot": [
+    51,
+    85
+   ],
+   "size": [
+    101,
+    85
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "-y",
+   "group": "car_a_truck"
+  },
+  "gate_oquanchuong": {
+   "file": "sprites/gate_oquanchuong.png",
+   "pivot": [
+    212,
+    245
+   ],
+   "size": [
+    269,
+    245
+   ],
+   "kind": "landmark",
+   "fp": [
+    4,
+    1
+   ],
+   "facing": "front_L",
+   "group": "gate"
+  },
+  "train_loco": {
+   "file": "sprites/train_loco.png",
+   "pivot": [
+    104,
+    137
+   ],
+   "size": [
+    209,
+    140
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "none",
+   "group": "train_loco"
+  },
+  "train_car": {
+   "file": "sprites/train_car.png",
+   "pivot": [
+    105,
+    142
+   ],
+   "size": [
+    210,
+    145
+   ],
+   "kind": "vehicle",
+   "fp": null,
+   "facing": "none",
+   "group": "train_car"
+  }
+ }
+}

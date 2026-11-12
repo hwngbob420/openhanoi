@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hà Nội Pixel Map</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #1b1d23; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; image-rendering: pixelated; image-rendering: crisp-edges; cursor: grab; }
+  canvas.drag { cursor: grabbing; }
+  #hud { position: fixed; left: 10px; top: 10px; font: 12px/1.45 ui-monospace, Consolas, monospace; color: #e8e4d8;
+         background: rgba(14, 15, 19, .72); padding: 7px 10px; border-radius: 4px; white-space: pre; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">loading…</div>
+<script>
+'use strict';
+// ───────────────────────── config ─────────────────────────
+const N = 40;                           // map is N x N tiles
+const XR = [[12, 14], [26, 28]];        // east-west roads: row ranges (3 wide, middle row carries the lane line)
+const YR = [[14, 16], [28, 30]];        // north-south roads: column ranges
+const BX = [[0, 12], [18, 26], [32, 39]];
+const BY = [[0, 10], [16, 24], [30, 39]];
+const RAIL_ROW = 20;
+const TINTS = [null, null, null, null, null, 45, 45, 140, 200, 20];   // hue targets for the ochre wall ramp (null = original ochre; 45 = cream, 20 = faded salmon)
+
+let TW = 72, TH = 36;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const hud = document.getElementById('hud');
+const cam = { x: 0, y: 0, zoom: 2 };
+let tod = 0;                             // 0 day, 1 dusk, 2 night
+const TOD_TINT = ['#ffffff', '#f0b98c', '#5a6aa8'];
+const stats = { sprites: 0, spritesWanted: 0, objects: 0, vehicles: 0, cables: 0, poles: 0, fps: 0, errors: [] };
+window.__stats = stats;
+
+// ───────────────────────── utils ─────────────────────────
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const R = rng(20241111);
+const pick = (a) => a[Math.floor(R() * a.length)];
+const rr = (a, b) => a + R() * (b - a);
+const proj = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2];
+function loadImg(src) { return new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => { stats.errors.push('img ' + src); res(null); }; i.src = src; }); }
+function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; return [c, x]; }
+function px(x, X, Y, w, h, col) { x.fillStyle = col; x.fillRect(X, Y, w, h); }
+function rgb2hsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let h = 0, s = 0; const l = (mx + mn) / 2; if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; } return [h, s, l]; }
+function hsl2rgb(h, s, l) { h /= 360; const f = (p, q, t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }; if (!s) return [l * 255, l * 255, l * 255]; const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; return [f(p, q, h + 1 / 3) * 255, f(p, q, h) * 255, f(p, q, h - 1 / 3) * 255]; }
+function tintImage(img, hue) {                // recolour the ochre wall ramp only (hue 28–52°, saturated)
+  const [c, x] = mk(img.width, img.height); x.drawImage(img, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), a = d.data;
+  for (let i = 0; i < a.length; i += 4) {
+    if (!a[i + 3]) continue;
+    const [h, s, l] = rgb2hsl(a[i], a[i + 1], a[i + 2]);
+    if (h >= 28 && h <= 52 && s > 0.35 && l > 0.25) {
+      const ns = hue === 45 ? s * 0.4 : s * 0.42;                // pastel: Hanoi paint is chalky, never neon
+      const nl = hue === 45 ? Math.min(.9, l + .2) : Math.min(.85, l + .1);
+      const [r, g, b] = hsl2rgb(hue === 45 ? 48 : hue, ns, nl);
+      a[i] = r; a[i + 1] = g; a[i + 2] = b;
+    }
+  }
+  x.putImageData(d, 0, 0); return c;
+}
+
+// ───────────────────────── assets ─────────────────────────
+const A = { tiles: {}, spr: {}, tinted: {}, man: null };
+async function loadAssets() {
+  const man = await (await fetch('assets/manifest.json')).json(); A.man = man;
+  TW = man.tile.w; TH = man.tile.h;
+  const tl = await (await fetch('assets/tiles/tiles.json')).json();
+  await Promise.all(tl.order.map(async (n) => { A.tiles[n] = await loadImg(`assets/tiles/${n}.png`); }));
+  const ids = Object.keys(man.sprites); stats.spritesWanted = ids.length;
+  await Promise.all(ids.map(async (id) => { const im = await loadImg('assets/' + man.sprites[id].file); if (im) { A.spr[id] = im; stats.sprites++; } }));
+}
+function groups(kind) { const g = {}; for (const [id, s] of Object.entries(A.man.sprites)) if (s.kind === kind && A.spr[id]) (g[s.group] ||= {})[s.facing] = id; return g; }
+function sprite(id, tint) {
+  if (!tint) return A.spr[id];
+  const k = id + '|' + tint; return A.tinted[k] ||= tintImage(A.spr[id], tint);
+}
+
+// ───────────────────────── world ─────────────────────────
+const W = { ground: [], objs: [], cables: [], vehicles: [], occ: [], train: null };
+const inR = (v, r) => v >= r[0] && v <= r[1];
+function roadKind(x, y) {
+  const xr = XR.find((r) => inR(y, r)), yr = YR.find((r) => inR(x, r));
+  if (xr && yr) return 'int'; if (xr) return y === xr[0] + 1 ? 'xmid' : 'x'; if (yr) return x === yr[0] + 1 ? 'ymid' : 'y'; return null;
+}
+const isRoad = (x, y) => x >= 0 && y >= 0 && x < N && y < N && roadKind(x, y) !== null;
+function nearRoad(x, y) { return isRoad(x + 1, y) || isRoad(x - 1, y) || isRoad(x, y + 1) || isRoad(x, y - 1); }
+const blockOf = (x, y) => { const i = BX.findIndex((r) => inR(x, r)), j = BY.findIndex((r) => inR(y, r)); return i < 0 || j < 0 ? null : [i, j]; };
+
+function genGround() {
+  for (let y = 0; y < N; y++) { W.ground[y] = []; W.occ[y] = []; for (let x = 0; x < N; x++) { W.occ[y][x] = false;
+    const k = roadKind(x, y); let t;
+    if (k === 'xmid') t = 'road_lane_x'; else if (k === 'ymid') t = 'road_lane_y'; else if (k) t = (x + y) % 11 === 0 ? 'road_worn' : 'road';
+    else if (nearRoad(x, y)) t = 'sidewalk'; else t = 'dirt_alley';
+    W.ground[y][x] = t; } }
+  // lake block (2,0)
+  for (let y = 0; y <= 10; y++) for (let x = 32; x <= 39; x++) W.ground[y][x] = 'grass';
+  for (let y = 1; y <= 9; y++) for (let x = 33; x <= 39; x++) {
+    const edge = x === 33 || x === 39 || y === 1 || y === 9;
+    W.ground[y][x] = edge ? 'paving_brick' : 'water';
+  }
+  for (const [x, y] of [[34, 2], [38, 2], [34, 8], [38, 8]]) W.ground[y][x] = 'paving_brick';
+  for (const [x, y] of [[36, 5], [37, 5], [36, 4], [37, 4]]) W.ground[y][x] = 'grass';
+  for (const x of [34, 35]) W.ground[5][x] = 'paving_brick';                     // bridge to the island
+  for (let y = 0; y <= 10; y++) for (let x = 32; x <= 39; x++) W.occ[y][x] = true;
+  // plaza block (1,1)
+  for (let y = 16; y <= 24; y++) for (let x = 18; x <= 26; x++) { W.ground[y][x] = 'paving_brick'; W.occ[y][x] = true; }
+  // train street block (0,1): rail alley with café strips
+  for (let x = 0; x <= 17; x++) { const k = roadKind(x, RAIL_ROW); W.ground[RAIL_ROW][x] = 'rail_x'; if (k !== null || x === 13 || x === 17) W.ground[RAIL_ROW][x] = 'rail_x'; }
+  for (let x = 0; x <= 12; x++) { W.ground[RAIL_ROW - 1][x] = 'sidewalk'; W.ground[RAIL_ROW + 1][x] = 'sidewalk'; for (const y of [19, 20, 21]) W.occ[y][x] = true; }
+}
+
+function addObj(o) { W.objs.push(o); return o; }
+function placeBuilding(group, facing, gx, gy, tint) {
+  const id = groups('building')[group][facing]; const m = A.man.sprites[id]; const [w, d] = m.fp;
+  for (let y = gy; y < gy + d; y++) for (let x = gx; x < gx + w; x++) { if (x < 0 || y < 0 || x >= N || y >= N || W.occ[y][x]) return false; }
+  for (let y = gy; y < gy + d; y++) for (let x = gx; x < gx + w; x++) W.occ[y][x] = true;
+  if (group !== 'th_tile' && group !== 'th_flat_lemon') tint = null;     // only the ochre houses get re-tinted; the others are already coloured
+  addObj({ t: 'b', id, tint, gx, gy, w, d, key: gx + w + gy + d });
+  return true;
+}
+function genBuildings() {
+  const G = groups('building'); const names = Object.keys(G).filter((g) => G[g].front_L && G[g].back_L && G[g].front_L_m && G[g].back_L_m);
+  if (!names.length) return;
+  const weight = () => pick(names);
+  for (let bi = 0; bi < BX.length; bi++) for (let bj = 0; bj < BY.length; bj++) {
+    if ((bi === 2 && bj === 0) || (bi === 1 && bj === 1)) continue;          // lake, plaza
+    const [x0, x1] = BX[bi], [y0, y1] = BY[bj], train = bi === 0 && bj === 1;
+    const roadTop = y0 > 0, roadBottom = y1 < N - 1, roadLeft = x0 > 0, roadRight = x1 < N - 1;
+    const T = () => pick(TINTS);
+    for (let x = x0; x <= x1; x++) {
+      if (roadBottom || train) placeBuilding(weight(), 'front_L', x, y1 - 2, T());
+      placeBuilding(weight(), 'back_L', x, y0, T());
+    }
+    if (!train) for (let y = y0 + 3; y <= y1 - 3; y++) {
+      placeBuilding(weight(), 'back_L_m', x0, y, T());
+      if (roadRight) placeBuilding(weight(), 'front_L_m', x1 - 2, y, T());
+    }
+  }
+}
+
+// ── trees, poles, props (procedural sprites) ──
+const PROC = { trees: [], poles: null, stool: [], lantern: null };
+function makeTree(r, seed) {
+  const rn = rng(seed), W_ = r * 2 + 6, H_ = r * 2 + 26; const [c, x] = mk(W_, H_);
+  const cx = W_ >> 1, base = H_ - 2, topY = r + 2;
+  px(x, cx - 1, topY + r, 3, base - topY - r, '#4a3426'); px(x, cx + 1, topY + r, 1, base - topY - r, '#382619');
+  const cols = ['#2d5a30', '#3a6b34', '#4a7d3a', '#5f9444'];
+  for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) {
+    const dd = Math.hypot(xx * 1.0, yy * 1.15); if (dd > r) continue;
+    const light = (-xx - yy) / (r * 2.2) + (rn() - .5) * .35; const ci = light > .32 ? 3 : light > .05 ? 2 : light > -.25 ? 1 : 0;
+    px(x, cx + xx, topY + yy, 1, 1, dd > r - 1.2 ? '#244a28' : cols[ci]);
+  }
+  return { c, ox: cx, oy: base };
+}
+function makePole() { const [c, x] = mk(15, 70); const cx = 7;
+  px(x, cx, 6, 2, 62, '#8b8b86'); px(x, cx + 1, 6, 1, 62, '#6e6e6a'); px(x, 1, 10, 13, 1, '#55534f'); px(x, 3, 20, 9, 1, '#55534f'); px(x, 1, 9, 1, 2, '#c9c6bd'); px(x, 13, 9, 1, 2, '#c9c6bd');
+  px(x, cx - 2, 32, 5, 7, '#74746f'); px(x, cx - 2, 32, 5, 1, '#999993');          // transformer can
+  return { c, ox: cx, oy: 68 }; }
+function makeStool(col) { const [c, x] = mk(5, 5); px(x, 0, 1, 5, 4, col); px(x, 0, 1, 5, 1, '#ffffff55'); px(x, 0, 4, 5, 1, '#00000055'); px(x, 0, 0, 1, 1, '#0000'); return { c, ox: 2, oy: 5 }; }
+const VCOL = ['#d93a2b', '#2f62c9', '#e8e2d0', '#23252b', '#e3a82c', '#2f8f59'];
+const SHIRT = ['#e8e2d0', '#3a6bb5', '#c94a3a', '#2f2f33', '#d9a53c', '#5aa56a', '#8a6bb0'];
+const HELM = ['#e8e2d0', '#23252b', '#d9a53c', '#3a6bb5', '#c94a3a', '#4a9a5a'];
+function makeMoto(dir, body, shirt, helm) {
+  const [c, x] = mk(26, 24); const dx = dir[0], dy = dir[1];             // dir: (±1, ±1) in screen px per step (2:1 -> y advances 0.5)
+  const cx = 13, cy = 17; const at = (k, h) => [Math.round(cx + dx * k), Math.round(cy + dy * k / 2 - h)];
+  const put = (k, h, w, hh, col, oy = 0) => { const [X, Y] = at(k, h); px(x, X - (w >> 1), Y - hh + 1 + oy, w, hh, col); };
+  put(0, 0, 14, 1, '#00000030', 1);
+  for (const k of [-6, 6]) { put(k, 0, 3, 4, '#17181c'); put(k, 0, 1, 2, '#555a63', -1); }
+  put(0, 3, 10, 2, body); put(-2, 5, 4, 2, body); put(4, 4, 3, 3, '#8a8f98');                     // frame, fuel tank, front fork
+  put(-1, 6, 4, 6, shirt); put(-1, 11, 4, 4, helm); put(-1, 10, 3, 1, '#c9966b'); put(-3, 5, 3, 3, shirt);
+  return c;
+}
+const MOTO = {};
+// returns {c, ox, oy}: AI-drawn sprite for this heading when the sheet exists, otherwise the code-drawn fallback
+function motoSprite(dirKey, i) {
+  const id = `moto_${i % 6 + 1}_${dirKey}`;
+  if (A.spr[id]) { const m = A.man.sprites[id]; return { c: A.spr[id], ox: m.pivot[0], oy: m.pivot[1] }; }
+  const k = dirKey + i; return MOTO[k] ||= { c: makeMoto({ '+x': [1, 1], '-x': [-1, -1], '+y': [-1, 1], '-y': [1, -1] }[dirKey], VCOL[i % VCOL.length], SHIRT[(i * 3 + 1) % SHIRT.length], HELM[(i * 5 + 2) % HELM.length]), ox: 13, oy: 18 };
+}
+
+function genProps() {
+  PROC.trees = [makeTree(11, 1), makeTree(14, 2), makeTree(9, 3), makeTree(17, 4)];
+  PROC.pole = makePole(); PROC.stool = ['#1e5be6', '#d92b2b', '#1e9e4a'].map(makeStool);
+  const free = (x, y) => x >= 0 && y >= 0 && x < N && y < N && !W.occ[y][x];
+  // utility poles on sidewalks every 5 tiles along roads
+  const poles = [];
+  for (const xr of XR) for (let x = 2; x < N - 1; x += 5) for (const [row, s] of [[xr[0] - 1, 0], [xr[1] + 1, 1]]) if ((x + s * 2) % 5 === 2 && W.ground[row][x] === 'sidewalk' && !W.occ[row][x]) poles.push({ x, y: row, axis: 'x', side: s });
+  for (const yr of YR) for (let y = 2; y < N - 1; y += 5) for (const [col, s] of [[yr[0] - 1, 0], [yr[1] + 1, 1]]) if ((y + s * 2) % 5 === 2 && W.ground[y][col] === 'sidewalk' && !W.occ[y][col]) poles.push({ x: col, y, axis: 'y', side: s });
+  for (const p of poles) { addObj({ t: 'p', c: PROC.pole.c, ox: PROC.pole.ox, oy: PROC.pole.oy, gx: p.x + .5, gy: p.y + .5, key: p.x + p.y + 1 }); }
+  stats.poles = poles.length; W.poles = poles;
+  // trees: lake ring, plaza corners, courtyards, sparse street trees
+  const trees = [];
+  for (let y = 0; y <= 10; y++) for (let x = 32; x <= 39; x++) if (W.ground[y][x] === 'grass' && R() < .3 && !(x >= 36 && x <= 37 && y >= 4 && y <= 5)) trees.push([x, y]);
+  const plazaSmall = [[19, 21], [25, 21], [19, 23], [25, 23], [22, 24], [26, 17], [18, 17]];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (W.ground[y][x] === 'dirt_alley' && free(x, y) && R() < .12) trees.push([x, y]);
+  const small = [...plazaSmall];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (W.ground[y][x] === 'sidewalk' && free(x, y) && !poles.some((p) => Math.abs(p.x - x) + Math.abs(p.y - y) < 2) && (x * 7 + y * 13) % 9 === 0 && !(y >= 19 && y <= 21 && x <= 17)) small.push([x, y]);
+  const TG = groups('tree'), bigIds = Object.values(TG).map((g) => g.none).filter((id) => id && id.startsWith('tree_')), smallIds = Object.values(TG).map((g) => g.none).filter((id) => id && id.startsWith('treeS_'));
+  const placeTree = (x, y, ids) => { if (ids.length) { const id = pick(ids), m = A.man.sprites[id]; addObj({ t: 't', c: A.spr[id], ox: m.pivot[0], oy: m.pivot[1], gx: x + rr(.3, .7), gy: y + rr(.3, .7), key: x + y + 1 }); }
+    else { const tr = pick(PROC.trees); addObj({ t: 't', c: tr.c, ox: tr.ox, oy: tr.oy, gx: x + rr(.3, .7), gy: y + rr(.3, .7), key: x + y + 1 }); } };
+  for (const [x, y] of trees) placeTree(x, y, bigIds);
+  for (const [x, y] of small) placeTree(x, y, smallIds);
+  // café stools + low tables along the train street and some shopfronts
+  const stoolSpots = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (W.ground[y][x] === 'sidewalk' && free(x, y) && R() < .035) stoolSpots.push([x, y]);
+  for (const [x, y] of stoolSpots) { const n = 2 + Math.floor(R() * 3); for (let i = 0; i < n; i++) addObj({ t: 's', c: pick(PROC.stool).c, gx: x + rr(.15, .85), gy: y + rr(.15, .85), ox: 2, oy: 5, key: x + y + 1 }); }
+  // parked motorbikes (static) on sidewalks
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (W.ground[y][x] === 'sidewalk' && free(x, y) && R() < .05) {
+    const dir = pick(['+x', '+y']); for (let i = 0; i < 2 + Math.floor(R() * 3); i++) { const ms = motoSprite(dir, Math.floor(R() * 6)); addObj({ t: 'm', c: ms.c, gx: x + .2 + i * .22, gy: y + .5, ox: ms.ox, oy: ms.oy, key: x + y + 1 + i * .01 }); } }
+  // AI-drawn street props (props sheet 1)
+  const putProp = (n, gx, gy, lift = 0) => { const id = 'prop_' + n; if (!A.spr[id]) return; const m = A.man.sprites[id]; addObj({ t: 'q', c: A.spr[id], ox: m.pivot[0], oy: m.pivot[1] + lift, gx, gy, key: gx + gy }); };
+  for (let x = 1; x <= 12; x += 2) for (const row of [RAIL_ROW - 1, RAIL_ROW + 1]) if (R() < .85) putProp('cafe_set', x + rr(.3, .7), row + rr(.3, .7));
+  const offAlley = (x, y) => !(y >= RAIL_ROW - 1 && y <= RAIL_ROW + 1 && x <= 17);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (W.ground[y][x] === 'sidewalk' && free(x, y) && offAlley(x, y)) {
+    const r = R(), gx = x + rr(.3, .7), gy = y + rr(.3, .7);
+    if (r < .018) putProp('pho_stall', gx, gy); else if (r < .036) putProp('banhmi_cart', gx, gy); else if (r < .054) putProp('umbrella_stall', gx, gy);
+    else if (r < .084) putProp('moto_row', gx, gy); else if (r < .10) putProp('xichlo', gx, gy); else if (r < .125) putProp('bin_flag', gx, gy); }
+  for (const [x, y] of [[20, 22], [24, 22], [21, 19]]) putProp(pick(['pho_stall', 'banhmi_cart', 'umbrella_stall']), x + .5, y + .5);
+  // blade shop signs hanging off the front faces of the houses
+  for (const o of [...W.objs]) if (o.t === 'b' && A.man.sprites[o.id].kind === 'building' && /front/.test(A.man.sprites[o.id].facing || '') && R() < .55) {
+    const left = !/_m$/.test(A.man.sprites[o.id].facing); const gx = left ? o.gx + .75 : o.gx + o.w, gy = left ? o.gy + o.d : o.gy + .75;
+    const id = 'prop_blade_sign'; if (A.spr[id]) { const m = A.man.sprites[id]; addObj({ t: 'q', c: A.spr[id], ox: left ? m.pivot[0] : m.size ? m.size[0] - m.pivot[0] : m.pivot[0], oy: m.pivot[1] + 46, gx, gy, key: o.key + .01, flip: !left }); } }
+  // gate / pavilion fallbacks when no sprite: simple iso boxes
+  const L = groups('landmark');
+  if (L.gate) { const id = L.gate.front_L; addObj({ t: 'b', id, tint: null, gx: 20, gy: 17, w: 4, d: 1, key: 20 + 4 + 17 + 1 }); }
+  else addObj({ t: 'box', gx: 20, gy: 16, w: 5, d: 2, h: 34, col: ['#a0674a', '#7d4a35', '#b98a68'], arch: true, key: 20 + 5 + 16 + 2 });
+  if (!L.tower) addObj({ t: 'box', gx: 36, gy: 4, w: 1, d: 1, h: 26, col: ['#8b8f87', '#6e7269', '#a5a99f'], key: 36 + 1 + 4 + 1 });
+  addObj({ t: 'box', gx: 33, gy: 5, w: 2, d: 1, h: 2, col: ['#b83a2e', '#8a2b22', '#d4503f'], key: 33 + 2 + 5 + 1 - .5 }); // red Thê Húc bridge deck
+}
+
+// ── cables ──
+function poleTop(p) { const [sx, sy] = proj(p.x + .5, p.y + .5); return [sx, sy - 60 + 3 * 0]; }
+function genCables() {
+  const P = W.poles; const same = (a, b) => a.axis === b.axis && a.side === b.side && (a.axis === 'x' ? a.y === b.y : a.x === b.x);
+  for (const a of P) { let best = null, bd = 1e9;
+    for (const b of P) { if (!same(a, b)) continue; const d = a.axis === 'x' ? b.x - a.x : b.y - a.y; if (d > 0 && d < bd) { bd = d; best = b; } }
+    if (best && bd <= 6) for (let s = 0; s < 4; s++) W.cables.push({ a, b: best, off: s, kind: 'run' });
+    // cross-road pairs
+    for (const b of P) if (a.axis === b.axis && a.side === 0 && b.side === 1 && (a.axis === 'x' ? a.x === b.x : a.y === b.y)) for (let s = 0; s < 2; s++) W.cables.push({ a, b, off: s, kind: 'cross' });
+  }
+  // lantern strings across the train street
+  for (let x = 2; x <= 12; x += 2) W.cables.push({ pa: [x + .5, RAIL_ROW - .5], pb: [x + .5, RAIL_ROW + 1.5], h: 24, kind: 'lantern', sag: 3 });
+  stats.cables = W.cables.length;
+}
+function drawCable(c, ox, oy) {
+  let A_, B_, sag, dyoff = 0, col = '#16171b';
+  if (c.kind === 'lantern') { A_ = proj(c.pa[0], c.pa[1]); A_ = [A_[0], A_[1] - c.h]; B_ = proj(c.pb[0], c.pb[1]); B_ = [B_[0], B_[1] - c.h]; sag = c.sag * 2; col = '#2b2420'; }
+  else { A_ = poleTop(c.a); B_ = poleTop(c.b); dyoff = c.off * 3 + (c.kind === 'cross' ? 1 : 0); A_[0] += (c.off % 2) * 2 - 1; B_[0] += (c.off % 2) * 2 - 1; A_[1] += dyoff; B_[1] += dyoff; sag = Math.hypot(B_[0] - A_[0], B_[1] - A_[1]) * (c.kind === 'cross' ? .07 : .09); }
+  const n = Math.ceil(Math.hypot(B_[0] - A_[0], B_[1] - A_[1]));
+  ctx.fillStyle = col; let lx = -1e9, ly = -1e9;
+  for (let i = 0; i <= n; i++) { const t = i / n; const X = Math.round(A_[0] + (B_[0] - A_[0]) * t + ox), Y = Math.round(A_[1] + (B_[1] - A_[1]) * t + sag * 4 * t * (1 - t) + oy);
+    if (X !== lx || Y !== ly) { ctx.fillRect(X, Y, 1, 1); lx = X; ly = Y; }
+    if (c.kind === 'lantern' && i % Math.max(6, (n / 7) | 0) === 3) { ctx.fillStyle = i % 2 ? '#e8b030' : '#d23a2a'; ctx.fillRect(X - 1, Y + 1, 3, 4); ctx.fillStyle = '#7a1e14'; ctx.fillRect(X - 1, Y + 4, 3, 1); ctx.fillStyle = col; }
+  }
+}
+function drawTangles(ox, oy) {
+  ctx.fillStyle = '#16171b';
+  for (const p of W.poles) { if (((p.x * 31 + p.y * 17) & 3) !== 0) continue; const [sx, sy] = poleTop(p); const r = rng(p.x * 100 + p.y);
+    for (let i = 0; i < 14; i++) { const a = r() * 6.28; ctx.fillRect(Math.round(sx + Math.cos(a) * 4 * r() + ox), Math.round(sy + 8 + Math.sin(a) * 3 * r() + oy), 1, 1 + (r() > .7)); } }
+}
+
+// ── vehicles ──
+function genVehicles() {
+  const v = W.vehicles;
+  const lane = (kind, r0, n) => { for (let i = 0; i < n; i++) {
+    const fwd = R() < .5, i6 = Math.floor(R() * 6);
+    if (kind === 'x') v.push({ axis: 'x', dir: fwd ? '+x' : '-x', x: rr(0, N), y: fwd ? r0 + rr(1.5, 2.8) : r0 + rr(.2, 1.4), sp: rr(1.1, 2.4) * (fwd ? 1 : -1), i: i6, wob: R() * 6.28 });
+    else v.push({ axis: 'y', dir: fwd ? '+y' : '-y', y: rr(0, N), x: fwd ? r0 + rr(1.5, 2.8) : r0 + rr(.2, 1.4), sp: rr(1.1, 2.4) * (fwd ? 1 : -1), i: i6, wob: R() * 6.28 }); } };
+  for (const r of XR) lane('x', r[0], 22); for (const r of YR) lane('y', r[0], 22);
+  W.train = { x: 2, dir: 1, sp: 1.4, wait: 0 };
+}
+function stepVehicles(dt) {
+  for (const v of W.vehicles) { if (v.axis === 'x') { v.x += v.sp * dt; if (v.x > N + 1) v.x = -1; if (v.x < -1) v.x = N + 1; } else { v.y += v.sp * dt; if (v.y > N + 1) v.y = -1; if (v.y < -1) v.y = N + 1; } }
+  const t = W.train; if (t.wait > 0) { t.wait -= dt; return; }
+  t.x += t.dir * t.sp * dt; if (t.x > 17.5) { t.dir = -1; t.wait = 3; } if (t.x < -4) { t.dir = 1; t.wait = 3; t.x = -4; }
+}
+
+// ── landmarks fallbacks: iso box drawn column-by-column (no antialiasing) ──
+function isoBox(o, ox, oy) {
+  const [Lx, Ly] = proj(o.gx, o.gy + o.d), [Bx, By] = proj(o.gx + o.w, o.gy + o.d), [Rx, Ry] = proj(o.gx + o.w, o.gy), [Tx, Ty] = proj(o.gx, o.gy);
+  const [cl, cr, ct] = o.col;
+  const wl = Bx - Lx, wr = Rx - Bx;
+  for (let i = 0; i < wl; i++) { const yb = Ly + Math.floor(i * (By - Ly) / wl); px(ctx, Lx + i + ox, yb - o.h + oy, 1, o.h, cl); }
+  for (let i = 0; i < wr; i++) { const yb = By + Math.floor(i * (Ry - By) / wr); px(ctx, Bx + i + ox, yb - o.h + oy, 1, o.h, cr); }
+  for (let X = Lx; X <= Rx; X++) { const up = X <= Tx ? Ly + (Ty - Ly) * (X - Lx) / (Tx - Lx || 1) : Ty + (Ry - Ty) * (X - Tx) / (Rx - Tx || 1);
+    const dn = X <= Bx ? Ly + (By - Ly) * (X - Lx) / (Bx - Lx || 1) : By + (Ry - By) * (X - Bx) / (Rx - Bx || 1);
+    px(ctx, X + ox, Math.round(up) - o.h + oy, 1, Math.max(1, Math.round(dn - up)), ct); }
+  if (o.arch) { const cx = Math.round((Lx + Bx) / 2) + ox, base = Math.round((Ly + By) / 2) + oy; px(ctx, cx - 7, base - 16, 14, 16, '#1b1713'); px(ctx, cx - 6, base - 18, 12, 2, '#1b1713'); }
+}
+
+// ───────────────────────── render ─────────────────────────
+let sorted = [];
+function buildDrawList() { sorted = [...W.objs]; }
+function frame(t0, now) {
+  const dt = Math.min(.05, (now - t0) / 1000);
+  stepVehicles(dt);
+  const z = cam.zoom, w = Math.ceil(innerWidth / z), h = Math.ceil(innerHeight / z);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#1b1d23'; ctx.fillRect(0, 0, w, h);
+  const ox = Math.round(w / 2 - cam.x), oy = Math.round(h / 2 - cam.y);
+  // ground
+  for (let s = 0; s < 2 * N - 1; s++) for (let y = 0; y < N; y++) { const x = s - y; if (x < 0 || x >= N) continue;
+    const [sx, sy] = proj(x, y); const X = Math.round(sx - TW / 2 + ox), Y = Math.round(sy + oy);
+    if (X > w || X < -TW || Y > h || Y < -TH) continue; ctx.drawImage(A.tiles[W.ground[y][x]], X, Y); }
+  // dynamic objects → draw list
+  const list = [...sorted];
+  for (const v of W.vehicles) { const sway = v.axis === 'x' ? Math.sin(now / 900 + v.wob) * .05 : 0, swayY = v.axis === 'y' ? Math.sin(now / 900 + v.wob) * .05 : 0;
+    const gx = v.axis === 'x' ? v.x : v.x + swayY, gy = v.axis === 'x' ? v.y + sway : v.y; const ms = motoSprite(v.dir, v.i); list.push({ t: 'v', c: ms.c, ox: ms.ox, oy: ms.oy, gx, gy, key: gx + gy }); }
+  const tr = W.train; if (tr) list.push({ t: 'train', gx: tr.x, gy: RAIL_ROW + .5, key: tr.x + RAIL_ROW + .5 + 1.5 });
+  list.sort((a, b) => a.key - b.key);
+  stats.objects = list.length; stats.vehicles = W.vehicles.length;
+  for (const o of list) {
+    if (o.t === 'b') { const m = A.man.sprites[o.id], im = sprite(o.id, o.tint), [bx, by] = proj(o.gx + o.w, o.gy + o.d); ctx.drawImage(im, Math.round(bx - m.pivot[0] + ox), Math.round(by - m.pivot[1] + oy)); }
+    else if (o.t === 'box') isoBox(o, ox, oy);
+    else if (o.t === 'train') drawTrain(o, ox, oy);
+    else { const [sx, sy] = proj(o.gx, o.gy); ctx.drawImage(o.c, Math.round(sx - (o.ox ?? 0) + ox), Math.round(sy - (o.oy ?? 0) + oy)); }
+  }
+  // overhead layer: cables + tangles
+  for (const c of W.cables) drawCable(c, ox, oy); drawTangles(ox, oy);
+  if (tod) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = TOD_TINT[tod]; ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; }
+  stats.fps = Math.round(1000 / Math.max(1, now - t0));
+  hud.textContent = `Hà Nội Pixel Map  ${N}x${N}  tile ${TW}x${TH}\nsprites ${stats.sprites}/${stats.spritesWanted}  objs ${stats.objects}  poles ${stats.poles}  cables ${stats.cables}\nzoom ${cam.zoom}x  fps ${stats.fps}  [drag/WASD pan · wheel zoom · T time of day · H hide]`;
+}
+function drawTrain(o, ox, oy) {                                      // placeholder loco + 2 carriages (blue/white/yellow stripe)
+  for (let i = 0; i < 3; i++) { const gx = o.gx - i * 2.4; const [sx, sy] = proj(gx, o.gy);
+    const body = (i === 0) ? ['#2f5fa8', '#244a85', '#3b72c4'] : ['#e8e4d8', '#c9c5b8', '#f4f1e8'];
+    isoBox({ gx: gx - 1, gy: o.gy - .35, w: 2.2, d: .7, h: 20, col: body }, ox, oy);
+    px(ctx, Math.round(sx + ox - 14), Math.round(sy + oy - 10), 28, 2, '#e3b53a'); }
+}
+
+// ───────────────────────── input & boot ─────────────────────────
+let drag = null; const keys = new Set();
+cv.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; cv.classList.add('drag'); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', (e) => { if (drag) { cam.x = drag.cx - (e.clientX - drag.x) / cam.zoom; cam.y = drag.cy - (e.clientY - drag.y) / cam.zoom; } });
+cv.addEventListener('pointerup', () => { drag = null; cv.classList.remove('drag'); });
+cv.addEventListener('wheel', (e) => { e.preventDefault(); cam.zoom = Math.max(1, Math.min(5, cam.zoom + (e.deltaY < 0 ? 1 : -1))); }, { passive: false });
+addEventListener('keydown', (e) => { keys.add(e.key.toLowerCase()); if (e.key === 't' || e.key === 'T') tod = (tod + 1) % 3; if (e.key === 'h' || e.key === 'H') hud.style.display = hud.style.display === 'none' ? '' : 'none'; });
+addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+window.setCam = (x, y, z) => { cam.x = x; cam.y = y; if (z) cam.zoom = z; };
+window.setTod = (v) => { tod = v; };
+window.gridToWorld = (gx, gy) => proj(gx, gy);
+window.addEventListener('error', (e) => stats.errors.push(String(e.message)));
+
+(async function boot() {
+  await loadAssets(); genGround(); genBuildings(); genProps(); genCables(); genVehicles(); buildDrawList();
+  const [cx, cy] = proj(N / 2, N / 2); cam.x = cx; cam.y = cy; window.__ready = true;
+  let last = performance.now();
+  (function loop(now) {
+    const s = 9 / cam.zoom * 4; if (keys.has('w') || keys.has('arrowup')) cam.y -= s; if (keys.has('s') || keys.has('arrowdown')) cam.y += s; if (keys.has('a') || keys.has('arrowleft')) cam.x -= s; if (keys.has('d') || keys.has('arrowright')) cam.x += s;
+    try { frame(last, now); } catch (e) { stats.errors.push(String(e.stack || e)); hud.textContent = 'error: ' + e.message; return; }
+    last = now; requestAnimationFrame(loop);
+  })(last);
+})();
+</script>
+</body>
+</html>

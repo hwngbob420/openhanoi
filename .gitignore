@@ -1,0 +1,6 @@
+/builds/
+__pycache__/
+*.pyc
+.claude/
+*.key
+.env
