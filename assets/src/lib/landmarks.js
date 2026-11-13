@@ -6,7 +6,7 @@ function brickFace(I, F, a0, a1, z0, z1, base, rnd, wu, du) {
   const fq = (x0, x1, y0, y1, col) => F === 'R' ? I.fR(wu, x0, x1, y0, y1, col) : I.fL(du, x0, x1, y0, y1, col)
   fq(a0, a1, z0, z1, base)
   for (let z = z0 + 3; z < z1; z += 4) fq(a0, a1, z, z + 1, dark(base, 0.22))
-  for (let z = z0; z < z1; z += 4) for (let a = a0 + ((z / 4) % 2) * 5; a < a1; a += 10) if (rnd() < 0.5) fq(a, a + 9, z + 1, z + 3, rnd() < 0.5 ? lite(base, 0.1) : dark(base, 0.08))
+  for (let z = z0; z < z1; z += 4) for (let a = a0 + ((z / 4) % 2) * 5; a < a1; a += 10) if (rnd() < 0.5) fq(a, Math.min(a + 9, a1), z + 1, z + 3, rnd() < 0.5 ? lite(base, 0.1) : dark(base, 0.08))
 }
 function hipRoof(I, x0, y0, x1, y1, z, rise, near1, near2, far, line) {
   const i = (y1 - y0) / 2, ym = (y0 + y1) / 2, A = [x0 + i, ym, z + rise], B = [x1 - i, ym, z + rise]
@@ -35,14 +35,24 @@ DRAW.gate = (cv, s, I) => {
   }
   const OPEN = mix(INK, TCR[1], 0.3)
   arch(du / 2, 54, 38, 70, lite(f.right, 0.35)); arch(du / 2, 49, 38, 66, OPEN)                           // vòm giữa (viền đá sáng)
-  {                                                  // nhìn xuyên cổng: thấy ánh sáng phía bên kia (cổng đi qua được, không phải tường kín)
-    const far = new Cv(cv.w, cv.h), I2 = new Iso(far, I.ox, I.oy), pts = [[0, du / 2 + 49, 0], [0, du / 2 + 49, 38]]
-    for (let t = 0; t <= 12; t++) { const a = t / 12 * Math.PI; pts.push([0, du / 2 + 49 * Math.cos(a), 38 + 28 * Math.sin(a)]) }
-    pts.push([0, du / 2 - 49, 38], [0, du / 2 - 49, 0])
-    far.poly(pts.map((p) => I2.P(...p)), '#f2e2b8')
-    for (let y = 0; y < cv.h; y++) for (let x = 0; x < cv.w; x++) if (far.get(x, y) && cv.get(x, y) === OPEN) cv.set(x, y, y % 2 && x % 3 === 0 ? '#e6d3a4' : '#f2e2b8')
-  }
   for (const yc of [36, du - 36]) { arch(yc, 20, 22, 44, lite(f.right, 0.3)); arch(yc, 16, 22, 40, OPEN) }
+  {                                                  // lòng cổng: nền đường lát, thấy ánh sáng và phố bên kia qua đầu cổng bên kia (đi bộ xuyên qua được cả 3 ô)
+    const holes = [[du / 2, 49, 38, 66], [36, 16, 22, 40], [du - 36, 16, 22, 40]], far = new Cv(cv.w, cv.h), I2 = new Iso(far, I.ox, I.oy)
+    for (const [yc, hw, zs, zt] of holes) {
+      const pts = [[0, yc + hw, 0], [0, yc + hw, zs]]
+      for (let t = 0; t <= 12; t++) { const a = t / 12 * Math.PI; pts.push([0, yc + hw * Math.cos(a), zs + (zt - zs) * Math.sin(a)]) }
+      pts.push([0, yc - hw, zs], [0, yc - hw, 0]); far.poly(pts.map((p) => I2.P(...p)), '#fff')
+    }
+    const farBase = I.P(0, du / 2, 0)[1], PAV = ['#b8714a', '#a8643f']
+    for (let y = 0; y < cv.h; y++) for (let x = 0; x < cv.w; x++) {
+      if (cv.get(x, y) !== OPEN) continue
+      const X = (2 * (y - I.oy) + (x - I.ox)) / 2                                   // giao điểm tia nhìn với mặt đất
+      const Yf = X - (x - I.ox)
+      if (X >= 0 && X <= wu && holes.some(([yc, hw]) => Yf >= yc - hw && Yf <= yc + hw)) { cv.set(x, y, (x + y) % 2 ? PAV[0] : PAV[1]); continue }       // nền đường trong lòng cổng
+      if (far.get(x, y)) cv.set(x, y, y > farBase - 6 ? PAV[0] : mix('#f2e2b8', '#c9b48a', Math.max(0, Math.min(1, (farBase - 6 - y) / 70)) * 0.6))
+      else cv.set(x, y, mix(OPEN, INK, 0.25))
+    }
+  }
   I.fR(wu, 0, du, Hb - 2, Hb + 2, lite(f.right, 0.2)); I.fL(du, 0, wu, Hb - 2, Hb + 2, lite(f.left, 0.25))
   // lầu trên
   const L = 4, U = 26, y0 = 84, y1 = du - 84, wc = '#eadfc6', wf = faceCols(wc)

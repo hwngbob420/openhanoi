@@ -207,7 +207,8 @@ const World = (() => {
 
   function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
     const gx = 24, gy = CORRY[PED][0]
-    mark(gx, gy, 1, 7, false); for (const y of [gy, gy + 1, gy + 5, gy + 6]) blk[y][gx] = true
+    mark(gx, gy, 1, 7, false)
+    for (const dy of [0.22, 1.78, 5.22, 6.78]) colliders.push({ x: gx + 0.5, y: gy + dy, r: 0.24 })      // chỉ các trụ tường chặn: đi bộ qua được cả 3 cổng (giữa + 2 ô nhỏ)
     sprite('lm_gate', gx, gy)
     pois.push({ id: 'gate', label: 'Ô Quan Chưởng', gx: gx + 2.2, gy: gy + 3.5, r: 2.6 })
   }
@@ -508,39 +509,19 @@ const World = (() => {
     if (actx) { if (actx.state === 'suspended') actx.resume(); return }
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); const n = actx.sampleRate * 3, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < n; i++) { l = l * 0.98 + (Math.random() * 2 - 1) * 0.02; d[i] = l * 6 } noiseBuf = b } catch (e) { actx = null }
   }
-  function thunder(dist, vol) {
+  function thunder(dist, vol) {                                // sấm rền: tiếng nổ đục rồi lăn dài, nhiều đợt, trễ theo khoảng cách
     if (!actx || actx.state !== 'running' || !noiseBuf) return
-    const t0 = actx.currentTime + 0.02 + dist * 0.9
-    const src = actx.createBufferSource(); src.buffer = noiseBuf; const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(900 - dist * 600, t0); lp.frequency.exponentialRampToValueAtTime(70, t0 + 2.2)
-    const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.9 * vol * (1 - dist * 0.5), t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.6)
-    src.connect(lp); lp.connect(g); g.connect(actx.destination); src.start(t0, Math.random() * 0.3); src.stop(t0 + 2.7)
+    const t0 = actx.currentTime + 0.05 + dist * 1.3
+    const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(560 - dist * 280, t0); lp.frequency.exponentialRampToValueAtTime(55, t0 + 4.2)
+    const g = actx.createGain(), v = vol * (1 - dist * 0.45), ramp = (a, t) => g.gain.exponentialRampToValueAtTime(Math.max(0.0001, a * v), t0 + t)
+    g.gain.setValueAtTime(0.0001, t0); ramp(0.8, 0.1); ramp(0.3, 0.45); ramp(0.75, 0.85); ramp(0.22, 1.4); ramp(0.5, 1.9); ramp(0.15, 2.7); ramp(0.0001, 4.3)
+    src.connect(lp); lp.connect(g); g.connect(actx.destination); src.start(t0, Math.random() * 1.5); src.stop(t0 + 4.4)
   }
-  function bolt(x0, y0, x1, y1, rough, out) {
-    if (Math.hypot(x1 - x0, y1 - y0) < 7) { out.push([x0, y0, x1, y1]); return }
-    const mx = (x0 + x1) / 2 + (Math.random() - 0.5) * rough, my = (y0 + y1) / 2 + (Math.random() - 0.5) * rough * 0.3
-    bolt(x0, y0, mx, my, rough / 2, out); bolt(mx, my, x1, y1, rough / 2, out)
-  }
-  function strike() {
-    const V = Game.view || { w: innerWidth, h: innerHeight, ox: 0, oy: 0 }
-    const tall = statSorted.filter((o) => /^(tower_|t_bang|t_phuong|lm_)/.test(o.name || '') && o.dx + V.ox > 20 && o.dx + o.w + V.ox < V.w - 20 && o.dy + V.oy > -20 && o.dy + V.oy < V.h * 0.7)
-    let tx, ty
-    if (tall.length && Math.random() < 0.75) { const o = tall[Math.floor(Math.random() * tall.length)]; tx = o.dx + o.w / 2 + V.ox; ty = o.dy + Math.min(o.h * 0.2, 30) + V.oy } else { tx = V.w * (0.15 + Math.random() * 0.7); ty = V.h * (0.45 + Math.random() * 0.4) }
-    const sx = tx + (Math.random() - 0.5) * V.w * 0.25, segs = []
-    bolt(sx, -10, tx, ty, 70, segs)
-    for (let i = 0, nf = 2 + Math.floor(Math.random() * 3); i < nf; i++) { const s0 = segs[Math.floor(segs.length * (0.2 + Math.random() * 0.5))]; if (s0) bolt(s0[2], s0[3], s0[2] + (Math.random() - 0.5) * 120, s0[3] + 40 + Math.random() * 70, 34, segs) }
-    const near = Math.random() < 0.6, pulses = [[0, 1], [0.08, 0.4], [0.17, 0.95], [0.3, 0.3]]
-    sky.bolts.push({ segs, tx, ty, t: 0, life: 0.45, pulses })
-    if (near) sky.shake = Math.max(sky.shake, 4)
-    thunder(near ? 0.05 : 0.5 + Math.random() * 0.5, near ? 1.6 : 1.1)
-  }
-  function drawBolts() {
-    for (const b of sky.bolts) {
-      const a = b.t < 0.3 ? (Math.floor(b.t * 40) % 2 ? 0.6 : 1) : Math.max(0, 1 - (b.t - 0.3) / 0.15)
-      ctx.lineCap = 'round'
-      ctx.strokeStyle = `rgba(150,180,255,${0.3 * a})`; ctx.lineWidth = 6; ctx.beginPath(); for (const [x0, y0, x1, y1] of b.segs) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1) } ctx.stroke()
-      ctx.strokeStyle = `rgba(245,248,255,${a})`; ctx.lineWidth = 2; ctx.beginPath(); for (const [x0, y0, x1, y1] of b.segs) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1) } ctx.stroke()
-      const g = ctx.createRadialGradient(b.tx, b.ty, 0, b.tx, b.ty, 46); g.addColorStop(0, `rgba(220,232,255,${0.7 * a})`); g.addColorStop(1, 'rgba(220,232,255,0)'); ctx.fillStyle = g; ctx.fillRect(b.tx - 46, b.ty - 46, 92, 92)
-    }
+  function strike() {                                          // chỉ nháy sáng (vài nhịp) kèm tiếng sấm rền, không vẽ tia sét
+    const near = Math.random() < 0.55, pulses = near ? [[0, 1], [0.1, 0.35], [0.22, 0.9], [0.36, 0.25]] : [[0, 0.7], [0.14, 0.3]]
+    sky.bolts.push({ t: 0, life: 0.5, pulses })
+    thunder(near ? 0.15 + Math.random() * 0.2 : 0.55 + Math.random() * 0.45, near ? 1.5 : 1.1)
   }
   const drops = Array.from({ length: 480 }, () => ({ u: Math.random(), v: Math.random(), s: 0.7 + Math.random() * 0.6 }))
   const ripples = []
@@ -816,8 +797,7 @@ const World = (() => {
     if (shC.width !== w || shC.height !== h) { shC.width = w; shC.height = h }
     ctx.imageSmoothingEnabled = false
     const bg = ctx.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#2c3b57'); bg.addColorStop(1, '#141824'); ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h)
-    let ox = Math.round(w / 2 - cam.x), oy = Math.round(h / 2 - cam.y); if (sky.shake > 0.05) { ox += Math.round((Math.random() - 0.5) * 2 * sky.shake); oy += Math.round((Math.random() - 0.5) * 2 * sky.shake) }
-    Game.view = { w, h, ox, oy }
+    const ox = Math.round(w / 2 - cam.x), oy = Math.round(h / 2 - cam.y); Game.view = { w, h, ox, oy }
     drawSkirt(ox, oy)
     const wf = Math.floor(T / 0.7) & 1
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
@@ -939,7 +919,6 @@ const World = (() => {
     for (const g of glows) { const [sx, sy] = proj(g.gx, g.gy); if (sx + ox < -60 || sx + ox > w + 60 || sy + oy < -60 || sy + oy > h + 80) continue; glowAt(g.gx, g.gy, g.z, g.r, g.c, g.a * (g.always ? 1 : Math.min(1, night * 1.2)), ox, oy) }
     ctx.globalCompositeOperation = 'source-over'
     if (sky.rain > 0.02) drawRain(dt, w, h)
-    drawBolts()
     if (sky.flash > 0.02) { ctx.fillStyle = `rgba(236,242,255,${0.4 * sky.flash})`; ctx.fillRect(0, 0, w, h) }
     const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.4, w / 2, h / 2, Math.max(w, h) * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.14 + 0.12 * night + 0.1 * sky.rain})`)
     ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h)
