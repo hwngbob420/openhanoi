@@ -81,6 +81,7 @@ const Game = (() => {
   // ───── collision ─────
   const PROP_R = { prop_blade_sign: 0, prop_moto_row: 0.55, prop_xichlo: 0.5, prop_cafe_set: 0.35 };
   function buildCollision() {
+    if (world.isBlocked) { colliders = world.colliders; return }
     const { W, N } = world;
     block = Array.from({ length: N }, (_, y) => Array.from({ length: N }, (_, x) => W.ground[y][x] === 'water'));
     const fill = (gx, gy, w, d) => { for (let y = Math.floor(gy); y < Math.ceil(gy + d); y++) for (let x = Math.floor(gx); x < Math.ceil(gx + w); x++) if (x >= 0 && y >= 0 && x < N && y < N) block[y][x] = true; };
@@ -98,7 +99,7 @@ const Game = (() => {
     const N = world.N;
     for (const [dx, dy] of [[-r, -r], [r, -r], [-r, r], [r, r]]) {
       const tx = Math.floor(x + dx), ty = Math.floor(y + dy);
-      if (tx < 0 || ty < 0 || tx >= N || ty >= N || block[ty][tx]) return false;
+      if (tx < 0 || ty < 0 || tx >= N || ty >= N || (world.isBlocked ? world.isBlocked(tx, ty) : block[ty][tx])) return false;
     }
     for (const c of colliders) if (Math.hypot(x - c.x, y - c.y) < r + c.r) return false;
     return true;
@@ -152,7 +153,7 @@ const Game = (() => {
   function pushDrawable(list) {
     if (!sprites) return;
     const p = S.player, fr = p.moving ? Math.floor(p.t * 8) % 4 : 0;
-    list.push({ t: 'pl', c: sprites[p.dir][fr], ox: 8, oy: 26 - (fr & 1), gx: p.gx, gy: p.gy, key: p.gx + p.gy });
+    list.push({ t: 'pl', c: sprites[p.dir][fr], ox: 8, oy: 26 - (fr & 1) + (world.groundZ ? world.groundZ(p.gx, p.gy) : 0), gx: p.gx, gy: p.gy, key: p.gx + p.gy, bb: [p.gx - 0.25, p.gx + 0.25, p.gy - 0.25, p.gy + 0.25] });
   }
   function pointer(e, kind) {
     if (!world || !S.view) return;
@@ -164,7 +165,7 @@ const Game = (() => {
 
   function init(w) {
     world = w; makeDom(); buildSprites(); buildCollision();
-    const [gx, gy] = findSpawn(22.5, 21.5); S.player.gx = gx; S.player.gy = gy;
+    const [gx, gy] = findSpawn(...(world.spawn || [22.5, 21.5])); S.player.gx = gx; S.player.gy = gy;
     const [sx, sy] = world.proj(gx, gy); world.cam.x = sx; world.cam.y = sy - 10;
   }
   function setMode(m) { S.mode = m; S.target = null; if (m === 'free') { promptEl.style.display = 'none'; S.near = null; } toast(m === 'play' ? 'Chế độ chơi' : 'Camera tự do (F để quay lại)', 1400); }
