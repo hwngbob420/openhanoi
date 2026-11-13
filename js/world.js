@@ -422,7 +422,7 @@ const World = (() => {
   const groundZ = (gx, gy) => bridgeT.has(Math.floor(gx) + ',' + Math.floor(gy)) ? 9 : 0
 
   // ───────── giờ trong ngày, thời tiết ─────────
-  const sky = { hour: 15.5, auto: false, speed: 0.06, weather: 'sunny', cloud: 0, rain: 0, storm: 0, wxTimer: 80, autoWx: true, flash: 0, nextFlash: 7 }
+  const sky = { hour: 15.5, auto: false, speed: 0.06, weather: 'sunny', cloud: 0, rain: 0, storm: 0, wxTimer: 80, autoWx: true, flash: 0, nextFlash: 7, fury: false, nextStrike: 3, shake: 0, bolts: [], pulses: [] }
   const WXD = { sunny: [0, 0, 0], cloudy: [1, 0, 0], rain: [1, 1, 0], storm: [1, 1, 1] }
   const WXNAME = { sunny: 'nắng', cloudy: 'nhiều mây', rain: 'mưa', storm: 'mưa giông' }
   const GRADE = [[0, '#3a4880'], [5, '#4a5590'], [6.5, '#eab9a0'], [8, '#fff0dc'], [11, '#ffffff'], [15.5, '#fff2da'], [17.5, '#ffcd98'], [19, '#c68ea4'], [20.5, '#58639c'], [24, '#3a4880']]
@@ -436,8 +436,50 @@ const World = (() => {
     const tg = WXD[sky.weather], k = Math.min(1, dt * 0.5)
     sky.cloud += (tg[0] - sky.cloud) * k; sky.rain += (tg[1] - sky.rain) * k; sky.storm += (tg[2] - sky.storm) * k
     if (sky.autoWx) { sky.wxTimer -= dt; if (sky.wxTimer <= 0) { sky.wxTimer = 70 + Math.random() * 80; const r = Math.random(); sky.weather = r < 0.45 ? 'sunny' : r < 0.7 ? 'cloudy' : r < 0.92 ? 'rain' : 'storm' } }
-    sky.flash = Math.max(0, sky.flash - dt * 2.8)
-    if (sky.storm > 0.6) { sky.nextFlash -= dt; if (sky.nextFlash <= 0) { sky.flash = 1; sky.nextFlash = 5 + Math.random() * 8 } }
+    sky.flash = Math.max(0, sky.flash - dt * (sky.bolts.length ? 6 : 2.8)); sky.shake = Math.max(0, sky.shake - dt * 14)
+    if (sky.fury) { if (sky.rain > 0.3) { sky.nextStrike -= dt; if (sky.nextStrike <= 0) { strike(); sky.nextStrike = 1.8 + Math.random() * 6 } } }
+    else if (sky.storm > 0.6) { sky.nextFlash -= dt; if (sky.nextFlash <= 0) { sky.flash = 1; sky.nextFlash = 5 + Math.random() * 8; thunder(0.9, 1.4) } }
+    for (let i = sky.bolts.length - 1; i >= 0; i--) { const b = sky.bolts[i]; b.t += dt; for (const pu of b.pulses) if (!pu.done && b.t >= pu[0]) { pu.done = true; sky.flash = Math.max(sky.flash, pu[1]) } if (b.t > b.life) sky.bolts.splice(i, 1) }
+  }
+  // sấm: tiếng nổ + ầm ì trễ theo khoảng cách (WebAudio, chỉ bật sau khi người chơi chạm/nhấn phím)
+  let actx = null, noiseBuf = null
+  function audioInit() {
+    if (actx) { if (actx.state === 'suspended') actx.resume(); return }
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); const n = actx.sampleRate * 3, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < n; i++) { l = l * 0.98 + (Math.random() * 2 - 1) * 0.02; d[i] = l * 6 } noiseBuf = b } catch (e) { actx = null }
+  }
+  function thunder(dist, vol) {
+    if (!actx || actx.state !== 'running' || !noiseBuf) return
+    const t0 = actx.currentTime + 0.02 + dist * 0.9
+    const src = actx.createBufferSource(); src.buffer = noiseBuf; const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(900 - dist * 600, t0); lp.frequency.exponentialRampToValueAtTime(70, t0 + 2.2)
+    const g = actx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.9 * vol * (1 - dist * 0.5), t0 + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.6)
+    src.connect(lp); lp.connect(g); g.connect(actx.destination); src.start(t0, Math.random() * 0.3); src.stop(t0 + 2.7)
+  }
+  function bolt(x0, y0, x1, y1, rough, out) {
+    if (Math.hypot(x1 - x0, y1 - y0) < 7) { out.push([x0, y0, x1, y1]); return }
+    const mx = (x0 + x1) / 2 + (Math.random() - 0.5) * rough, my = (y0 + y1) / 2 + (Math.random() - 0.5) * rough * 0.3
+    bolt(x0, y0, mx, my, rough / 2, out); bolt(mx, my, x1, y1, rough / 2, out)
+  }
+  function strike() {
+    const V = Game.view || { w: innerWidth, h: innerHeight, ox: 0, oy: 0 }
+    const tall = statSorted.filter((o) => /^(tower_|t_bang|t_phuong|lm_)/.test(o.name || '') && o.dx + V.ox > 20 && o.dx + o.w + V.ox < V.w - 20 && o.dy + V.oy > -20 && o.dy + V.oy < V.h * 0.7)
+    let tx, ty
+    if (tall.length && Math.random() < 0.75) { const o = tall[Math.floor(Math.random() * tall.length)]; tx = o.dx + o.w / 2 + V.ox; ty = o.dy + Math.min(o.h * 0.2, 30) + V.oy } else { tx = V.w * (0.15 + Math.random() * 0.7); ty = V.h * (0.45 + Math.random() * 0.4) }
+    const sx = tx + (Math.random() - 0.5) * V.w * 0.25, segs = []
+    bolt(sx, -10, tx, ty, 70, segs)
+    for (let i = 0, nf = 2 + Math.floor(Math.random() * 3); i < nf; i++) { const s0 = segs[Math.floor(segs.length * (0.2 + Math.random() * 0.5))]; if (s0) bolt(s0[2], s0[3], s0[2] + (Math.random() - 0.5) * 120, s0[3] + 40 + Math.random() * 70, 34, segs) }
+    const near = Math.random() < 0.6, pulses = [[0, 1], [0.08, 0.4], [0.17, 0.95], [0.3, 0.3]]
+    sky.bolts.push({ segs, tx, ty, t: 0, life: 0.45, pulses })
+    if (near) sky.shake = Math.max(sky.shake, 4)
+    thunder(near ? 0.05 : 0.5 + Math.random() * 0.5, near ? 1.6 : 1.1)
+  }
+  function drawBolts() {
+    for (const b of sky.bolts) {
+      const a = b.t < 0.3 ? (Math.floor(b.t * 40) % 2 ? 0.6 : 1) : Math.max(0, 1 - (b.t - 0.3) / 0.15)
+      ctx.lineCap = 'round'
+      ctx.strokeStyle = `rgba(150,180,255,${0.3 * a})`; ctx.lineWidth = 6; ctx.beginPath(); for (const [x0, y0, x1, y1] of b.segs) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1) } ctx.stroke()
+      ctx.strokeStyle = `rgba(245,248,255,${a})`; ctx.lineWidth = 2; ctx.beginPath(); for (const [x0, y0, x1, y1] of b.segs) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1) } ctx.stroke()
+      const g = ctx.createRadialGradient(b.tx, b.ty, 0, b.tx, b.ty, 46); g.addColorStop(0, `rgba(220,232,255,${0.7 * a})`); g.addColorStop(1, 'rgba(220,232,255,0)'); ctx.fillStyle = g; ctx.fillRect(b.tx - 46, b.ty - 46, 92, 92)
+    }
   }
   const drops = Array.from({ length: 480 }, () => ({ u: Math.random(), v: Math.random(), s: 0.7 + Math.random() * 0.6 }))
   const ripples = []
@@ -534,21 +576,69 @@ const World = (() => {
   }
 
   // ───────── cửa sổ sáng đèn về đêm ─────────
-  const litCache = new WeakMap(), G1 = mixc('#1e4a5a', '#1c1822', 0.35), G2 = mixc('#52949a', mixc('#1e4a5a', '#1c1822', 0.35), 0.45), G3 = mixc('#8cbfba', mixc('#1e4a5a', '#1c1822', 0.35), 0.3)
-  const WARM = ['#ffd27a', '#ffe7a6', '#ffbf6a', '#fff0c8']
-  function litOverlay(o) {
-    if (litCache.has(o.img)) return litCache.get(o.img)
-    if (!/^(h_|m_)/.test(o.name || '')) { litCache.set(o.img, null); return null }
-    const W_ = o.img.width, H_ = o.img.height, c = document.createElement('canvas'); c.width = W_; c.height = H_
-    const x = c.getContext('2d'); x.drawImage(o.img, 0, 0); const d = x.getImageData(0, 0, W_, H_), a = d.data
-    const isG = (i) => { const r = a[i], g = a[i + 1], b = a[i + 2], hx = '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1); return a[i + 3] > 0 && (hx === G1 || hx === G2 || hx === G3) }
-    const lab = new Int32Array(W_ * H_).fill(-1); let n = 0; const comps = []
-    for (let p = 0; p < W_ * H_; p++) { if (lab[p] !== -1 || !isG(p * 4)) continue; const st = [p], cells = []; lab[p] = n; while (st.length) { const q = st.pop(); cells.push(q); const qx = q % W_, qy = (q / W_) | 0; for (const [dx, dy] of D4) { const nx = qx + dx, ny = qy + dy; if (nx < 0 || ny < 0 || nx >= W_ || ny >= H_) continue; const r = ny * W_ + nx; if (lab[r] === -1 && isG(r * 4)) { lab[r] = n; st.push(r) } } } comps.push(cells); n++ }
-    const out = new Uint8ClampedArray(W_ * H_ * 4); let any = false
-    comps.forEach((cells, i) => { if (((i * 2654435761) >>> 0) % 100 > 58) return; const col = hex2(WARM[i % 4]); for (const q of cells) { out[q * 4] = col[0]; out[q * 4 + 1] = col[1]; out[q * 4 + 2] = col[2]; out[q * 4 + 3] = 255; any = true } })
-    let res = null; if (any) { const oc = document.createElement('canvas'); oc.width = W_; oc.height = H_; oc.getContext('2d').putImageData(new ImageData(out, W_, H_), 0, 0); res = oc }
-    litCache.set(o.img, res); return res
+  // mỗi ô cửa kính là một "ô cửa"; cả một tầng (một hộ) bật/tắt cùng nhau, giờ bật theo lịch, mỗi toà nhà một tính cách
+  const G1 = mixc('#1e4a5a', '#1c1822', 0.35), G2 = mixc('#52949a', mixc('#1e4a5a', '#1c1822', 0.35), 0.45), G3 = mixc('#8cbfba', mixc('#1e4a5a', '#1c1822', 0.35), 0.3)
+  const WIN_AMBER = ['#ffcf84', '#f2b45c', '#e89a46'], WIN_TV = '#9cc2ea', WIN_SHOP = '#ffe9b0', WIN_CURTAIN = '#9a5a2a'
+  const LIT_CURVE = [[16.5, 0], [18, 0.14], [19.5, 0.55], [21, 0.74], [22.5, 0.52], [24, 0.3], [25, 0.17], [27, 0.1], [29, 0.05], [30.5, 0.09], [31.5, 0]]
+  function litFrac(h) { h = h < 6 ? h + 24 : h; for (let i = 1; i < LIT_CURVE.length; i++) if (h <= LIT_CURVE[i][0]) { const [h0, f0] = LIT_CURVE[i - 1], [h1, f1] = LIT_CURVE[i]; return f0 + (f1 - f0) * (h - h0) / (h1 - h0) } return 0 }
+  const hash01 = (a, b = 0, c = 0) => { let x = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263) + Math.imul(c | 0, 2147483647) + 1274126177) | 0; x = Math.imul(x ^ (x >>> 13), 1274126177); x ^= x >>> 16; return (x >>> 0) / 4294967296 }
+  const winCache = new WeakMap()
+  function decodeWins(img, corner) {
+    let r = winCache.get(img); if (r) return r
+    const W_ = img.width, H_ = img.height, c = document.createElement('canvas'); c.width = W_; c.height = H_
+    const x = c.getContext('2d'); x.drawImage(img, 0, 0); const a = x.getImageData(0, 0, W_, H_).data
+    const isG = (i) => { if (a[i + 3] < 200) return false; const hx = '#' + ((1 << 24) | (a[i] << 16) | (a[i + 1] << 8) | a[i + 2]).toString(16).slice(1); return hx === G1 || hx === G2 || hx === G3 }
+    const lab = new Uint8Array(W_ * H_); const wins = []
+    for (let p0 = 0; p0 < W_ * H_; p0++) {
+      if (lab[p0] || !isG(p0 * 4)) continue
+      const st = [p0], px = []; lab[p0] = 1
+      while (st.length) { const q = st.pop(); px.push(q); const qx = q % W_, qy = (q / W_) | 0; for (const [dx, dy] of D4) { const nx = qx + dx, ny = qy + dy; if (nx < 0 || ny < 0 || nx >= W_ || ny >= H_) continue; const rr = ny * W_ + nx; if (!lab[rr] && isG(rr * 4)) { lab[rr] = 1; st.push(rr) } } }
+      if (px.length < 6) continue                                          // vệt sáng lẻ, không phải ô cửa
+      let mnx = 1e9, mxx = -1, mny = 1e9; for (const q of px) { const qx = q % W_, qy = (q / W_) | 0; if (qx < mnx) mnx = qx; if (qx > mxx) mxx = qx; if (qy < mny) mny = qy }
+      const slices = (mxx - mnx + 1) > 12 ? Math.ceil((mxx - mnx + 1) / 9) : 1       // dải kính dài (nhà hiện đại) cắt thành từng ô
+      const cells = Array.from({ length: slices }, () => new Map())
+      for (const q of px) { const qx = q % W_, qy = (q / W_) | 0, k = slices === 1 ? 0 : Math.floor((qx - mnx) / 9); if (slices > 1 && (qx - mnx) % 9 === 8) continue; const m = cells[k]; if (!m.has(qy)) m.set(qy, []); m.get(qy).push(qx) }
+      for (const m of cells) {
+        if (!m.size) continue
+        const runs = []; let sx = 0, sy = 0, n = 0, ymin = 1e9
+        for (const [y, xs] of m) { xs.sort((u, v) => u - v); let s0 = xs[0], prev = xs[0]; for (let i = 1; i <= xs.length; i++) { if (i === xs.length || xs[i] !== prev + 1) { runs.push([y, s0, prev - s0 + 1]); if (i < xs.length) s0 = xs[i] } if (i < xs.length) prev = xs[i] } for (const v of xs) { sx += v; sy += y; n++ } if (y < ymin) ymin = y }
+        if (n < 5) continue
+        const cx = sx / n, cy = sy / n, face = cx < corner ? 1 : -1
+        wins.push({ runs, cx, cy, face, v: cy - 0.5 * face * cx, ymin, n })
+      }
+    }
+    for (const face of [1, -1]) {                                          // gom thành tầng: cùng đường nghiêng của mặt nhà
+      const L = wins.filter((w) => w.face === face).sort((u, v) => v.v - u.v); let fl = -1, anchor = 1e9
+      for (const w of L) { if (anchor - w.v > 9) { fl++; anchor = w.v } w.fl = fl }
+    }
+    winCache.set(img, wins); return wins
   }
+  function instWins(o, hour) {
+    const bucket = Math.floor(hour * 4)
+    if (o._lw && o._lb === bucket) return o._lw
+    const corner = (o.bb[1] - o.bb[3]) * 36 - o.dx, W = decodeWins(o.img, corner)
+    const seed = ((Math.round(o.bb[0]) * 73856093) ^ (Math.round(o.bb[2]) * 19349663)) | 0
+    const mood = hash01(seed, 7), fr = litFrac(hour) * (mood < 0.15 ? 0.15 : mood > 0.75 ? 1.45 : 1), shop = hour >= 17.5 && hour < 22.6
+    const groups = new Map()
+    W.forEach((w, i) => {
+      const u = hash01(seed, w.fl, 1), ground = w.fl === 0
+      const on = ground ? shop && hash01(seed, 5, w.face) < 0.8 : u < fr && hash01(seed, i, 3) > 0.1
+      if (!on) return
+      const hc = hash01(seed, w.fl, 2), col = ground ? WIN_SHOP : hc < 0.07 ? WIN_TV : WIN_AMBER[hc < 0.42 ? 0 : hc < 0.78 ? 1 : 2]
+      let g = groups.get(col); if (!g) { g = { col, body: new Path2D(), top: new Path2D() }; groups.set(col, g) }
+      for (const [y, x0, n] of w.runs) (y - w.ymin < 2 ? g.top : g.body).rect(x0, y, n, 1)
+    })
+    o._lw = [...groups.values()]; o._lb = bucket; return o._lw
+  }
+  // lớp phát sáng riêng: vẽ theo đúng thứ tự trước/sau, vật đứng trước xoá phần cửa sổ bị nó che
+  const emiC = document.createElement('canvas'), ex = emiC.getContext('2d')
+  const isLitHouse = (o) => o.name && (o.name[0] === 'h' || o.name[0] === 'm') && o.name[1] === '_'
+  function paintWindows(o, ox, oy) {
+    ex.globalCompositeOperation = 'source-over'; ex.setTransform(1, 0, 0, 1, o.dx + ox, o.dy + oy)
+    for (const g of instWins(o, sky.hour)) { ex.fillStyle = g.col; ex.fill(g.body); ex.fillStyle = mixc(g.col, WIN_CURTAIN, 0.55); ex.fill(g.top) }
+    ex.setTransform(1, 0, 0, 1, 0, 0)
+  }
+  function drawLitWindows(night) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = Math.min(0.96, night * 1.2); ctx.drawImage(emiC, 0, 0); ctx.globalAlpha = 1 }
 
   // ───────── người đi bộ (NPC) ─────────
   const PL = {}, NPC = [], NPC_SPR = []
@@ -574,16 +664,22 @@ const World = (() => {
     for (let i = 0; i < a.length; i += 4) { if (!a[i + 3]) continue; const n = M.get((a[i] << 16) | (a[i + 1] << 8) | a[i + 2]); if (n) { a[i] = n[0]; a[i + 1] = n[1]; a[i + 2] = n[2] } }
     x.putImageData(d, 0, 0); return c
   }
-  function buildNpcSprites() {
-    if (!PL.down0) return
-    for (const look of NPC_LOOK) {
-      const s = { down: [], up: [], right: [], left: [] }
-      for (let f = 0; f < 4; f++) {
-        s.down.push(recolor(PL['down' + f], look)); s.up.push(recolor(PL['up' + f], look)); const r = recolor(PL['right' + f], look); s.right.push(r)
-        const m = document.createElement('canvas'); m.width = 16; m.height = 28; const mx = m.getContext('2d'); mx.translate(16, 0); mx.scale(-1, 1); mx.drawImage(r, 0, 0); s.left.push(m)
-      }
-      NPC_SPR.push(s)
+  function lookSet(look) {
+    const s = { down: [], up: [], right: [], left: [] }
+    for (let f = 0; f < 4; f++) {
+      s.down.push(recolor(PL['down' + f], look)); s.up.push(recolor(PL['up' + f], look)); const r = recolor(PL['right' + f], look); s.right.push(r)
+      const m = document.createElement('canvas'); m.width = 16; m.height = 28; const mx = m.getContext('2d'); mx.translate(16, 0); mx.scale(-1, 1); mx.drawImage(r, 0, 0); s.left.push(m)
     }
+    return s
+  }
+  function buildNpcSprites() { if (!PL.down0) return; for (const look of NPC_LOOK) NPC_SPR.push(lookSet(look)) }
+  // áo mưa: mũ trùm (thay màu tóc) + áo choàng phủ tới gối (thay màu áo, quần), mỗi người một màu
+  const PONCHO = [['#3a7bd5', '#2a58a0', '#7fb0f2'], ['#e6c235', '#b08f1c', '#f8e28a'], ['#d4483c', '#9a2f27', '#f08a7c'], ['#3aa66a', '#27774a', '#86d4a8'], ['#a66ad6', '#7a45a6', '#cfa6ee'], ['#f08a2a', '#b0601a', '#f8b878']]
+  const COAT = {}
+  function coatSet(v, pc) {
+    const k = v * 8 + pc; if (COAT[k]) return COAT[k]
+    const c = PONCHO[pc], base = NPC_LOOK[v]
+    COAT[k] = lookSet({ sh: c, pa: [c[1], c[1]], ha: [c[1], c[0]], bag: 1, hand: base.ha }); return COAT[k]
   }
   let npcOK = null, npcTiles = []
   const NPC_KINDS = new Set(['walk', 'plaza', 'market', 'grass', 'zebra_x', 'zebra_y'])
@@ -609,11 +705,12 @@ const World = (() => {
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((kind[y][x] === 'zebra_x' || kind[y][x] === 'zebra_y') && npcOK[y][x]) { let nb = 0; for (const [dx, dy] of D4) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && npcOK[ny][nx]) nb++ } if (nb < 2) npcOK[y][x] = false }     // vạch qua đường cụt: bỏ
     const tiles = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (npcOK[y][x] && kind[y][x] !== 'grass' && kind[y][x] !== 'zebra_x' && kind[y][x] !== 'zebra_y') tiles.push([x, y])
     npcTiles = tiles
-    for (let i = 0; i < count; i++) { const [x, y] = tiles[Math.floor(Math.random() * tiles.length)]; NPC.push({ gx: x + 0.5, gy: y + 0.5, path: [], pi: 0, sp: 1.0 + Math.random() * 0.6, v: i % NPC_SPR.length, dir: 'down', t: Math.random() * 9, wait: Math.random() * 3, moving: false }) }
+    for (let i = 0; i < count; i++) { const [x, y] = tiles[Math.floor(Math.random() * tiles.length)]; NPC.push({ gx: x + 0.5, gy: y + 0.5, path: [], pi: 0, sp: 1.0 + Math.random() * 0.6, v: i % NPC_SPR.length, dir: 'down', t: Math.random() * 9, wait: Math.random() * 3, moving: false, rt: 0.12 + Math.random() * 0.55, pc: Math.floor(Math.random() * PONCHO.length), coat: false }) }
   }
   function stepNpc(dt) {
     for (const n of NPC) {
       n.t += dt
+      if (!n.coat && sky.rain > n.rt) n.coat = true; else if (n.coat && sky.rain < n.rt - 0.14) n.coat = false
       if (n.pi >= n.path.length) {
         n.moving = false; n.wait -= dt
         if (n.wait <= 0) {
@@ -631,7 +728,7 @@ const World = (() => {
   function npcDrawables() {
     const out = []
     for (const n of NPC) {
-      const sp = NPC_SPR[n.v][n.dir][n.moving ? Math.floor(n.t * 7) % 4 : 0], [sx, sy] = proj(n.gx, n.gy), bob = n.moving && (Math.floor(n.t * 7) & 1) ? 1 : 0
+      const sp = (n.coat ? coatSet(n.v, n.pc) : NPC_SPR[n.v])[n.dir][n.moving ? Math.floor(n.t * 7) % 4 : 0], [sx, sy] = proj(n.gx, n.gy), bob = n.moving && (Math.floor(n.t * 7) & 1) ? 1 : 0
       out.push({ img: sp, dx: Math.round(sx - 8), dy: Math.round(sy - 26 + bob), w: 16, h: 28, bb: [n.gx - 0.22, n.gx + 0.22, n.gy - 0.22, n.gy + 0.22], gx: n.gx, gy: n.gy, sh: { t: 'blob', H: 26, r: 0.22 } })
     }
     return out
@@ -658,7 +755,8 @@ const World = (() => {
     if (shC.width !== w || shC.height !== h) { shC.width = w; shC.height = h }
     ctx.imageSmoothingEnabled = false
     const bg = ctx.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#2c3b57'); bg.addColorStop(1, '#141824'); ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h)
-    const ox = Math.round(w / 2 - cam.x), oy = Math.round(h / 2 - cam.y); Game.view = { w, h, ox, oy }
+    let ox = Math.round(w / 2 - cam.x), oy = Math.round(h / 2 - cam.y); if (sky.shake > 0.05) { ox += Math.round((Math.random() - 0.5) * 2 * sky.shake); oy += Math.round((Math.random() - 0.5) * 2 * sky.shake) }
+    Game.view = { w, h, ox, oy }
     drawSkirt(ox, oy)
     const wf = Math.floor(T / 0.7) & 1
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
@@ -708,12 +806,16 @@ const World = (() => {
     for (const k of targets) if (!fadeVal.has(k)) fadeVal.set(k, 0)
     for (const [k, v] of fadeVal) { const nv = v + ((targets.has(k) ? 1 : 0) - v) * Math.min(1, dt * 7); if (nv < 0.01 && !targets.has(k)) fadeVal.delete(k); else fadeVal.set(k, nv) }
     const litDraw = []
+    if (night > 0.05) { if (emiC.width !== w || emiC.height !== h) { emiC.width = w; emiC.height = h } else ex.clearRect(0, 0, w, h) }
     for (let i = 0; i < vis.length; i++) {
       const o = vis[i], edge = o.clip && (o.gx < 6 || o.gx > N - 6 || o.gy < 6 || o.gy > N - 6)
       if (edge) { ctx.save(); clipMap(ox, oy, o.clip === 'train' ? 52 : 40) }
       const f = i > pi && pi >= 0 && fadeVal.size ? (fadeVal.get(o) || 0) : 0
       if (f > 0.02) { ctx.globalAlpha = 1 - 0.8 * f; ctx.drawImage(o.img, o.dx + ox, o.dy + oy); ctx.globalAlpha = 1 }
-      else { ctx.drawImage(o.img, o.dx + ox, o.dy + oy); if (night > 0.05 && o.name && (o.name[0] === 'h' || o.name[0] === 'm') && o.name[1] === '_') litDraw.push(o) }
+      else {
+        ctx.drawImage(o.img, o.dx + ox, o.dy + oy)
+        if (night > 0.05) { ex.globalCompositeOperation = 'destination-out'; ex.drawImage(o.img, o.dx + ox, o.dy + oy); if (isLitHouse(o)) paintWindows(o, ox, oy) }
+      }
       if (edge) ctx.restore()
     }
     // dây điện giữa các cột
@@ -758,15 +860,15 @@ const World = (() => {
         ctx.fillStyle = g; ctx.fillRect(-r, -r, 2 * r, 2 * r); ctx.restore()
       }
     }
-    let col = gradeAt(sky.hour); col = mixc(col, '#cdd5de', sky.cloud * 0.3); col = mixc(col, '#97a6bb', sky.rain * 0.35); col = mixc(col, '#6c7990', sky.storm * 0.35)
+    let col = gradeAt(sky.hour); col = mixc(col, '#cdd5de', sky.cloud * 0.3); col = mixc(col, '#97a6bb', sky.rain * 0.35); col = mixc(col, '#6c7990', sky.storm * 0.35); if (sky.flash > 0.02) col = mixc(col, '#dfe8ff', Math.min(0.9, sky.flash * 0.85))
     ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = col; ctx.fillRect(0, 0, w, h)
     if (clear > 0.1 && S.e > 0.1) {                         // nắng chói từ góc trên-trái
       ctx.globalCompositeOperation = 'screen'
       const g = ctx.createRadialGradient(w * 0.1, -h * 0.1, 0, w * 0.1, -h * 0.1, Math.max(w, h) * 0.9); g.addColorStop(0, `rgba(255,226,160,${0.2 * clear * S.e})`); g.addColorStop(1, 'rgba(255,226,160,0)')
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
     }
+    if (night > 0.05) drawLitWindows(night)
     ctx.globalCompositeOperation = 'lighter'
-    if (night > 0.05) { ctx.globalAlpha = Math.min(0.85, night); for (const o of litDraw) { const lo = litOverlay(o); if (lo) ctx.drawImage(lo, o.dx + ox, o.dy + oy) } ctx.globalAlpha = 1 }
     if (night > 0.04) for (const l of lamps) {
       const [sx, sy] = proj(l.gx, l.gy); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -90 || sy + oy > h + 130) continue
       glowAt(l.gx, l.gy, 64, 62, '255,205,125', 0.6 * night, ox, oy); glowAt(l.gx, l.gy, 0, 46, '255,205,125', 0.22 * night, ox, oy)
@@ -776,7 +878,8 @@ const World = (() => {
     for (const g of glows) { const [sx, sy] = proj(g.gx, g.gy); if (sx + ox < -60 || sx + ox > w + 60 || sy + oy < -60 || sy + oy > h + 80) continue; glowAt(g.gx, g.gy, g.z, g.r, g.c, g.a * (g.always ? 1 : Math.min(1, night * 1.2)), ox, oy) }
     ctx.globalCompositeOperation = 'source-over'
     if (sky.rain > 0.02) drawRain(dt, w, h)
-    if (sky.flash > 0.02) { ctx.fillStyle = `rgba(236,242,255,${0.55 * sky.flash})`; ctx.fillRect(0, 0, w, h) }
+    drawBolts()
+    if (sky.flash > 0.02) { ctx.fillStyle = `rgba(236,242,255,${0.4 * sky.flash})`; ctx.fillRect(0, 0, w, h) }
     const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.4, w / 2, h / 2, Math.max(w, h) * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.14 + 0.12 * night + 0.1 * sky.rain})`)
     ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h)
   }
@@ -794,8 +897,8 @@ const World = (() => {
   function setWeather(w) { sky.weather = w; sky.autoWx = false }
   function buildUI() {
     const d = document.createElement('div'); d.style.cssText = 'position:fixed;right:8px;top:8px;z-index:6;display:flex;gap:4px;font:16px system-ui,sans-serif;'
-    const mkb = (label, title, fn) => { const b = document.createElement('button'); b.textContent = label; b.title = title; b.style.cssText = 'width:36px;height:34px;border-radius:6px;border:1px solid #6b5f45;background:rgba(14,15,19,.78);color:#f4efe2;cursor:pointer;padding:0'; b.addEventListener('pointerdown', (e) => { e.stopPropagation(); fn() }); d.appendChild(b) }
-    mkb('☀', 'Nắng', () => setWeather('sunny')); mkb('☁', 'Nhiều mây', () => setWeather('cloudy')); mkb('🌧', 'Mưa', () => setWeather('rain')); mkb('⛈', 'Mưa giông', () => setWeather('storm')); mkb('🕒', 'Đổi giờ', jumpTime); mkb('⏯', 'Giờ tự chạy', () => { sky.auto = !sky.auto })
+    const mkb = (label, title, fn) => { const b = document.createElement('button'); b.textContent = label; b.title = title; b.style.cssText = 'width:36px;height:34px;border-radius:6px;border:1px solid #6b5f45;background:rgba(14,15,19,.78);color:#f4efe2;cursor:pointer;padding:0'; b.addEventListener('pointerdown', (e) => { e.stopPropagation(); audioInit(); fn() }); d.appendChild(b); return b }
+    mkb('☀', 'Nắng', () => setWeather('sunny')); mkb('☁', 'Nhiều mây', () => setWeather('cloudy')); mkb('🌧', 'Mưa', () => setWeather('rain')); mkb('⛈', 'Mưa giông', () => setWeather('storm')); const fb = mkb('⚡', 'Sấm chớp dữ dội (ngẫu nhiên)', () => { sky.fury = !sky.fury; fb.style.background = sky.fury ? 'rgba(120,90,20,.9)' : 'rgba(14,15,19,.78)'; if (sky.fury && sky.rain < 0.3 && sky.weather !== 'rain' && sky.weather !== 'storm') setWeather('storm') }); mkb('🕒', 'Đổi giờ', jumpTime); mkb('⏯', 'Giờ tự chạy', () => { sky.auto = !sky.auto })
     document.body.appendChild(d)
   }
   // ───────── khởi động ─────────
@@ -817,9 +920,10 @@ const World = (() => {
     cv.addEventListener('pointerup', () => { drag = null })
     cv.addEventListener('wheel', (e) => { e.preventDefault(); cam.zoom = clamp(cam.zoom + (e.deltaY < 0 ? 1 : -1), 1, 5) }, { passive: false })
     buildUI()
-    addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 't') jumpTime(); if (k === 'y') sky.auto = !sky.auto; if (k === 'r') { const o = ['sunny', 'cloudy', 'rain', 'storm']; setWeather(o[(o.indexOf(sky.weather) + 1) % 4]) } if (k === 'h') hud.style.display = hud.style.display === 'none' ? '' : 'none' })
+    addEventListener('pointerdown', audioInit)
+    addEventListener('keydown', (e) => { audioInit(); const k = e.key.toLowerCase(); if (k === 'f') document.querySelector('button[title^="Sấm"]').dispatchEvent(new Event('pointerdown')); if (k === 't') jumpTime(); if (k === 'y') sky.auto = !sky.auto; if (k === 'r') { const o = ['sunny', 'cloudy', 'rain', 'storm']; setWeather(o[(o.indexOf(sky.weather) + 1) % 4]) } if (k === 'h') hud.style.display = hud.style.display === 'none' ? '' : 'none' })
     window.addEventListener('error', (e) => stats.errors.push(String(e.message)))
-    window.__world = { statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, sky, setWeather, setHour: (hr) => { sky.hour = hr }, NPC, lamps, npcOK: () => npcOK, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
+    window.__world = { strike, thunder, litFrac, instWins, decodeWins, statSorted: () => statSorted, statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, sky, setWeather, setHour: (hr) => { sky.hour = hr }, NPC, lamps, npcOK: () => npcOK, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
     window.__stats = stats; window.__ready = true
     last = performance.now()
     ;(function loop(now) { try { frame(now) } catch (e) { stats.errors.push(String(e.stack || e)); hud.textContent = 'lỗi: ' + e.message; return } requestAnimationFrame(loop) })(last)
