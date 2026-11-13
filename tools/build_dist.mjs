@@ -24,7 +24,7 @@ playerJs = must(playerJs, "im.src = 'assets/player/pl_' + dir + '_' + f + '.png'
 
 let html = rd('index.html')
 html = must(html, '<script src="js/player.js?v=8"></script>', `<script>window.__BUNDLE = ${JSON.stringify({ manifest, world, player })}</script>\n<script>\n${playerJs}\n</script>`)
-html = must(html, '<script src="js/world.js?v=10"></script>', `<script>\n${worldJs}\n</script>`)
+html = must(html, '<script src="js/world.js?v=12"></script>', `<script>\n${worldJs}\n</script>`)
 html = must(html, '<title>Hà Nội Pixel</title>', '<title>Hà Nội Pixel</title>\n<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#141824">')
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true })
 const out = path.join(root, 'dist/hanoi-pixel.html')

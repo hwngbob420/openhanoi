@@ -208,7 +208,10 @@ const World = (() => {
   function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
     const gx = 24, gy = CORRY[PED][0]
     mark(gx, gy, 1, 7, false)
-    for (const dy of [0.22, 1.78, 5.22, 6.78]) for (const dx of [0.2, 0.5, 0.8]) colliders.push({ x: gx + dx, y: gy + dy, r: 0.24 })      // chỉ các trụ tường chặn: đi bộ qua được cả 3 cổng (giữa + 2 ô nhỏ)
+    for (const [a0, a1] of [[0, 1.083], [2.028, 2.889], [4.111, 4.972], [5.917, 7]]) {                    // chỉ các trụ tường chặn: đi bộ qua được cả 3 cổng (giữa + 2 ô nhỏ)
+      const n = Math.max(2, Math.ceil((a1 - a0 - 0.4) / 0.35) + 1)
+      for (let i = 0; i < n; i++) for (const dx of [0.2, 0.5, 0.8]) colliders.push({ x: gx + dx, y: gy + a0 + 0.2 + (a1 - a0 - 0.4) * i / (n - 1), r: 0.2 })
+    }
     sprite('lm_gate', gx, gy)
     pois.push({ id: 'gate', label: 'Ô Quan Chưởng', gx: gx + 2.2, gy: gy + 3.5, r: 2.6 })
   }

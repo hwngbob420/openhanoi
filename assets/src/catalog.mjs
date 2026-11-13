@@ -57,7 +57,7 @@ export function specs() {
   add({ name: 'coach_px', kind: 'vehicle', group: 'coach', type: 'coach', axis: 'x', dir: 1, L: 132, W: 32, H: 40, col: '#ece7da', band: '#2f5fa8' })
 
   // ── công trình mốc ──
-  add({ name: 'lm_gate', kind: 'gate', group: 'landmark', w: 1, d: 7, hup: 180 })
+  add({ name: 'lm_gate', kind: 'gate', group: 'landmark', w: 1, d: 7, hup: 175 })
   add({ name: 'lm_bridge', kind: 'bridge', group: 'landmark', w: 1, d: 2, z: 9, hup: 40 })
   add({ name: 'lm_bridge_lo', kind: 'bridge', group: 'landmark', w: 1, d: 2, z: 5, hup: 40 })
   add({ name: 'lm_bridge_gate', kind: 'bridge_gate', group: 'landmark', w: 150, h: 130, px: 92, py: 86 })
