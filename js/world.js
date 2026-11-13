@@ -448,7 +448,13 @@ const World = (() => {
   const maskCache = new WeakMap(), scratch = document.createElement('canvas'), sctx = scratch.getContext('2d')
   function alphaMask(img) { let m = maskCache.get(img); if (!m) { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0); m = { w: c.width, d: x.getImageData(0, 0, c.width, c.height).data }; maskCache.set(img, m) } return m }
   const solidAt = (o, sx, sy) => { const lx = Math.floor(sx - o.dx), ly = Math.floor(sy - o.dy); if (lx < 0 || ly < 0 || lx >= o.w || ly >= o.h) return false; const m = alphaMask(o.img); return m.d[(ly * m.w + lx) * 4 + 3] > 40 }
-  let xray = 0
+  const fadeVal = new Map()
+  function blockKeyOf(o) {
+    if (o.bk !== undefined) return o.bk
+    let k = null
+    if (o.name && /^(h_|m_|tower_)/.test(o.name)) { const cx = Math.floor((o.bb[0] + o.bb[1]) / 2), cy = Math.floor((o.bb[2] + o.bb[3]) / 2), i = BLOCKX.findIndex((r) => inR(cx, r)), j = BLOCKY.findIndex((r) => inR(cy, r)); if (i >= 0 && j >= 0) k = 'b' + i + '_' + j }
+    o.bk = k; return k
+  }
   function drawCut(o, ox, oy, cx, cy, R, k) {
     if (scratch.width < o.w) scratch.width = o.w
     if (scratch.height < o.h) scratch.height = o.h
@@ -622,20 +628,21 @@ const World = (() => {
     }
     stats.objs = vis.length; stats.vehicles = nveh
     drawShadows(vis, ox, oy, w, h)
-    // người chơi bị che? -> làm mờ (khoét) mọi vật đứng trước quanh nhân vật để thấy hè phố, đường, đồ vật phía sau
+    // người chơi bị che -> làm mờ NGUYÊN CẢ KHỐI nhà che (và vật che lẻ) để thấy hết hè phố, đường, đồ vật phía sau
     const pd = pl[0], pi = pd ? vis.indexOf(pd) : -1
-    let occl = false
+    const targets = new Set()
     if (pi >= 0) {
       const pts = [[pd.dx + 8, pd.dy + 4], [pd.dx + 8, pd.dy + 14], [pd.dx + 8, pd.dy + 24]]
-      scan: for (let i = pi + 1; i < vis.length; i++) { const it = vis[i]; if (it.clip || !overlap(pd, it)) continue; for (const q of pts) if (solidAt(it, q[0], q[1])) { occl = true; break scan } }
+      for (let i = pi + 1; i < vis.length; i++) { const it = vis[i]; if (it.clip || !overlap(pd, it)) continue; for (const q of pts) if (solidAt(it, q[0], q[1])) { targets.add(blockKeyOf(it) || it); break } }
     }
+    for (const k of targets) if (!fadeVal.has(k)) fadeVal.set(k, 0)
+    for (const [k, v] of fadeVal) { const nv = v + ((targets.has(k) ? 1 : 0) - v) * Math.min(1, dt * 7); if (nv < 0.01 && !targets.has(k)) fadeVal.delete(k); else fadeVal.set(k, nv) }
     const litDraw = []
-    xray += ((occl ? 1 : 0) - xray) * Math.min(1, dt * 8)
-    const qx = pd ? pd.dx + 8 : 0, qy = pd ? pd.dy + 14 : 0, QR = 70
     for (let i = 0; i < vis.length; i++) {
       const o = vis[i], edge = o.clip && (o.gx < 6 || o.gx > N - 6 || o.gy < 6 || o.gy > N - 6)
       if (edge) { ctx.save(); clipMap(ox, oy, o.clip === 'train' ? 52 : 40) }
-      if (xray > 0.02 && i > pi && pi >= 0 && !o.clip && o.dx < qx + QR && o.dx + o.w > qx - QR && o.dy < qy + QR && o.dy + o.h > qy - QR) drawCut(o, ox, oy, qx, qy, QR, xray)
+      const f = i > pi && pi >= 0 && fadeVal.size ? (fadeVal.get(blockKeyOf(o) || o) || 0) : 0
+      if (f > 0.02) { ctx.globalAlpha = 1 - 0.8 * f; ctx.drawImage(o.img, o.dx + ox, o.dy + oy); ctx.globalAlpha = 1 }
       else { ctx.drawImage(o.img, o.dx + ox, o.dy + oy); if (night > 0.05 && o.name && (o.name[0] === 'h' || o.name[0] === 'm') && o.name[1] === '_') litDraw.push(o) }
       if (edge) ctx.restore()
     }

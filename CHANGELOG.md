@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.4.0-world — 2026-11-13
-- See-through: when a building/tree/vehicle hides the player, everything in front of them gets a soft circular cut-out (pavement, street, props behind become visible); fades in/out smoothly. Replaces the ghost silhouette.
+- See-through: when a building hides the player, the WHOLE city block of buildings in front of them fades to ~20% (pavement, street, stalls behind become visible); single trees/props that hide the player fade on their own; fades in/out smoothly.
 - Real projected shadows (buildings, trees, poles, props, vehicles, pedestrians), sun direction and length follow the hour; fainter under cloud/rain, moonlight at night.
 - Time of day (colour grading, sun glare, drifting cloud shadows) and weather: sunny, cloudy, rain (streaks, ripples, wet ground), storm (lightning). Keys R / T / Y and 6 on-screen buttons (usable on phones). Weather changes by itself now and then until the player picks one.
 - Night: lit windows on houses, lamp pools, vehicle headlights, flashing crossing lamps, traffic signal glow.
