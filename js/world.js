@@ -2,7 +2,7 @@
 // Phần này: sinh bản đồ, mô phỏng xe/tàu/thanh chắn/đèn, vẽ. Nhân vật & va chạm người chơi ở js/player.js.
 'use strict'
 const World = (() => {
-  const N = 64, TW = 72, TH = 36
+  const N = 72, TW = 72, TH = 36
   const proj = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2]
   const cam = { x: 0, y: 0, zoom: 2 }
   const stats = { errors: [], fps: 0, objs: 0, vehicles: 0 }
@@ -13,10 +13,13 @@ const World = (() => {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
 
   // ───────── bố cục đường ─────────
-  const CORRX = [[12, 16], [29, 33], [48, 52]], ROADX = [[13, 15], [30, 32], [49, 51]]     // hành lang + lòng đường Bắc-Nam
-  const CORRY = [[10, 14], [29, 33], [51, 55]], ROADY = [[11, 13], [30, 32], [52, 54]]     // Đông-Tây
-  const RAILC = [40, 44], RAIL_Y = 42                                                       // phố tàu hỏa: ray hàng y=42, chạy hết map
-  const BLOCKX = [[0, 11], [17, 28], [34, 47], [53, 63]], BLOCKY = [[0, 9], [15, 28], [34, 39], [45, 50], [56, 63]]
+  const SW = 2                                                                              // vỉa hè rộng 2 ô mỗi bên
+  const CORRX = [[12, 18], [31, 37], [52, 58]], ROADX = [[14, 16], [33, 35], [54, 56]]     // hành lang + lòng đường Bắc-Nam
+  const CORRY = [[10, 16], [31, 37], [57, 63]], ROADY_ALL = [[12, 14], [33, 35], [59, 61]] // Đông-Tây: A = phố đi bộ, B và C = đường xe
+  const PED = 0, ROADY = [ROADY_ALL[1], ROADY_ALL[2]], CORRY_T = [CORRY[1], CORRY[2]]
+  const RAILC = [44, 50], RAIL_Y = 47                                                       // phố tàu hỏa: ray hàng y=47, chạy hết map
+  const RS = RAILC[0] + SW - 1, RN = RAILC[1] - (SW - 1)                                    // hàng vỉa hè đặt thanh chắn (phía bắc / phía nam)
+  const BLOCKX = [[0, 11], [19, 30], [38, 51], [59, 71]], BLOCKY = [[0, 9], [17, 30], [38, 43], [51, 56], [64, 71]]
 
   async function load() {
     MAN = (await (await fetch('assets/world/manifest.json')).json()).sprites
@@ -39,8 +42,9 @@ const World = (() => {
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       let k = 'grass'
       if (inAny(x, CORRX) || inAny(y, CORRY) || inR(y, RAILC)) k = 'walk'
-      if (inR(y, [41, 43])) k = 'gravel'
+      if (inR(y, [RAIL_Y - 1, RAIL_Y + 1])) k = 'gravel'
       if (y === RAIL_Y) k = 'rail'
+      if (inR(y, CORRY[PED]) && !inAny(x, ROADX)) k = (y >= ROADY_ALL[PED][0] && y <= ROADY_ALL[PED][1]) ? 'market' : 'plaza'
       const rx = inAny(x, ROADX), ry = inAny(y, ROADY)
       if (rx || ry) k = 'road'
       if (rx && y === RAIL_Y) k = 'railroad'
@@ -49,7 +53,7 @@ const World = (() => {
     for (const r of ROADY) for (let x = 0; x < N; x++) if (!inAny(x, CORRX)) kind[r[0] + 1][x] = 'dash_x'
     for (const r of ROADX) for (let y = 0; y < N; y++) if (!inAny(y, CORRY) && !inR(y, RAILC)) kind[y][r[0] + 1] = 'dash_y'
     for (const c of CORRX) for (const x of c) for (const r of ROADY) for (let y = r[0]; y <= r[1]; y++) kind[y][x] = 'zebra_x'
-    for (const c of CORRY.filter((c) => c[0] !== 51 || true)) for (const y of c) for (const r of ROADX) for (let x = r[0]; x <= r[1]; x++) if (kind[y][x] === 'road') kind[y][x] = 'zebra_y'
+    for (const c of CORRY) for (const y of c) for (const r of ROADX) for (let x = r[0]; x <= r[1]; x++) if (kind[y][x] === 'road') kind[y][x] = 'zebra_y'
   }
 
   function sprite(name, gx, gy, o = {}) {
@@ -105,18 +109,19 @@ const World = (() => {
   const tileUse = (x, y) => { const k = x + ',' + y; if (used.has(k)) return false; used.add(k); return true }
 
   function streets() {
-    // cột điện: vỉa hè phía bắc của hành lang Đông-Tây / phía tây của hành lang Bắc-Nam
-    for (const c of [CORRY[0], CORRY[1], CORRY[2]]) for (let x = 2; x < N - 1; x += 5) if (!inAny(x, CORRX) && !occ[c[0]][x] && tileUse(x, c[0])) { prop('p_pole', x + 0.5, c[0] + 0.5); poles.push({ gx: x + 0.5, gy: c[0] + 0.5, axis: 'x' }) }
-    for (const c of CORRX) for (let y = 3; y < N - 1; y += 5) if (!inAny(y, CORRY) && !inR(y, RAILC) && tileUse(c[0], y)) { prop('p_pole', c[0] + 0.5, y + 0.5); poles.push({ gx: c[0] + 0.5, gy: y + 0.5, axis: 'y' }) }
-    for (const x of [3, 8, 20, 26, 38, 44, 55, 60]) { const y = RAILC[0]; if (tileUse(x, y)) { prop('p_pole', x + 0.5, y + 0.5); poles.push({ gx: x + 0.5, gy: y + 0.5, axis: 'x' }) } }
-    // đèn đường + cây bàng ven đường (phía đối diện)
-    for (const c of [CORRY[0], CORRY[1], CORRY[2]]) for (let x = 4; x < N - 1; x += 6) if (!inAny(x, CORRX) && !occ[c[1]][x] && tileUse(x, c[1])) prop('p_lamp', x + 0.5, c[1] + 0.5)
-    for (const c of CORRX) for (let y = 5; y < N - 1; y += 6) if (!inAny(y, CORRY) && !inR(y, RAILC) && tileUse(c[1], y)) prop('p_lamp', c[1] + 0.5, y + 0.5)
-    for (const c of [CORRY[0], CORRY[1], CORRY[2]]) for (let x = 7; x < N - 2; x += 9) if (!inAny(x, CORRX) && !inAny(x + 1, CORRX) && tileUse(x, c[1])) prop(pick(['t_bang_1', 't_bang_2', 't_bang_3', 't_phuong_1']), x + 0.5, c[1] + 0.6)
-    for (const c of CORRX) for (let y = 7; y < N - 2; y += 9) if (!inAny(y, CORRY) && !inAny(y + 1, CORRY) && !inR(y, RAILC) && tileUse(c[0], y)) prop(pick(['t_bang_1', 't_bang_2', 't_small_3']), c[0] + 0.5, y + 0.6)
-    // trạm xe buýt (vỉa hè bắc đường B)
-    for (const x of [6, 22, 41]) { for (let k = -1; k <= 1; k++) used.add((x + k) + ',29'); prop('p_shelter_x', x + 0.5, 29.5, { r: 0, bb: [x - 0.4, x + 1.4, 29.1, 29.9] }); colliders.push({ x: x + 0.5, y: 29.2, r: 0.42 }, { x: x - 0.1, y: 29.2, r: 0.3 }, { x: x + 1.1, y: 29.2, r: 0.3 }) }
-    BUSSTOPS.push(...[6, 22, 41].map((x) => x + 0.5))
+    // vỉa hè rộng 2 ô: cột điện, đèn, cây nằm ở hàng sát lề đường, hàng sát nhà để trống cho người đi bộ
+    const cn = (c) => c[0] + SW - 1, cs = (c) => c[1] - (SW - 1)
+    for (const c of CORRY_T) for (let x = 2; x < N - 1; x += 5) if (!inAny(x, CORRX) && tileUse(x, cn(c))) { prop('p_pole', x + 0.5, cn(c) + 0.5); poles.push({ gx: x + 0.5, gy: cn(c) + 0.5, axis: 'x' }) }
+    for (const c of CORRX) for (let y = 3; y < N - 1; y += 5) if (!inAny(y, CORRY) && !inR(y, RAILC) && tileUse(cn(c), y)) { prop('p_pole', cn(c) + 0.5, y + 0.5); poles.push({ gx: cn(c) + 0.5, gy: y + 0.5, axis: 'y' }) }
+    for (const x of [3, 8, 21, 27, 40, 46, 62, 68]) { const y = RS; if (!inAny(x, CORRX) && tileUse(x, y)) { prop('p_pole', x + 0.5, y + 0.5); poles.push({ gx: x + 0.5, gy: y + 0.5, axis: 'x' }) } }
+    for (const c of CORRY_T) for (let x = 4; x < N - 1; x += 6) if (!inAny(x, CORRX) && tileUse(x, cs(c))) prop('p_lamp', x + 0.5, cs(c) + 0.5)
+    for (const c of CORRX) for (let y = 5; y < N - 1; y += 6) if (!inAny(y, CORRY) && !inR(y, RAILC) && tileUse(cs(c), y)) prop('p_lamp', cs(c) + 0.5, y + 0.5)
+    for (const c of CORRY_T) for (let x = 7; x < N - 2; x += 9) if (!inAny(x, CORRX) && !inAny(x + 1, CORRX) && tileUse(x, cs(c))) prop(pick(['t_bang_1', 't_bang_2', 't_bang_3', 't_phuong_1']), x + 0.5, cs(c) + 0.6)
+    for (const c of CORRX) for (let y = 7; y < N - 2; y += 9) if (!inAny(y, CORRY) && !inAny(y + 1, CORRY) && !inR(y, RAILC) && tileUse(cs(c), y)) prop(pick(['t_bang_1', 't_bang_2', 't_small_3']), cs(c) + 0.5, y + 0.6)
+    for (let x = 3; x < N - 1; x += 6) if (!inAny(x, CORRX) && Math.abs(x - 24) > 2) for (const y of [CORRY[PED][0], CORRY[PED][1]]) if (tileUse(x, y)) prop('p_lamp', x + 0.5, y + 0.5)
+    const yb = cn(CORRY[1])
+    for (const x of [6, 24, 44, 64]) { for (let k = -1; k <= 1; k++) used.add((x + k) + ',' + yb); prop('p_shelter_x', x + 0.5, yb + 0.5, { r: 0, bb: [x - 0.4, x + 1.4, yb + 0.1, yb + 0.9] }); colliders.push({ x: x + 0.5, y: yb + 0.2, r: 0.42 }, { x: x - 0.1, y: yb + 0.2, r: 0.3 }, { x: x + 1.1, y: yb + 0.2, r: 0.3 }) }
+    BUSSTOPS.push(...[6, 24, 44, 64].map((x) => x + 0.5))
   }
   const BUSSTOPS = []
 
@@ -125,8 +130,10 @@ const World = (() => {
       let sx, sy, axis
       if (f.fam === 'R') { sx = f.gx + 3; sy = f.gy + f.F / 2; axis = 'y' } else { sx = f.gx + f.F / 2; sy = f.gy + 3; axis = 'x' }
       const tx = Math.floor(sx), ty = Math.floor(sy)
-      if (!inAny(f.fam === 'R' ? tx : ty, f.fam === 'R' ? CORRX : CORRY) || inR(f.fam === 'R' ? ty : tx, RAILC) && false) continue
-      if (kind[ty]?.[tx] !== 'walk' || !tileUse(tx, ty)) continue
+      if (!inAny(f.fam === 'R' ? tx : ty, f.fam === 'R' ? CORRX : CORRY_T)) continue
+      const cxk = (f.fam === 'R' ? tx + 1 : tx) + ',' + (f.fam === 'R' ? ty : ty + 1)       // ô sát lề cùng mặt cắt: phải còn trống để đi được
+      if (kind[ty]?.[tx] !== 'walk' || used.has(cxk) || !tileUse(tx, ty)) continue
+      used.add(cxk)
       const r = rnd(), cx = tx + 0.5, cy = ty + 0.5
       if (f.shop) {
         if (r < 0.28) prop(pick(['p_cafe_red', 'p_cafe_green']), cx, cy)
@@ -141,68 +148,127 @@ const World = (() => {
   }
 
   function genLake() {
-    for (let y = 17; y <= 26; y++) for (let x = 36; x <= 45; x++) { kind[y][x] = 'water'; occ[y][x] = true }
-    for (let y = 16; y <= 27; y++) for (let x = 35; x <= 46; x++) if (kind[y][x] !== 'water') kind[y][x] = 'walk'
-    for (let y = 20; y <= 24; y++) for (let x = 39; x <= 43; x++) { kind[y][x] = 'grass'; occ[y][x] = true }
-    for (let y = 21; y <= 23; y++) for (let x = 40; x <= 42; x++) kind[y][x] = 'plaza'
-    for (const [x, y] of [[43, 25], [44, 25], [43, 26], [44, 26]]) { kind[y][x] = 'grass'; occ[y][x] = true }
-    for (let y = 22; y <= 23; y++) for (let x = 36; x <= 38; x++) { bridgeT.add(x + ',' + y); occ[y][x] = true }
-    for (let y = 15; y <= 28; y++) for (let x = 34; x <= 47; x++) occ[y][x] = true
-    // đền Ngọc Sơn, Tháp Rùa, cầu Thê Húc
-    mark(40, 21, 3, 3); sprite('lm_temple', 40, 21)
-    mark(44, 25, 1, 1); sprite('lm_turtle', 44, 25)
-    for (let x = 36; x <= 38; x++) sprite('lm_bridge', x, 22, { flat: true })
-    prop('lm_bridge_gate', 35.5, 22, { r: 0, bb: [35.3, 35.7, 22.0, 24.0] }); colliders.push({ x: 35.5, y: 22.15, r: 0.2 }, { x: 35.5, y: 23.85, r: 0.2 })
-    // cây, ghế, đèn quanh hồ
+    const X0 = BLOCKX[2][0], Y0 = BLOCKY[1][0], dx = X0 - 34, dy = Y0 - 15, P = (x, y) => [x + dx, y + dy]
+    for (let y = Y0 + 2; y <= Y0 + 11; y++) for (let x = X0 + 2; x <= X0 + 11; x++) { kind[y][x] = 'water'; occ[y][x] = true }
+    for (let y = Y0 + 1; y <= Y0 + 12; y++) for (let x = X0 + 1; x <= X0 + 12; x++) if (kind[y][x] !== 'water') kind[y][x] = 'walk'
+    for (let y = Y0 + 5; y <= Y0 + 9; y++) for (let x = X0 + 5; x <= X0 + 9; x++) { kind[y][x] = 'grass'; occ[y][x] = true }
+    for (let y = Y0 + 6; y <= Y0 + 8; y++) for (let x = X0 + 6; x <= X0 + 8; x++) kind[y][x] = 'plaza'
+    for (const [x, y] of [[9, 10], [10, 10], [9, 11], [10, 11]]) { kind[Y0 + y][X0 + x] = 'grass'; occ[Y0 + y][X0 + x] = true }
+    for (let y = Y0 + 7; y <= Y0 + 8; y++) for (let x = X0 + 2; x <= X0 + 4; x++) { bridgeT.add(x + ',' + y); occ[y][x] = true }
+    for (let y = Y0; y <= Y0 + 13; y++) for (let x = X0; x <= X0 + 13; x++) occ[y][x] = true
+    mark(X0 + 6, Y0 + 6, 3, 3); sprite('lm_temple', X0 + 6, Y0 + 6)
+    mark(X0 + 10, Y0 + 10, 1, 1); sprite('lm_turtle', X0 + 10, Y0 + 10)
+    for (let x = X0 + 2; x <= X0 + 4; x++) sprite('lm_bridge', x, Y0 + 7, { flat: true })
+    prop('lm_bridge_gate', X0 + 1.5, Y0 + 7, { r: 0, bb: [X0 + 1.3, X0 + 1.7, Y0 + 7.0, Y0 + 9.0] }); colliders.push({ x: X0 + 1.5, y: Y0 + 7.15, r: 0.2 }, { x: X0 + 1.5, y: Y0 + 8.85, r: 0.2 })
     const ringTrees = [[34.5, 17], [34.5, 20], [34.5, 24], [34.5, 27], [47.5, 17], [47.5, 21], [47.5, 25], [47.5, 27.5], [37, 15.5], [41, 15.5], [45, 15.5], [37, 28.5], [41, 28.5], [45, 28.5]]
-    ringTrees.forEach(([x, y], i) => prop(['t_lieu_1', 't_phuong_1', 't_lieu_2', 't_bang_2'][i % 4], x, y))
-    for (const [x, y, n] of [[35.4, 19.5, 'p_bench_y'], [35.4, 25.5, 'p_bench_y'], [46.6, 19.5, 'p_bench_y'], [46.6, 24, 'p_bench_y'], [38, 16.5, 'p_bench_x'], [43.5, 16.5, 'p_bench_x'], [38.5, 27.5, 'p_bench_x'], [43.5, 27.5, 'p_bench_x']]) prop(n, x, y)
-    for (const [x, y] of [[35.5, 17.5], [35.5, 27.5], [46.5, 17.5], [46.5, 27.5], [40.5, 16.5], [40.5, 27.5]]) prop('p_lamp', x, y)
-    for (const [x, y] of [[41, 20.4], [42.4, 24.2], [39.4, 24.0], [40.0, 20.3]]) prop('t_small_2', x, y, { r: 0.3 })
-    prop('p_flagpole', 35.4, 25.2); prop('p_cyclo', 47.0, 22.8)
-    pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: 36.5, gy: 23, r: 2 }, { id: 'temple', label: 'Đền Ngọc Sơn', gx: 41.5, gy: 24.6, r: 2 }, { id: 'tower', label: 'Tháp Rùa', gx: 44, gy: 24.3, r: 1.8 })
+    ringTrees.forEach(([x, y], i) => prop(['t_lieu_1', 't_phuong_1', 't_lieu_2', 't_bang_2'][i % 4], ...P(x, y)))
+    for (const [x, y, n] of [[35.4, 19.5, 'p_bench_y'], [35.4, 25.5, 'p_bench_y'], [46.6, 19.5, 'p_bench_y'], [46.6, 24, 'p_bench_y'], [38, 16.5, 'p_bench_x'], [43.5, 16.5, 'p_bench_x'], [38.5, 27.5, 'p_bench_x'], [43.5, 27.5, 'p_bench_x']]) prop(n, ...P(x, y))
+    for (const [x, y] of [[35.5, 17.5], [35.5, 27.5], [46.5, 17.5], [46.5, 27.5], [40.5, 16.5], [40.5, 27.5]]) prop('p_lamp', ...P(x, y))
+    for (const [x, y] of [[41, 20.4], [42.4, 24.2], [39.4, 24.0], [40.0, 20.3]]) prop('t_small_2', ...P(x, y), { r: 0.3 })
+    prop('p_flagpole', ...P(35.4, 25.2)); prop('p_cyclo', ...P(47.0, 22.8))
+    pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: X0 + 2.5, gy: Y0 + 8, r: 2 }, { id: 'temple', label: 'Đền Ngọc Sơn', gx: X0 + 7.5, gy: Y0 + 9.6, r: 2 }, { id: 'tower', label: 'Tháp Rùa', gx: X0 + 10, gy: Y0 + 9.3, r: 1.8 })
   }
 
-  function genGate() {
-    mark(22, 9, 1, 7, false); for (const y of [9, 10, 14, 15]) blk[y][22] = true
-    sprite('lm_gate', 22, 9)
-    pois.push({ id: 'gate', label: 'Ô Quan Chưởng', gx: 24.0, gy: 12.0, r: 2.2 })
-    prop('p_flagpole', 20.6, 14.6); prop('p_flagpole', 24.4, 14.6)
+  function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
+    const gx = 24, gy = CORRY[PED][0]
+    mark(gx, gy, 1, 7, false); for (const y of [gy, gy + 1, gy + 5, gy + 6]) blk[y][gx] = true
+    sprite('lm_gate', gx, gy)
+    pois.push({ id: 'gate', label: 'Ô Quan Chưởng', gx: gx + 2.2, gy: gy + 3.5, r: 2.6 })
+  }
+  function genPedStreet() {                                    // phố đi bộ: dãy sạp hai bên, giữa để trống 3 ô cho người đi
+    const y0 = CORRY[PED][0], names = ['p_umb_red', 'p_pho', 'p_umb_yellow', 'p_banhmi', 'p_umb_teal', 'p_fruit', 'p_cafe_red', 'p_umb_orange', 'p_cafe_green', 'p_kiosk']
+    let k = 0
+    for (let x = 1; x < N - 2; x += 3) {
+      if ([0, 1, 2].some((d) => inAny(x + d, CORRX)) || (x >= 22 && x <= 25)) continue
+      for (const row of [y0 + 1, y0 + 5]) {
+        const nm = names[(k++ * 7 + x) % names.length]
+        prop(nm, x + 1.0, row + 0.5); nightLights.push({ gx: x + 1.0, gy: row + 0.5, z: 48, r: 46, a: 0.62 })
+        if (rnd() < 0.5) prop('p_stools', x + 1.0 + (row === y0 + 1 ? 0.05 : -0.05), row + (row === y0 + 1 ? 1.1 : -0.1), { r: 0 })
+      }
+    }
+    for (const x of [8, 45, 65]) prop('p_planter', x + 0.5, y0 + 3.5)
+    pois.push({ id: 'walkstreet', label: 'Phố đi bộ chợ đêm', gx: 41.5, gy: y0 + 3.5, r: 2.6 })
   }
 
+  const lanterns = []
+  function genTrainStreet() {
+    // hàng rào an toàn hai bên đường ray (trừ chỗ đường cắt ngang), quán cafe nằm ngoài hàng rào hướng ra đường tàu
+    const yF = [RS + 1, RN], CAFE = ['green', 'red', 'blue', 'yellow'], SET = ['a', 'b', 'c', 'd', 'e']
+    for (let x = 0; x < N; x++) {
+      if (inAny(x, ROADX)) continue
+      for (const y of yF) {
+        sprite(x % 7 === 3 ? 'p_fence_b' : 'p_fence_a', x, y, { bb: [x, x + 1, y - 0.06, y + 0.06] })
+        colliders.push({ x: x + 0.25, y: y + (y === yF[0] ? -0.06 : 0.06), r: 0.25 }, { x: x + 0.75, y: y + (y === yF[0] ? -0.06 : 0.06), r: 0.25 })
+      }
+    }
+    const free = (x, y) => !used.has(Math.floor(x) + ',' + Math.floor(y))
+    const put = (name, x, y, r, nl) => { if (!free(x, y)) return false; used.add(Math.floor(x) + ',' + Math.floor(y)); prop(name, x, y, { r }); if (nl) nightLights.push({ gx: x, gy: y, z: nl[0], r: nl[1], a: nl[2] }); return true }
+    let seg = 0
+    for (const [x0, x1] of BLOCKX) for (let x = x0 + 1; x + 5 <= x1; x += 8, seg++) {
+      const yN = RS + 0.5, yS = RN + 0.5                                    // hàng sát hàng rào (bắc: 45, nam: 49)
+      // phía bắc: quầy cafe sát nhà ở nửa đầu hàng 44, bàn ghế sát hàng rào ở nửa sau hàng 45 -> luôn có lối đi chéo qua đoạn quán
+      if (free(x + 1.0, RAILC[0] + 0.5)) { used.add(Math.floor(x + 1.0) + ',' + RAILC[0]); prop('p_tc_counter_' + CAFE[seg % 4], x + 1.0, RAILC[0] + 0.55, { r: 0, bb: [x + 0.3, x + 1.7, RAILC[0] + 0.2, RAILC[0] + 0.9] }); colliders.push({ x: x + 0.7, y: RAILC[0] + 0.55, r: 0.4 }, { x: x + 1.3, y: RAILC[0] + 0.55, r: 0.4 }); nightLights.push({ gx: x + 1.0, gy: RAILC[0] + 0.55, z: 40, r: 44, a: 0.62 }) }
+      put('p_tc_plants', x + 1.95, RAILC[0] + 0.5, 0.35)
+      for (const dx of [3.45, 4.7]) put('p_tc_set_' + SET[(seg + Math.floor(dx * 3)) % 5], x + dx, yN, 0.55, [44, 34, 0.5])
+      prop('p_tc_flag', x + 0.1, RAILC[0] + 0.5, { r: 0.1 })
+      // phía nam: bàn ghế sát hàng rào ở nửa đầu hàng 49, chậu cây và tủ nước ở nửa sau hàng 50
+      for (const dx of [0.8, 1.9]) put('p_tc_set_' + SET[(seg + Math.floor(dx * 5)) % 5], x + dx, yS, 0.55, [44, 34, 0.5])
+      put('p_tc_plants', x + 3.9, RAILC[1] + 0.5, 0.35); put('p_tc_cooler', x + 4.8, RAILC[1] + 0.5, 0.3)
+      // chuỗi đèn lồng giăng ngang phố
+      for (const lx of [x + 1.0, x + 3.6]) lanterns.push({ x: lx, y0: RAILC[0] + 0.1, y1: RAILC[1] + 0.9 })
+    }
+    pois.push({ id: 'traincafe', label: 'Phố cà phê đường tàu', gx: BLOCKX[1][0] + 4, gy: RAIL_Y + 0.5, r: 3 })
+  }
+  function drawLanterns(ox, oy, w, h) {
+    for (const L of lanterns) {
+      const pa = proj(L.x, L.y0), pb = proj(L.x, L.y1); pa[1] -= 74; pb[1] -= 74
+      if (Math.max(pa[0], pb[0]) + ox < -20 || Math.min(pa[0], pb[0]) + ox > w + 20 || Math.min(pa[1], pb[1]) + oy > h + 40 || Math.max(pa[1], pb[1]) + oy < -40) continue
+      cable(pa, pb, ox, oy, 0, 18)
+      for (let k = 1; k <= 7; k++) {
+        const t = k / 8, g = L.y0 + (L.y1 - L.y0) * t, z = 74 - 18 * 4 * t * (1 - t), [sx, sy] = proj(L.x, g), X = Math.round(sx + ox), Y = Math.round(sy - z + oy)
+        const c = ['#d4382c', '#f2c23c', '#e08a2a', '#d4382c'][k % 4]
+        ctx.fillStyle = '#5a2a1c'; ctx.fillRect(X - 1, Y, 3, 1); ctx.fillStyle = c; ctx.fillRect(X - 1, Y + 1, 3, 4); ctx.fillStyle = lite4(c); ctx.fillRect(X, Y + 2, 1, 2); ctx.fillStyle = '#5a2a1c'; ctx.fillRect(X - 1, Y + 5, 3, 1)
+      }
+    }
+  }
+  const lite4 = (c) => mixc(c, '#fff6d8', 0.55)
   function genMarket() {
-    for (let y = 17; y <= 26; y++) for (let x = 19; x <= 26; x++) kind[y][x] = 'plaza'
-    for (let y = 18; y <= 25; y++) for (let x = 20; x <= 25; x++) kind[y][x] = 'market'
-    for (let y = 15; y <= 17; y++) for (let x = 23; x <= 24; x++) { kind[y][x] = 'plaza'; occ[y][x] = true }
-    for (let y = 26; y <= 28; y++) for (let x = 23; x <= 24; x++) { kind[y][x] = 'plaza'; occ[y][x] = true }
-    for (let y = 21; y <= 22; y++) for (let x = 17; x <= 19; x++) { kind[y][x] = 'plaza'; occ[y][x] = true }
-    for (let y = 18; y <= 25; y++) for (let x = 20; x <= 25; x++) occ[y][x] = true
+    const X0 = BLOCKX[1][0], Y0 = BLOCKY[1][0]
+    for (let y = Y0 + 2; y <= Y0 + 11; y++) for (let x = X0 + 2; x <= X0 + 9; x++) kind[y][x] = 'plaza'
+    for (let y = Y0 + 3; y <= Y0 + 10; y++) for (let x = X0 + 3; x <= X0 + 8; x++) kind[y][x] = 'market'
+    for (let y = Y0; y <= Y0 + 2; y++) for (let x = X0 + 6; x <= X0 + 7; x++) { kind[y][x] = 'plaza'; occ[y][x] = true }
+    for (let y = Y0 + 11; y <= Y0 + 13; y++) for (let x = X0 + 6; x <= X0 + 7; x++) { kind[y][x] = 'plaza'; occ[y][x] = true }
+    for (let y = Y0 + 6; y <= Y0 + 7; y++) for (let x = X0; x <= X0 + 2; x++) { kind[y][x] = 'plaza'; occ[y][x] = true }
+    for (let y = Y0 + 3; y <= Y0 + 10; y++) for (let x = X0 + 3; x <= X0 + 8; x++) occ[y][x] = true
+    const sx = X0 - 17, sy = Y0 - 15
     const col1 = [['p_umb_red', 19.3], ['p_pho', 21.9], ['p_umb_yellow', 24.5]], col2 = [['p_banhmi', 19.3], ['p_umb_teal', 21.9], ['p_fruit', 24.5]]
-    for (const [n, y] of col1) prop(n, 21.0, y); for (const [n, y] of col2) prop(n, 25.0, y)
-    prop('p_stools', 23.5, 20.4); prop('p_stools', 23.6, 23.4); prop('p_lamp', 22.3, 18.3); prop('p_lamp', 24.8, 25.3); prop('p_umb_orange', 23.5, 18.4, { r: 0.4 })
-    pois.push({ id: 'market', label: 'Chợ phố cổ', gx: 23.5, gy: 22, r: 2.4 })
+    for (const [n, y] of col1) { prop(n, 21.0 + sx, y + sy); nightLights.push({ gx: 21.0 + sx, gy: y + sy, z: 48, r: 44, a: 0.6 }) }
+    for (const [n, y] of col2) { prop(n, 25.0 + sx, y + sy); nightLights.push({ gx: 25.0 + sx, gy: y + sy, z: 48, r: 44, a: 0.6 }) }
+    prop('p_stools', 23.5 + sx, 20.4 + sy); prop('p_stools', 23.6 + sx, 23.4 + sy); prop('p_lamp', 22.3 + sx, 18.3 + sy); prop('p_lamp', 24.8 + sx, 25.3 + sy); prop('p_umb_orange', 23.5 + sx, 18.4 + sy, { r: 0.4 })
+    pois.push({ id: 'market', label: 'Chợ phố cổ', gx: 23.5 + sx, gy: 22 + sy, r: 2.4 })
   }
 
   function genPark() {
-    const b = { x0: 34, x1: 47, y0: 56, y1: 63 }
-    for (let x = b.x0; x <= b.x1; x++) for (let y = 59; y <= 60; y++) { kind[y][x] = 'walk' }
-    for (let y = b.y0; y <= b.y1; y++) for (let x = 40; x <= 41; x++) { kind[y][x] = 'walk' }
-    for (let y = 59; y <= 60; y++) for (let x = 40; x <= 41; x++) kind[y][x] = 'plaza'
+    const X0 = BLOCKX[2][0], Y0 = BLOCKY[4][0], b = { x0: X0, x1: X0 + 13, y0: Y0, y1: Y0 + 7 }, sx = X0 - 34, sy = Y0 - 56
+    for (let x = b.x0; x <= b.x1; x++) for (let y = Y0 + 3; y <= Y0 + 4; y++) kind[y][x] = 'walk'
+    for (let y = b.y0; y <= b.y1; y++) for (let x = X0 + 6; x <= X0 + 7; x++) kind[y][x] = 'walk'
+    for (let y = Y0 + 3; y <= Y0 + 4; y++) for (let x = X0 + 6; x <= X0 + 7; x++) kind[y][x] = 'plaza'
     for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) occ[y][x] = true
     const T = ['t_bang_1', 't_bang_2', 't_bang_3', 't_phuong_2', 't_small_1', 't_small_2', 't_lieu_2']
-    for (const [x, y] of [[35.5, 57.5], [38, 57], [44, 57.5], [46, 57], [35.5, 62], [37.5, 61.5], [44, 62], [46.2, 61.5], [36.5, 59.4 + 2.6], [45.2, 59.6 + 2.4]]) prop(pick(T), x, y)
-    for (const [x, y] of [[37, 61], [43, 57.2], [38.4, 57.4], [44.6, 62]]) prop('t_bush_2', x, y, { r: 0.25 })
-    for (const [x, y, n] of [[37.5, 59.5, 'p_bench_x'], [44, 59.5, 'p_bench_x'], [40.4, 57.5, 'p_bench_y'], [41.6, 62, 'p_bench_y']]) prop(n, x, y)
-    for (const [x, y] of [[39.5, 59.0], [42.5, 61.0], [39.4, 61.1], [42.6, 58.9]]) prop('p_planter', x, y)
-    for (const [x, y] of [[38.5, 58.5], [43.5, 58.5], [38.5, 61.5], [43.5, 61.5]]) prop('p_lamp', x, y)
-    pois.push({ id: 'park', label: 'Công viên', gx: 41, gy: 60, r: 2.4 })
+    for (const [x, y] of [[35.5, 57.5], [38, 57], [44, 57.5], [46, 57], [35.5, 62], [37.5, 61.5], [44, 62], [46.2, 61.5], [36.5, 62], [45.2, 62]]) prop(pick(T), x + sx, y + sy)
+    for (const [x, y] of [[37, 61], [43, 57.2], [38.4, 57.4], [44.6, 62]]) prop('t_bush_2', x + sx, y + sy, { r: 0.25 })
+    for (const [x, y, n] of [[37.5, 59.5, 'p_bench_x'], [44, 59.5, 'p_bench_x'], [40.4, 57.5, 'p_bench_y'], [41.6, 62, 'p_bench_y']]) prop(n, x + sx, y + sy)
+    for (const [x, y] of [[39.5, 59.0], [42.5, 61.0], [39.4, 61.1], [42.6, 58.9]]) prop('p_planter', x + sx, y + sy)
+    for (const [x, y] of [[38.5, 58.5], [43.5, 58.5], [38.5, 61.5], [43.5, 61.5]]) prop('p_lamp', x + sx, y + sy)
+    pois.push({ id: 'park', label: 'Công viên', gx: 41 + sx, gy: 60 + sy, r: 2.4 })
   }
 
   function genTowers() {
-    mark(56, 3, 3, 3); sprite('tower_a', 56, 3)
-    mark(56, 19, 3, 3); sprite('tower_a', 56, 19)
-    mark(56, 59, 2, 3); sprite('tower_b', 56, 59)
-    pois.push({ id: 'glass', label: 'Khu cao ốc', gx: 59.5, gy: 6.5, r: 2.4 })
+    const X0 = BLOCKX[3][0]
+    mark(X0 + 3, 3, 3, 3); sprite('tower_a', X0 + 3, 3)
+    mark(X0 + 3, BLOCKY[1][0] + 4, 3, 3); sprite('tower_a', X0 + 3, BLOCKY[1][0] + 4)
+    mark(X0 + 3, BLOCKY[4][0] + 3, 2, 3); sprite('tower_b', X0 + 3, BLOCKY[4][0] + 3)
+    pois.push({ id: 'glass', label: 'Khu cao ốc', gx: X0 + 6.5, gy: 6.5, r: 2.4 })
   }
 
   function genBlocks() {
@@ -276,11 +342,11 @@ const World = (() => {
     for (const r of ROADY) { LANES.push({ axis: 'x', dir: 1, c: r[0] + 2.5, vs: [], stops: [] }); LANES.push({ axis: 'x', dir: -1, c: r[0] + 0.5, vs: [], stops: [] }) }
     for (const r of ROADX) { LANES.push({ axis: 'y', dir: 1, c: r[0] + 0.5, vs: [], stops: [] }); LANES.push({ axis: 'y', dir: -1, c: r[0] + 2.5, vs: [], stops: [] }) }
     for (const L of LANES) {
-      const corr = L.axis === 'x' ? CORRX : CORRY
+      const corr = L.axis === 'x' ? CORRX : CORRY_T
       for (const c of corr) L.stops.push({ pos: L.dir > 0 ? c[0] - 0.1 : c[1] + 1.1, closed: () => (L.axis === 'x' ? ph.i !== 0 : ph.i !== 2) })
       if (L.axis === 'y') {
         const k = ROADX.findIndex((r) => inR(Math.floor(L.c), r))
-        L.stops.push({ pos: L.dir > 0 ? 39.9 : 45.1, closed: () => crossings[k].down })
+        L.stops.push({ pos: L.dir > 0 ? RS - 0.1 : RN + 1.1, closed: () => crossings[k].down })
       }
       const n = 6 + Math.floor(rnd() * 3), span = N + 10
       for (let i = 0; i < n; i++) { const p = -5 + (i + rnd() * 0.6) * span / n; L.vs.push(newVeh(L, L.dir > 0 ? p : N - p + 0)) }
@@ -299,7 +365,7 @@ const World = (() => {
         const front = v.pos + L.dir * v.len / 2
         for (const s of L.stops) { const d = (s.pos - front) * L.dir; if (d > -0.05 && d < 7 && s.closed()) { if (d < 0.12) tv = 0; else tv = Math.min(tv, d * 1.8) } }
         for (const P of peds) { const along = (L.axis === 'x' ? P.gx : P.gy), lat = (L.axis === 'x' ? P.gy : P.gx), d = (along - front) * L.dir; if (d > -0.3 && d < 1.7 && Math.abs(lat - (L.c + v.lat)) < 0.8 && roadLike.has(kind[clamp(Math.floor(P.gy), 0, N - 1)][clamp(Math.floor(P.gx), 0, N - 1)])) { tv = 0; break } }
-        if (v.type === 'bus' && L.axis === 'x' && L.dir < 0 && L.c === 30.5) for (const bx of BUSSTOPS) if (!v.visited.has(bx) && Math.abs(v.pos - bx) < 0.3) { v.visited.add(bx); v.dwell = 3.5 }
+        if (v.type === 'bus' && L.axis === 'x' && L.dir < 0 && L.c === ROADY[0][0] + 0.5) for (const bx of BUSSTOPS) if (!v.visited.has(bx) && Math.abs(v.pos - bx) < 0.3) { v.visited.add(bx); v.dwell = 3.5 }
         v.v += clamp(tv - v.v, -dt * 6.5, dt * 2.2); v.pos += L.dir * v.v * dt
         if (L.dir > 0 && v.pos > N + 5) { Object.assign(v, newVeh(L, -5 - rnd() * 4)) }
         else if (L.dir < 0 && v.pos < -5) { Object.assign(v, newVeh(L, N + 5 + rnd() * 4)) }
@@ -329,7 +395,7 @@ const World = (() => {
     }
     // người đứng trên đường ray khi tàu tới: đưa về vỉa hè
     const P = typeof Game !== 'undefined' && Game.state && Game.state.player
-    if (P && train.state === 'run' && P.gy > 41.2 && P.gy < 43.8 && P.gx > xmin - 0.6 && P.gx < xmax + 0.6) { P.gx = clamp(P.gx, 0.5, N - 0.5); P.gy = 40.5; Game.toast('Tàu đang tới! Bạn được đưa vào vỉa hè an toàn.') }
+    if (P && train.state === 'run' && P.gy > RAIL_Y - 1.4 && P.gy < RAIL_Y + 1.4 && P.gx > xmin - 0.6 && P.gx < xmax + 0.6) { P.gx = clamp(P.gx, 0.5, N - 0.5); P.gy = RAILC[0] + 0.5; Game.toast('Tàu đang tới! Bạn được đưa vào vỉa hè an toàn.') }
   }
   function trainDrawables() {
     const out = []; let off = 0
@@ -350,7 +416,7 @@ const World = (() => {
     if (tx < 0 || ty < 0 || tx >= N || ty >= N) return true
     if (blk[ty][tx]) return true
     if (kind[ty][tx] === 'water' && !bridgeT.has(tx + ',' + ty)) return true
-    if ((ty === RAILC[0] || ty === RAILC[1])) for (const c of crossings) if (c.down && tx >= c.x0 && tx <= c.x0 + 2) return true
+    if ((ty === RS || ty === RN)) for (const c of crossings) if (c.down && tx >= c.x0 && tx <= c.x0 + 2) return true
     return false
   }
   const groundZ = (gx, gy) => bridgeT.has(Math.floor(gx) + ',' + Math.floor(gy)) ? 9 : 0
@@ -402,7 +468,8 @@ const World = (() => {
     if (name === 'p_pole') return { t: 'pole', H: 104 }
     if (name === 'p_flagpole') return { t: 'pole', H: 80 }
     if (name.startsWith('mop_')) return { t: 'box', H: 18 }
-    if (/^p_(pho|banhmi|umb|fruit|cafe|kiosk)/.test(name)) return { t: 'blob', H: 44, r: 0.6 }
+    if (/^p_(pho|banhmi|umb|fruit|cafe|kiosk|tc_set|tc_counter)/.test(name)) return { t: 'blob', H: 44, r: 0.6 }
+    if (/^p_tc_(plants|cooler)/.test(name)) return { t: 'blob', H: 12, r: 0.4 }
     if (/^p_(bench|bin|planter|stools|cyclo)/.test(name)) return { t: 'blob', H: 14, r: 0.35 }
     if (name.startsWith('p_shelter')) return { t: 'box', H: 42 }
     return null
@@ -518,7 +585,7 @@ const World = (() => {
       NPC_SPR.push(s)
     }
   }
-  let npcOK = null
+  let npcOK = null, npcTiles = []
   const NPC_KINDS = new Set(['walk', 'plaza', 'market', 'grass', 'zebra_x', 'zebra_y'])
   function buildNpcGrid() {
     npcOK = Array.from({ length: N }, (_, y) => Array.from({ length: N }, (_, x) => {
@@ -539,7 +606,9 @@ const World = (() => {
   }
   function genNpc(count) {
     buildNpcGrid(); buildNpcSprites(); if (!NPC_SPR.length) return
-    const tiles = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (npcOK[y][x] && kind[y][x] !== 'grass') tiles.push([x, y])
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((kind[y][x] === 'zebra_x' || kind[y][x] === 'zebra_y') && npcOK[y][x]) { let nb = 0; for (const [dx, dy] of D4) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && npcOK[ny][nx]) nb++ } if (nb < 2) npcOK[y][x] = false }     // vạch qua đường cụt: bỏ
+    const tiles = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (npcOK[y][x] && kind[y][x] !== 'grass' && kind[y][x] !== 'zebra_x' && kind[y][x] !== 'zebra_y') tiles.push([x, y])
+    npcTiles = tiles
     for (let i = 0; i < count; i++) { const [x, y] = tiles[Math.floor(Math.random() * tiles.length)]; NPC.push({ gx: x + 0.5, gy: y + 0.5, path: [], pi: 0, sp: 1.0 + Math.random() * 0.6, v: i % NPC_SPR.length, dir: 'down', t: Math.random() * 9, wait: Math.random() * 3, moving: false }) }
   }
   function stepNpc(dt) {
@@ -550,7 +619,7 @@ const World = (() => {
         if (n.wait <= 0) {
           const tx = clamp(Math.floor(n.gx) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1), ty = clamp(Math.floor(n.gy) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1)
           const p = npcOK[ty][tx] && kind[ty][tx] !== 'zebra_x' && kind[ty][tx] !== 'zebra_y' ? findPath(Math.floor(n.gx), Math.floor(n.gy), tx, ty) : null
-          if (p && p.length > 1) { n.path = p; n.pi = 1 } else n.wait = 0.4
+          if (p && p.length > 1) { n.path = p; n.pi = 1 } else { n.wait = 0.4; const kk = kind[Math.floor(n.gy)][Math.floor(n.gx)]; if (roadLike.has(kk) && npcTiles.length) { const [rx, ry] = npcTiles[Math.floor(Math.random() * npcTiles.length)]; n.gx = rx + 0.5; n.gy = ry + 0.5 } }
         }
         continue
       }
@@ -568,7 +637,7 @@ const World = (() => {
     return out
   }
   const pedList = () => { const L = NPC.slice(); if (typeof Game !== 'undefined' && Game.state && Game.state.player) L.push(Game.state.player); return L }
-  const lamps = []
+  const lamps = [], nightLights = []
 
   // ───────── vẽ ─────────
   let cv, ctx, hud, last = 0, T = 0, tod = 0
@@ -606,8 +675,8 @@ const World = (() => {
     const dyn = [], night = nightAt(sky.hour), glows = []
     for (const c of crossings) {
       const st = c.down ? (Math.floor(c.flash / 0.4) & 1 ? 'a' : 'b') : 'up'
-      dyn.push(barrierD(`p_barrier_p_${st}`, c.x0 - 0.5, 40.5), barrierD(`p_barrier_n_${st}`, c.x0 + 3.5, 44.5))
-      if (c.down) glows.push({ gx: c.x0 - 0.5, gy: 40.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true }, { gx: c.x0 + 3.5, gy: 44.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true })
+      dyn.push(barrierD(`p_barrier_p_${st}`, c.x0 - 0.5, RS + 0.5), barrierD(`p_barrier_n_${st}`, c.x0 + 3.5, RN + 0.5))
+      if (c.down) glows.push({ gx: c.x0 - 0.5, gy: RS + 0.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true }, { gx: c.x0 + 3.5, gy: RN + 0.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true })
     }
     for (const L of LANES) for (const v of L.vs) {
       const cx = L.axis === 'x' ? v.pos : L.c + v.lat, cy = L.axis === 'x' ? L.c + v.lat : v.pos
@@ -632,8 +701,9 @@ const World = (() => {
     const pd = pl[0], pi = pd ? vis.indexOf(pd) : -1
     const targets = new Set()
     if (pi >= 0) {
-      const pts = [[pd.dx + 8, pd.dy + 4], [pd.dx + 8, pd.dy + 14], [pd.dx + 8, pd.dy + 24]]
-      for (let i = pi + 1; i < vis.length; i++) { const it = vis[i]; if (it.clip || !overlap(pd, it)) continue; for (const q of pts) if (solidAt(it, q[0], q[1])) { targets.add(blockKeyOf(it) || it); break } }
+      const pts = [[pd.dx + 8, pd.dy + 4], [pd.dx + 8, pd.dy + 14], [pd.dx + 8, pd.dy + 24]], zone = { dx: pd.dx - 125, dy: pd.dy - 125, w: 266, h: 200 }, blocks = new Set()
+      for (let i = pi + 1; i < vis.length; i++) { const it = vis[i]; if (it.clip || !overlap(pd, it)) continue; for (const q of pts) if (solidAt(it, q[0], q[1])) { targets.add(it); const bk = blockKeyOf(it); if (bk) blocks.add(bk); break } }
+      for (let i = pi + 1; i < vis.length; i++) { const it = vis[i], bk = blockKeyOf(it); if (bk && blocks.has(bk) && overlap(zone, it)) targets.add(it) }
     }
     for (const k of targets) if (!fadeVal.has(k)) fadeVal.set(k, 0)
     for (const [k, v] of fadeVal) { const nv = v + ((targets.has(k) ? 1 : 0) - v) * Math.min(1, dt * 7); if (nv < 0.01 && !targets.has(k)) fadeVal.delete(k); else fadeVal.set(k, nv) }
@@ -641,7 +711,7 @@ const World = (() => {
     for (let i = 0; i < vis.length; i++) {
       const o = vis[i], edge = o.clip && (o.gx < 6 || o.gx > N - 6 || o.gy < 6 || o.gy > N - 6)
       if (edge) { ctx.save(); clipMap(ox, oy, o.clip === 'train' ? 52 : 40) }
-      const f = i > pi && pi >= 0 && fadeVal.size ? (fadeVal.get(blockKeyOf(o) || o) || 0) : 0
+      const f = i > pi && pi >= 0 && fadeVal.size ? (fadeVal.get(o) || 0) : 0
       if (f > 0.02) { ctx.globalAlpha = 1 - 0.8 * f; ctx.drawImage(o.img, o.dx + ox, o.dy + oy); ctx.globalAlpha = 1 }
       else { ctx.drawImage(o.img, o.dx + ox, o.dy + oy); if (night > 0.05 && o.name && (o.name[0] === 'h' || o.name[0] === 'm') && o.name[1] === '_') litDraw.push(o) }
       if (edge) ctx.restore()
@@ -655,6 +725,7 @@ const World = (() => {
       if (Math.max(pa[0], pb[0]) + ox < 0 || Math.min(pa[0], pb[0]) + ox > w) continue
       for (let k = 0; k < 3; k++) cable([pa[0] + k - 1, pa[1] + k * 3], [pb[0] + k - 1, pb[1] + k * 3], ox, oy, 0, d * 3)
     }
+    drawLanterns(ox, oy, w, h)
     drawSignals(ox, oy)
     postFx(dt, w, h, ox, oy, glows, night, litDraw)
     stats.fps = Math.round(1 / Math.max(0.001, dt))
@@ -700,6 +771,8 @@ const World = (() => {
       const [sx, sy] = proj(l.gx, l.gy); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -90 || sy + oy > h + 130) continue
       glowAt(l.gx, l.gy, 64, 62, '255,205,125', 0.6 * night, ox, oy); glowAt(l.gx, l.gy, 0, 46, '255,205,125', 0.22 * night, ox, oy)
     }
+    if (night > 0.05) for (const l of nightLights) { const [sx, sy] = proj(l.gx, l.gy); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -90 || sy + oy > h + 130) continue; glowAt(l.gx, l.gy, l.z, l.r, '255,176,92', l.a * Math.min(1, night * 1.2), ox, oy) }
+    if (night > 0.05) for (const L of lanterns) { const mx = L.x, my = (L.y0 + L.y1) / 2; const [sx, sy] = proj(mx, my); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -120 || sy + oy > h + 120) continue; for (const t of [0.25, 0.5, 0.75]) glowAt(mx, L.y0 + (L.y1 - L.y0) * t, 74 - 18 * 4 * t * (1 - t), 20, '255,170,80', 0.55 * Math.min(1, night * 1.2), ox, oy) }
     for (const g of glows) { const [sx, sy] = proj(g.gx, g.gy); if (sx + ox < -60 || sx + ox > w + 60 || sy + oy < -60 || sy + oy > h + 80) continue; glowAt(g.gx, g.gy, g.z, g.r, g.c, g.a * (g.always ? 1 : Math.min(1, night * 1.2)), ox, oy) }
     ctx.globalCompositeOperation = 'source-over'
     if (sky.rain > 0.02) drawRain(dt, w, h)
@@ -710,7 +783,7 @@ const World = (() => {
   function barrierD(name, gx, gy) { const m = MAN[name]; if (!m) return { dx: 0, dy: 0, w: 1, h: 1, bb: [0, 0, 0, 0], img: IMG.g_asphalt } ; const [sx, sy] = proj(gx, gy); return { name, img: IMG[name], dx: Math.round(sx - m.pivot[0]), dy: Math.round(sy - m.pivot[1]), w: m.w, h: m.h, bb: [gx - 0.2, gx + 0.2, gy - 0.2, gy + 0.2] } }
   function drawSignals(ox, oy) {
     const ew = ph.i === 0 ? '#3ad06a' : ph.i === 1 ? '#e8c43a' : '#e8483a', ns = ph.i === 2 ? '#3ad06a' : ph.i === 3 ? '#e8c43a' : '#e8483a'
-    for (const cx of CORRX) for (const cy of [CORRY[0], CORRY[1], CORRY[2]]) for (const [x, y, c] of [[cx[0], cy[0], ew], [cx[1], cy[1], ew], [cx[1], cy[0], ns], [cx[0], cy[1], ns]]) {
+    for (const cx of CORRX) for (const cy of CORRY_T) for (const [x, y, c] of [[cx[0], cy[0], ew], [cx[1], cy[1], ew], [cx[1], cy[0], ns], [cx[0], cy[1], ns]]) {
       const [sx, sy] = proj(x + 0.5, y + 0.5); const X = Math.round(sx + ox), Y = Math.round(sy + oy)
       ctx.fillStyle = '#2a3b4a'; ctx.fillRect(X - 1, Y - 30, 2, 30); ctx.fillStyle = '#1c1822'; ctx.fillRect(X - 3, Y - 36, 6, 7); ctx.fillStyle = c; ctx.fillRect(X - 2, Y - 35, 4, 4)
     }
@@ -727,16 +800,16 @@ const World = (() => {
   }
   // ───────── khởi động ─────────
   function generate() {
-    genGround(); genGate(); genLake(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); streets(); streetLife(); nameTiles(); sortStatics(); genTraffic(); genNpc(36)
+    genGround(); genGate(); genLake(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); genTrainStreet(); streets(); streetLife(); genPedStreet(); nameTiles(); sortStatics(); genTraffic(); genNpc(48)
   }
   function start(canvas, hudEl) {
     cv = canvas; ctx = cv.getContext('2d'); hud = hudEl
-    const [cx, cy] = proj(25.5, 10.5); cam.x = cx; cam.y = cy
+    const [cx, cy] = proj(20.5, 13.5); cam.x = cx; cam.y = cy
     if (innerWidth < 700) { cam.zoom = 1; hud.style.display = 'none' }
-    Game.init({ W: { ground: kind }, N, proj, cam, tile: () => [TW, TH], isBlocked, colliders, groundZ, spawn: [25.5, 10.5] })
+    Game.init({ W: { ground: kind }, N, proj, cam, tile: () => [TW, TH], isBlocked, colliders, groundZ, spawn: [20.5, 13.5] })
     const found = new Set()
     const sync = () => { Game.extraHud = `khám phá ${found.size}/${pois.length}` }; sync()
-    pois.push({ id: 'rail', label: 'Phố Tàu hỏa', gx: 31.5, gy: 40.4, r: 2.4 })
+    pois.push({ id: 'rail', label: 'Phố Tàu hỏa', gx: 34.5, gy: RS - 0.6, r: 2.4 })
     for (const p of pois) Game.registerPOI({ ...p, onInteract: (q) => { found.add(q.id); sync(); Game.toast(found.size === pois.length ? `${q.label} — bạn đã khám phá đủ ${pois.length} địa danh!` : `${q.label} — đã khám phá ${found.size}/${pois.length}`) } })
     let drag = null
     cv.addEventListener('pointerdown', (e) => { if (Game.mode === 'play') { Game.pointer(e, 'down'); return } drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; cv.setPointerCapture(e.pointerId) })

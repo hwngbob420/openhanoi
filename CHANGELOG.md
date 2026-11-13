@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0-world — 2026-11-13
+- Map grown to 72x72 and re-laid out: pavements are now 2 tiles wide (poles, lamps, trees on the kerb row only, building-side row left clear; shop props never block the same cross-section).
+- Road A is now a pedestrian night-market / food street (brick walkway, stall rows on both sides, lamps) and Ô Quan Chưởng stands in the middle of it, so both sides of the gate are market. The gate arch now shows the light on the far side (it no longer looks like a closed wall) and no cars use that street.
+- Train street: red/white safety fence on both sides of the whole track (gaps only at road crossings), track cafés outside the fence (striped-awning counters in 4 colours, low tables with coloured parasols and plastic stools, coolers, plants, flags), lantern strings across the street that glow at night. Every café segment leaves a diagonal walking lane. 14 new sprites (`p_fence_*`, `p_tc_*`).
+- See-through is local again: only the buildings that hide the player plus same-block neighbours within ~4 tiles fade (no more whole blocks).
+- Fixes: a pedestrian that spawned on a dead-end zebra froze a lane for good (spawn off road tiles + respawn rule); `build_world_art.mjs --only` corrupted the manifest.
+
 ## 0.4.0-world — 2026-11-13
 - See-through: when a building hides the player, the WHOLE city block of buildings in front of them fades to ~20% (pavement, street, stalls behind become visible); single trees/props that hide the player fade on their own; fades in/out smoothly.
 - Real projected shadows (buildings, trees, poles, props, vehicles, pedestrians), sun direction and length follow the hour; fainter under cloud/rain, moonlight at night.

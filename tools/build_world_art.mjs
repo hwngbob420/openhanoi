@@ -37,6 +37,6 @@ fs.mkdirSync(outDir, { recursive: true })
 if (!only) for (const f of fs.readdirSync(outDir)) if (f.endsWith('.png')) fs.unlinkSync(path.join(outDir, f))
 for (const s of list) fs.copyFileSync(path.join(work, 'out/sprites', s.name + '.png'), path.join(outDir, s.name + '.png'))
 const mpath = path.join(outDir, 'manifest.json')
-const prev = only && fs.existsSync(mpath) ? JSON.parse(fs.readFileSync(mpath, 'utf8')) : {}
+const prev = only && fs.existsSync(mpath) ? (JSON.parse(fs.readFileSync(mpath, 'utf8')).sprites || {}) : {}
 fs.writeFileSync(mpath, JSON.stringify({ tile: [72, 36], sprites: { ...prev, ...manifest } }, null, 1))
 console.log(`đã dựng ${list.length} sprite -> ${path.relative(root, outDir)}`)

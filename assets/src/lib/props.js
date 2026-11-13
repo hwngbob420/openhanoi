@@ -109,6 +109,48 @@ DRAW.prop = (cv, s, I) => {
     if (up) { for (let k = 0; k < 6; k++) I.box(d * 3 - 1.5, -1.5, 14 + k * 8, d * 3 + 1.5, 1.5, 22 + k * 8, null, faceCols(k % 2 ? '#e8e2d0' : '#d4382c')) }
     else for (let k = 0; k < 8; k++) { const x0 = d > 0 ? 3 + k * 9 : -3 - (k + 1) * 9, x1 = x0 + 9; I.box(x0, -1.5, 26, x1, 1.5, 29.5, null, faceCols(k % 2 ? '#e8e2d0' : '#d4382c')) }
     I.box(-7, 5, 22, 7, 6, 36, null, faceCols('#e8e2d0')); I.line3([-6, 6, 24], [6, 6, 34], '#d4382c'); I.line3([-6, 6, 34], [6, 6, 24], '#d4382c')   // biển chữ X
+  } else if (t === 'fence') {
+    // hàng rào an toàn dọc đường tàu: cọc thép, thanh ngang trắng, nan sơn đỏ-trắng, biển cảnh báo vàng
+    const L = 36
+    for (const x of [1, 18, 35]) I.box(x - 1.2, -1.2, 0, x + 1.2, 1.2, 17, null, faceCols('#6f7a86'))
+    I.box(0, -0.8, 14, L, 0.8, 16.5, null, faceCols('#efe6d2')); I.box(0, -0.8, 4, L, 0.8, 6, null, faceCols('#efe6d2'))
+    for (let x = 3, i = 0; x < L; x += 3, i++) I.box(x - 0.6, -0.5, 6, x + 0.6, 0.5, 14, null, faceCols(i % 2 ? '#efe6d2' : '#d4382c'))
+    if (s.sign) { I.fL(1.4, 12, 24, 17, 29, '#f2c23c'); I.fL(1.4, 17, 19, 19, 25, '#1c1822'); I.fL(1.4, 17, 19, 17.5, 18.5, '#1c1822') }
+  } else if (t === 'tc_counter') {
+    // quầy cafe sát nhà: mặt quầy gỗ, máy pha, chai, mái hiên sọc, biển treo
+    const A = s.cols, W = 24, D = 7
+    groundShadow(cv, I.ox + 8, I.oy + 3, 40, 12)
+    I.box(-W, -D, 0, W, D, 17, null, faceCols(s.body)); I.box(-W - 1, -D - 1, 17, W + 1, D + 1, 19, null, faceCols(dark(s.body, 0.1)))
+    for (let x = -W + 3; x < W - 6; x += 8) I.fL(D, x, x + 5, 3, 13, mix(dark(s.body, 0.35), INK, 0.2))
+    I.box(-18, -4, 19, -8, 3, 30, null, faceCols('#23252b')); I.box(-17, -3, 30, -9, 2, 32, null, faceCols('#aeb4ba'))        // máy pha cafe
+    for (const [x, c] of [[0, '#2f7a58'], [4, '#d9a53c'], [8, '#c94a3a'], [12, '#e8e2d0']]) I.box(x, -2, 19, x + 2.5, 0.5, 26, null, faceCols(c))
+    I.box(16, -3, 19, 21, 3, 22, null, faceCols('#e8e2d0'))
+    for (const x of [-W, W - 2]) I.post(x, D - 1, 19, 44, 1.6, '#8a929a')
+    I.quad([-W - 2, -D - 2, 46], [W + 2, -D - 2, 46], [W + 2, D + 5, 36], [-W - 2, D + 5, 36], A[0])
+    for (let x = -W; x < W + 2; x += 6) I.quad([x, -D - 2, 46], [x + 3, -D - 2, 46], [x + 3, D + 5, 36], [x, D + 5, 36], A[1])
+    I.fL(D + 5, -W - 2, W + 2, 33, 36, dark(A[0], 0.2))
+    I.fL(D + 5.5, -8, 8, 22, 30, '#2a3b4a'); I.fL(D + 5.5, -6, 6, 24, 28, '#efe6d2'); I.fL(D + 5.5, -4, 4, 25.5, 26.5, '#2a3b4a')
+  } else if (t === 'tc_set') {
+    // bộ bàn ghế nhựa thấp + ô dù màu sát đường tàu
+    groundShadow(cv, I.ox + 8, I.oy + 2, 36, 12)
+    table(I, -9, -6, 9, 6, 11, '#c9b79a')
+    for (const [x, y, c] of [[-14, 0, s.st[0]], [14, 0, s.st[1]], [0, -12, s.st[2]], [0, 12, s.st[3]]]) stool(I, x, y, c)
+    I.box(-3, -2, 11, 3, 2, 14, null, faceCols('#efe6d2'))
+    I.post(0, 0, 11, 40, 1.4, '#8a929a'); umbrella(cv, I, 40, 22, s.cols, 9)
+  } else if (t === 'tc_cooler') {
+    groundShadow(cv, I.ox + 4, I.oy + 1, 14, 5)
+    I.box(-9, -5, 0, 9, 5, 12, null, faceCols('#3a6bb5')); I.box(-10, -6, 12, 10, 6, 14, null, faceCols('#e8e2d0')); I.fL(5.2, -6, 6, 4, 8, '#e8e2d0')
+    for (const [x, c] of [[-4, '#d4382c'], [0, '#2f7a58'], [4, '#f2c23c']]) I.box(x, -1, 14, x + 2, 1, 20, null, faceCols(c))
+  } else if (t === 'tc_plants') {
+    groundShadow(cv, I.ox + 4, I.oy + 1, 24, 7)
+    for (const [x, y, c] of [[-14, 0, '#b5733f'], [0, 2, '#7a5a3c'], [14, -1, '#c9b79a']]) {
+      I.box(x - 5, y - 5, 0, x + 5, y + 5, 9, null, faceCols(c)); I.box(x - 4, y - 4, 9, x + 4, y + 4, 10, null, faceCols('#3a2a1c'))
+      for (let k = 0; k < 9; k++) { const [px_, py_] = I.P(x + (k % 3 - 1) * 3, y + (Math.floor(k / 3) - 1) * 3, 11 + (k * 7) % 9); cv.circ(px_, py_, 3, [RAMP.foliage[2], RAMP.foliage[3], RAMP.foliage[1]][k % 3]) }
+      const [fx, fy] = I.P(x, y, 18); cv.set(fx, fy, RAMP.bougainvillea[2]); cv.set(fx + 3, fy + 1, RAMP.flag_red[3])
+    }
+  } else if (t === 'tc_flag') {
+    I.box(-2, -2, 0, 2, 2, 3, null, faceCols('#8a929a')); I.post(0, 0, 3, 40, 1.4, '#e8e2d0')
+    I.quad([0, 0, 38], [0, 14, 38], [0, 14, 26], [0, 0, 26], RAMP.flag_red[2]); const [sx, sy] = I.P(0, 7, 32); for (const [a, b] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) cv.set(sx + a, sy + b, '#fbe08a')
   }
   if (s.outline !== 0) cv.outline(0.5)
 }

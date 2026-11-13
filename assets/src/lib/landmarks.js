@@ -35,6 +35,13 @@ DRAW.gate = (cv, s, I) => {
   }
   const OPEN = mix(INK, TCR[1], 0.3)
   arch(du / 2, 54, 38, 70, lite(f.right, 0.35)); arch(du / 2, 49, 38, 66, OPEN)                           // vòm giữa (viền đá sáng)
+  {                                                  // nhìn xuyên cổng: thấy ánh sáng phía bên kia (cổng đi qua được, không phải tường kín)
+    const far = new Cv(cv.w, cv.h), I2 = new Iso(far, I.ox, I.oy), pts = [[0, du / 2 + 49, 0], [0, du / 2 + 49, 38]]
+    for (let t = 0; t <= 12; t++) { const a = t / 12 * Math.PI; pts.push([0, du / 2 + 49 * Math.cos(a), 38 + 28 * Math.sin(a)]) }
+    pts.push([0, du / 2 - 49, 38], [0, du / 2 - 49, 0])
+    far.poly(pts.map((p) => I2.P(...p)), '#f2e2b8')
+    for (let y = 0; y < cv.h; y++) for (let x = 0; x < cv.w; x++) if (far.get(x, y) && cv.get(x, y) === OPEN) cv.set(x, y, y % 2 && x % 3 === 0 ? '#e6d3a4' : '#f2e2b8')
+  }
   for (const yc of [36, du - 36]) { arch(yc, 20, 22, 44, lite(f.right, 0.3)); arch(yc, 16, 22, 40, OPEN) }
   I.fR(wu, 0, du, Hb - 2, Hb + 2, lite(f.right, 0.2)); I.fL(du, 0, wu, Hb - 2, Hb + 2, lite(f.left, 0.25))
   // lầu trên

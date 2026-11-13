@@ -5544,6 +5544,160 @@
    "kind": "prop",
    "group": "prop"
   },
+  "p_fence_a": {
+   "w": 74,
+   "h": 48,
+   "pivot": [
+    10,
+    32
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_fence_b": {
+   "w": 74,
+   "h": 48,
+   "pivot": [
+    10,
+    32
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_counter_green": {
+   "w": 154,
+   "h": 134,
+   "pivot": [
+    76,
+    110
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_counter_red": {
+   "w": 154,
+   "h": 134,
+   "pivot": [
+    76,
+    110
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_counter_blue": {
+   "w": 154,
+   "h": 134,
+   "pivot": [
+    76,
+    110
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_counter_yellow": {
+   "w": 154,
+   "h": 134,
+   "pivot": [
+    76,
+    110
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_set_a": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_set_b": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_set_c": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_set_d": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_set_e": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_cooler": {
+   "w": 74,
+   "h": 64,
+   "pivot": [
+    37,
+    50
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_plants": {
+   "w": 104,
+   "h": 74,
+   "pivot": [
+    52,
+    58
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_tc_flag": {
+   "w": 124,
+   "h": 74,
+   "pivot": [
+    62,
+    58
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
   "p_barrier_p_a": {
    "w": 154,
    "h": 132,

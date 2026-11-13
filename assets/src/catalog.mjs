@@ -72,6 +72,13 @@ export function specs() {
   const UMB = [['red', ['#d4382c', '#efe6d2'], ['#e0a52a', '#d4382c', '#7aa57a']], ['yellow', ['#f2c23c', '#fbf6e8'], ['#d4382c', '#7aa57a', '#e08a2a']], ['teal', ['#3f8f7b', '#fbf6e8'], ['#e0a52a', '#d9629a', '#7aa57a']], ['orange', ['#e08a2a', '#efe6d2'], ['#7aa57a', '#d4382c', '#e0a52a']]]
   for (const [n, cols, goods] of UMB) P('umb_' + n, 'umbrella', { cols, goods })
   P('cafe_red', 'cafe', { col: '#d4382c' }); P('cafe_green', 'cafe', { col: '#2f7a58' }); P('stools', 'stools'); P('kiosk', 'kiosk'); P('cyclo', 'cyclo'); P('planter', 'planter'); P('flagpole', 'flagpole', { py: 100 })
+  // ── phố cafe đường tàu ──
+  P('fence_a', 'fence', { w: 70, h: 44, px: 8, py: 30 }); P('fence_b', 'fence', { w: 70, h: 44, px: 8, py: 30, sign: 1 })
+  const TCC = [['green', ['#2f7a58', '#efe6d2'], '#8a5a34'], ['red', ['#d4382c', '#efe6d2'], '#5a3d2b'], ['blue', ['#3a6bb5', '#efe6d2'], '#6b4a32'], ['yellow', ['#e0a52a', '#fbf6e8'], '#7a5a3c']]
+  for (const [n, cols, body] of TCC) P('tc_counter_' + n, 'tc_counter', { cols, body, w: 150, h: 130, px: 74, py: 108 })
+  const TCS = [['a', ['#d4382c', '#efe6d2'], ['#d4382c', '#3a6bb5', '#2f8f59', '#f2c23c']], ['b', ['#2f7a58', '#fbf6e8'], ['#3a6bb5', '#d4382c', '#f2c23c', '#2f8f59']], ['c', ['#3a6bb5', '#fbf6e8'], ['#f2c23c', '#2f8f59', '#d4382c', '#3a6bb5']], ['d', ['#e08a2a', '#efe6d2'], ['#2f8f59', '#f2c23c', '#3a6bb5', '#d4382c']], ['e', ['#8a6bb0', '#fbf6e8'], ['#d4382c', '#f2c23c', '#2f8f59', '#3a6bb5']]]
+  for (const [n, cols, st] of TCS) P('tc_set_' + n, 'tc_set', { cols, st })
+  P('tc_cooler', 'tc_cooler', { w: 70, h: 60, px: 35, py: 48 }); P('tc_plants', 'tc_plants', { w: 100, h: 70, px: 50, py: 56 }); P('tc_flag', 'tc_flag', { py: 56, h: 70 })
   for (const [d, nm] of [[1, 'p'], [-1, 'n']]) for (const st of ['a', 'b', 'up']) P(`barrier_${nm}_${st}`, 'barrier', { dir: d, state: st, w: 150, h: 128, px: d > 0 ? 28 : 122, py: 82 })
   return S
 }
