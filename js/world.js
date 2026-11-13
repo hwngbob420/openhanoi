@@ -200,9 +200,9 @@ const World = (() => {
     }
     for (const [lx, ly] of [[0, 3], [0, 10], [0, 17], [0, 24], [24, 3], [24, 14], [24, 20], [24, 25], [6, 0], [13, 0], [19, 0], [6, 26], [13, 26], [19, 26]]) prop('p_lamp', ...at(lx, ly).map((v) => v + 0.5))
     for (const [lx, ly] of [[14.4, 5.2], [11.6, 9.4], [15.4, 9.8], [11.6, 4.6]]) prop('t_small_2', X0 + lx, Y0 + ly, { r: 0.3 })     // cây trên đảo Ngọc
-    prop('p_flagpole', X0 + 23, Y0 + 9); prop('p_cyclo', X0 + 23.2, Y0 + 15.5)
-    pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: X0 + 19, gy: Y0 + 8, r: 2.6 }, { id: 'temple', label: 'Đền Ngọc Sơn (đảo Ngọc)', gx: X0 + 15.5, gy: Y0 + 7.5, r: 2.4 },
-      { id: 'pen', label: 'Tháp Bút - Đài Nghiên', gx: X0 + 21.5, gy: Y0 + 5.5, r: 2.4 }, { id: 'tower', label: 'Tháp Rùa (ngắm từ bờ đông)', gx: X0 + 22, gy: Y0 + 15, r: 11 })
+    prop('p_flagpole', X0 + 23, Y0 + 9); prop('p_bench_y', X0 + 23.6, Y0 + 14.5); prop('p_bench_y', X0 + 23.6, Y0 + 16.8); prop('p_cyclo', X0 + 23.2, Y0 + 19.5)
+    pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: X0 + 19, gy: Y0 + 8, r: 2.1 }, { id: 'temple', label: 'Đền Ngọc Sơn (đảo Ngọc)', gx: X0 + 15.5, gy: Y0 + 7.5, r: 2.4 },
+      { id: 'pen', label: 'Tháp Bút - Đài Nghiên', gx: X0 + 21.5, gy: Y0 + 5.5, r: 2.4 }, { id: 'tower', label: 'Tháp Rùa (ngắm từ bờ đông)', gx: X0 + 22.5, gy: Y0 + 15.5, r: 2.4 })
   }
 
   function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
@@ -326,7 +326,7 @@ const World = (() => {
     mark(X0 + 3, BLOCKY[2][0] + 5, 3, 3); sprite('tower_a', X0 + 3, BLOCKY[2][0] + 5)
     mark(X0 + 8, BLOCKY[2][0] + 14, 2, 3); sprite('tower_b', X0 + 8, BLOCKY[2][0] + 14)
     mark(X0 + 3, BLOCKY[5][0] + 3, 2, 3); sprite('tower_b', X0 + 3, BLOCKY[5][0] + 3)
-    pois.push({ id: 'glass', label: 'Khu cao ốc', gx: X0 + 6.5, gy: 6.5, r: 2.4 })
+    pois.push({ id: 'glass', label: 'Khu cao ốc', gx: 88.5, gy: 4.5, r: 4.2 })
   }
 
   function genBlocks() {
@@ -973,7 +973,7 @@ const World = (() => {
     Game.init({ W: { ground: kind }, N, proj, cam, tile: () => [TW, TH], isBlocked, colliders, groundZ, spawn: SPAWN })
     const found = new Set()
     const sync = () => { Game.extraHud = `khám phá ${found.size}/${pois.length}` }; sync()
-    pois.push({ id: 'rail', label: 'Phố Tàu hỏa', gx: 23.5, gy: RS - 0.6, r: 2.4 })
+    pois.push({ id: 'rail', label: 'Phố Tàu hỏa', gx: 34.5, gy: RS - 0.6, r: 2.4 })
     for (const p of pois) Game.registerPOI({ ...p, onInteract: (q) => { found.add(q.id); sync(); Game.toast(found.size === pois.length ? `${q.label} — bạn đã khám phá đủ ${pois.length} địa danh!` : `${q.label} — đã khám phá ${found.size}/${pois.length}`) } })
     let drag = null
     cv.addEventListener('pointerdown', (e) => { if (Game.mode === 'play') { Game.pointer(e, 'down'); return } drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; cv.setPointerCapture(e.pointerId) })
