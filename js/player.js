@@ -59,6 +59,23 @@ const Game = (() => {
     for (const dir of ['up', 'down', 'left', 'right']) sprites[dir] = [0, 1, 2, 3].map((f) => makePerson(dir === 'left' ? 'left' : dir, f));
     // 'left' is drawn as the mirror of the 'right' pose
     for (const f of [0, 1, 2, 3]) { const r = makePerson('right', f), m = document.createElement('canvas'); m.width = 16; m.height = 28; const mx = m.getContext('2d'); mx.translate(16, 0); mx.scale(-1, 1); mx.drawImage(r, 0, 0); sprites.left[f] = m; }
+    loadArt();
+  }
+  // Hand-drawn character (assets/src/player.px.js, built with pxl). Replaces the placeholder once all 12 frames load.
+  function loadArt() {
+    const got = {}; let n = 0;
+    for (const dir of ['down', 'up', 'right']) for (let f = 0; f < 4; f++) {
+      const im = new Image(); im.onload = () => {
+        got[dir + f] = im;
+        if (++n < 12) return;
+        for (let g = 0; g < 4; g++) {
+          sprites.down[g] = got['down' + g]; sprites.up[g] = got['up' + g]; sprites.right[g] = got['right' + g];
+          const m = document.createElement('canvas'); m.width = 16; m.height = 28; const mx = m.getContext('2d');
+          mx.translate(16, 0); mx.scale(-1, 1); mx.drawImage(got['right' + g], 0, 0); sprites.left[g] = m;
+        }
+      };
+      im.src = 'assets/player/pl_' + dir + '_' + f + '.png';
+    }
   }
 
   // ───── collision ─────
@@ -135,7 +152,7 @@ const Game = (() => {
   function pushDrawable(list) {
     if (!sprites) return;
     const p = S.player, fr = p.moving ? Math.floor(p.t * 8) % 4 : 0;
-    list.push({ t: 'pl', c: sprites[p.dir][fr], ox: 8, oy: 26, gx: p.gx, gy: p.gy, key: p.gx + p.gy });
+    list.push({ t: 'pl', c: sprites[p.dir][fr], ox: 8, oy: 26 - (fr & 1), gx: p.gx, gy: p.gy, key: p.gx + p.gy });
   }
   function pointer(e, kind) {
     if (!world || !S.view) return;

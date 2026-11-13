@@ -1,0 +1,13 @@
+{
+ "ochre_wall":   ["6b4423","9a6a2c","c9923f","e8b95a","f7dc8c"],
+ "terracotta":   ["4a2420","7d3a2c","a85a3c","cc7f50","e8a678"],
+ "moss_shutter": ["1f3a2e","2f5a45","4a7d5c","7aa57a","a9c795"],
+ "foliage":      ["18382a","245a3a","3a8040","6aa84a","a8cf6a"],
+ "asphalt":      ["262d3a","3a4556","566478","7d8a9a","a6b1bd"],
+ "stone_cream":  ["6e5a48","9b856b","c4ae8e","e0d0b0","f4ead2"],
+ "lake_teal":    ["1e4a5a","2f7080","52949a","8cbfba","c6e3d8"],
+ "bougainvillea":["7a1f4a","b0366a","d9629a","f09ac0"],
+ "flag_red":     ["6a1418","a3202a","d4382c","ef6a4c"],
+ "sun_yellow":   ["b8801c","e0a52a","f2c23c","fbe08a"],
+ "ink":          ["1c1822","2a3b4a","fbf6e8"]
+}
