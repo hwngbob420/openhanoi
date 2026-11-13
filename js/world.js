@@ -21,6 +21,7 @@ const World = (() => {
   async function load() {
     MAN = (await (await fetch('assets/world/manifest.json')).json()).sprites
     await Promise.all(Object.keys(MAN).map((n) => new Promise((res) => { const i = new Image(); i.onload = () => { IMG[n] = i; res() }; i.onerror = () => { stats.errors.push('thiếu ảnh ' + n); res() }; i.src = 'assets/world/' + n + '.png' })))
+    await Promise.all(['down', 'up', 'right'].flatMap((d) => [0, 1, 2, 3].map((f) => new Promise((res) => { const i = new Image(); i.onload = () => { PL[d + f] = i; res() }; i.onerror = () => res(); i.src = `assets/player/pl_${d}_${f}.png` }))))
   }
 
   // ───────── sinh bản đồ ─────────
@@ -55,7 +56,7 @@ const World = (() => {
     const m = MAN[name]; if (!m) { stats.errors.push('thiếu ' + name); return null }
     const [sx, sy] = proj(gx, gy), fp = m.fp
     const bb = o.bb || (fp ? [gx, gx + fp[0], gy, gy + fp[1]] : [gx - 0.28, gx + 0.28, gy - 0.28, gy + 0.28])
-    const s = { name, img: IMG[name], dx: Math.round(sx - m.pivot[0]), dy: Math.round(sy - m.pivot[1]), w: m.w, h: m.h, bb, flat: !!o.flat }
+    const s = { name, img: IMG[name], dx: Math.round(sx - m.pivot[0]), dy: Math.round(sy - m.pivot[1]), w: m.w, h: m.h, bb, flat: !!o.flat, sh: shadowSpec(name) }
     statics.push(s); return s
   }
   const cellsFree = (gx, gy, w, d) => { for (let y = gy; y < gy + d; y++) for (let x = gx; x < gx + w; x++) if (x < 0 || y < 0 || x >= N || y >= N || occ[y][x]) return false; return true }
@@ -96,6 +97,7 @@ const World = (() => {
   function prop(name, gx, gy, o = {}) {
     if (!MAN[name]) return null
     const s = sprite(name, gx, gy, o)
+    if (name === 'p_lamp') lamps.push({ gx, gy })
     const r = o.r ?? PROP_R[name] ?? (name.startsWith('t_') ? 0.28 : 0.3)
     if (r > 0) colliders.push({ x: gx, y: gy, r })
     return s
@@ -145,7 +147,7 @@ const World = (() => {
     for (let y = 21; y <= 23; y++) for (let x = 40; x <= 42; x++) kind[y][x] = 'plaza'
     for (const [x, y] of [[43, 25], [44, 25], [43, 26], [44, 26]]) { kind[y][x] = 'grass'; occ[y][x] = true }
     for (let y = 22; y <= 23; y++) for (let x = 36; x <= 38; x++) { bridgeT.add(x + ',' + y); occ[y][x] = true }
-    for (let y = 15; y <= 28; y++) for (const x of [34, 47]) { if (kind[y][x] === 'grass') occ[y][x] = true }
+    for (let y = 15; y <= 28; y++) for (let x = 34; x <= 47; x++) occ[y][x] = true
     // đền Ngọc Sơn, Tháp Rùa, cầu Thê Húc
     mark(40, 21, 3, 3); sprite('lm_temple', 40, 21)
     mark(44, 25, 1, 1); sprite('lm_turtle', 44, 25)
@@ -157,7 +159,7 @@ const World = (() => {
     for (const [x, y, n] of [[35.4, 19.5, 'p_bench_y'], [35.4, 25.5, 'p_bench_y'], [46.6, 19.5, 'p_bench_y'], [46.6, 24, 'p_bench_y'], [38, 16.5, 'p_bench_x'], [43.5, 16.5, 'p_bench_x'], [38.5, 27.5, 'p_bench_x'], [43.5, 27.5, 'p_bench_x']]) prop(n, x, y)
     for (const [x, y] of [[35.5, 17.5], [35.5, 27.5], [46.5, 17.5], [46.5, 27.5], [40.5, 16.5], [40.5, 27.5]]) prop('p_lamp', x, y)
     for (const [x, y] of [[41, 20.4], [42.4, 24.2], [39.4, 24.0], [40.0, 20.3]]) prop('t_small_2', x, y, { r: 0.3 })
-    prop('p_flagpole', 36.4, 24.8); prop('p_cyclo', 47.0, 22.8)
+    prop('p_flagpole', 35.4, 25.2); prop('p_cyclo', 47.0, 22.8)
     pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: 36.5, gy: 23, r: 2 }, { id: 'temple', label: 'Đền Ngọc Sơn', gx: 41.5, gy: 24.6, r: 2 }, { id: 'tower', label: 'Tháp Rùa', gx: 44, gy: 24.3, r: 1.8 })
   }
 
@@ -209,6 +211,16 @@ const World = (() => {
       const b = B(i, j); perimeter(b, { mix, shop: j >= 2 && j <= 3 ? 0.4 : 0.55 }); interior(b, mix)
     }
     modernBlock(B(3, 0)); modernBlock(B(3, 1)); modernBlock(B(3, 4))
+  }
+
+  function fillGaps() {                                       // lấp các ô trống kín trong khu nhà bằng nhà / bụi cây
+    const inBlock = (x, y) => BLOCKX.some((r) => inR(x, r)) && BLOCKY.some((r) => inR(y, r))
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (occ[y][x] || kind[y][x] !== 'grass' || !inBlock(x, y)) continue
+      let ok = false
+      for (const [fam, F] of [['R', 2], ['R', 1], ['L', 2], ['L', 1]]) if (house(fam, F, wfloors(MIX.mid), pick(WALLS), false, x, y)) { ok = true; break }
+      if (!ok) { mark(x, y, 1, 1); prop('t_bush_1', x + 0.5, y + 0.55, { r: 0.2 }) }
+    }
   }
 
   // ───────── mặt đất → tên ô ─────────
@@ -276,7 +288,7 @@ const World = (() => {
   }
   function stepTraffic(dt) {
     ph.t += dt; if (ph.t > PH_DUR[ph.i]) { ph.t = 0; ph.i = (ph.i + 1) % 4 }
-    const P = (typeof Game !== 'undefined' && Game.state && Game.state.player) || null
+    const peds = pedList()
     for (const L of LANES) {
       L.vs.sort((a, b) => (b.pos - a.pos) * L.dir)
       for (let i = 0; i < L.vs.length; i++) {
@@ -286,7 +298,7 @@ const World = (() => {
         if (lead) { const gap = (lead.pos - v.pos) * L.dir - (lead.len + v.len) / 2; if (gap < 0.3) tv = 0; else if (gap < 1.6) tv = Math.min(tv, (gap - 0.3) * 2.2) }
         const front = v.pos + L.dir * v.len / 2
         for (const s of L.stops) { const d = (s.pos - front) * L.dir; if (d > -0.05 && d < 7 && s.closed()) { if (d < 0.12) tv = 0; else tv = Math.min(tv, d * 1.8) } }
-        if (P) { const along = (L.axis === 'x' ? P.gx : P.gy), lat = (L.axis === 'x' ? P.gy : P.gx), d = (along - front) * L.dir; if (d > -0.3 && d < 1.7 && Math.abs(lat - (L.c + v.lat)) < 0.85) tv = 0 }
+        for (const P of peds) { const along = (L.axis === 'x' ? P.gx : P.gy), lat = (L.axis === 'x' ? P.gy : P.gx), d = (along - front) * L.dir; if (d > -0.3 && d < 1.7 && Math.abs(lat - (L.c + v.lat)) < 0.8 && roadLike.has(kind[clamp(Math.floor(P.gy), 0, N - 1)][clamp(Math.floor(P.gx), 0, N - 1)])) { tv = 0; break } }
         if (v.type === 'bus' && L.axis === 'x' && L.dir < 0 && L.c === 30.5) for (const bx of BUSSTOPS) if (!v.visited.has(bx) && Math.abs(v.pos - bx) < 0.3) { v.visited.add(bx); v.dwell = 3.5 }
         v.v += clamp(tv - v.v, -dt * 6.5, dt * 2.2); v.pos += L.dir * v.v * dt
         if (L.dir > 0 && v.pos > N + 5) { Object.assign(v, newVeh(L, -5 - rnd() * 4)) }
@@ -330,7 +342,7 @@ const World = (() => {
   }
   function vehDrawable(name, cx, cy, clipKind, lift = 0) {
     const m = MAN[name]; if (!m) return null; const fp = m.fp, gx = cx - fp[0] / 2, gy = cy - fp[1] / 2, [sx, sy] = proj(gx, gy)
-    return { name, img: IMG[name], dx: Math.round(sx - m.pivot[0]), dy: Math.round(sy - m.pivot[1] - lift), w: m.w, h: m.h, bb: [gx, gx + fp[0], gy, gy + fp[1]], clip: clipKind, gx: cx, gy: cy }
+    return { name, img: IMG[name], dx: Math.round(sx - m.pivot[0]), dy: Math.round(sy - m.pivot[1] - lift), w: m.w, h: m.h, bb: [gx, gx + fp[0], gy, gy + fp[1]], clip: clipKind, gx: cx, gy: cy, sh: vehSh(name) }
   }
 
   // ───────── va chạm cho người chơi ─────────
@@ -342,6 +354,215 @@ const World = (() => {
     return false
   }
   const groundZ = (gx, gy) => bridgeT.has(Math.floor(gx) + ',' + Math.floor(gy)) ? 9 : 0
+
+  // ───────── giờ trong ngày, thời tiết ─────────
+  const sky = { hour: 15.5, auto: false, speed: 0.06, weather: 'sunny', cloud: 0, rain: 0, storm: 0, wxTimer: 80, autoWx: true, flash: 0, nextFlash: 7 }
+  const WXD = { sunny: [0, 0, 0], cloudy: [1, 0, 0], rain: [1, 1, 0], storm: [1, 1, 1] }
+  const WXNAME = { sunny: 'nắng', cloudy: 'nhiều mây', rain: 'mưa', storm: 'mưa giông' }
+  const GRADE = [[0, '#3a4880'], [5, '#4a5590'], [6.5, '#eab9a0'], [8, '#fff0dc'], [11, '#ffffff'], [15.5, '#fff2da'], [17.5, '#ffcd98'], [19, '#c68ea4'], [20.5, '#58639c'], [24, '#3a4880']]
+  const hex2 = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
+  const mixc = (a, b, t) => { const A = hex2(a), B = hex2(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('') }
+  function gradeAt(h) { for (let i = 1; i < GRADE.length; i++) if (h <= GRADE[i][0]) { const [h0, c0] = GRADE[i - 1], [h1, c1] = GRADE[i]; return mixc(c0, c1, (h - h0) / (h1 - h0)) } return GRADE[GRADE.length - 1][1] }
+  const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t) }
+  const nightAt = (h) => h < 5 ? 1 : h < 7 ? 1 - ss(5, 7, h) : h < 18 ? 0 : h < 20.5 ? ss(18, 20.5, h) : 1
+  function stepSky(dt) {
+    if (sky.auto) sky.hour = (sky.hour + sky.speed * dt) % 24
+    const tg = WXD[sky.weather], k = Math.min(1, dt * 0.5)
+    sky.cloud += (tg[0] - sky.cloud) * k; sky.rain += (tg[1] - sky.rain) * k; sky.storm += (tg[2] - sky.storm) * k
+    if (sky.autoWx) { sky.wxTimer -= dt; if (sky.wxTimer <= 0) { sky.wxTimer = 70 + Math.random() * 80; const r = Math.random(); sky.weather = r < 0.45 ? 'sunny' : r < 0.7 ? 'cloudy' : r < 0.92 ? 'rain' : 'storm' } }
+    sky.flash = Math.max(0, sky.flash - dt * 2.8)
+    if (sky.storm > 0.6) { sky.nextFlash -= dt; if (sky.nextFlash <= 0) { sky.flash = 1; sky.nextFlash = 5 + Math.random() * 8 } }
+  }
+  const drops = Array.from({ length: 480 }, () => ({ u: Math.random(), v: Math.random(), s: 0.7 + Math.random() * 0.6 }))
+  const ripples = []
+  function drawRipples(dt, w, h) {
+    if (sky.rain > 0.2 && ripples.length < 90) for (let i = 0; i < 2; i++) if (Math.random() < sky.rain * 0.9) ripples.push({ x: Math.random() * w, y: Math.random() * h, t: 0 })
+    ctx.lineWidth = 1
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const r = ripples[i]; r.t += dt * 1.6; if (r.t >= 1) { ripples.splice(i, 1); continue }
+      ctx.strokeStyle = `rgba(225,238,255,${0.55 * (1 - r.t)})`; ctx.beginPath(); ctx.ellipse(Math.round(r.x), Math.round(r.y), 1 + r.t * 9, (1 + r.t * 9) / 2, 0, 0, 6.283); ctx.stroke()
+    }
+  }
+  function drawRain(dt, w, h) {
+    const n = Math.floor(drops.length * sky.rain * Math.min(1, (w * h) / 350000 + 0.35))
+    ctx.fillStyle = 'rgba(205,222,245,0.62)'
+    for (let i = 0; i < n; i++) {
+      const d = drops[i]; d.v += dt * d.s * 1.5; d.u -= dt * d.s * 0.2; if (d.v > 1.05) { d.v = -0.05; d.u = Math.random() * 1.2 } if (d.u < -0.05) d.u += 1.1
+      const x = d.u * w, y = d.v * h, len = 6 + Math.round(d.s * 5)
+      for (let k = 0; k < len; k++) ctx.fillRect((x - k * 0.4) | 0, (y - k) | 0, 1, 1)
+    }
+  }
+
+  // ───────── bóng đổ ─────────
+  const shC = document.createElement('canvas'), shX = shC.getContext('2d')
+  function shadowSpec(name) {
+    if (/^(h_|m_|tower_|lm_gate|lm_temple|lm_turtle)/.test(name)) return { t: 'box', H: MAN[name].pivot[1] * 0.86 }
+    if (name.startsWith('t_')) { const ty = name.split('_')[1]; return { t: 'tree', H: { bang: 82, small: 48, phuong: 76, lieu: 70, bush: 12 }[ty] || 60, r: { bang: 0.95, small: 0.55, phuong: 1.05, lieu: 0.7, bush: 0.35 }[ty] || 0.6 } }
+    if (name === 'p_lamp') return { t: 'pole', H: 68 }
+    if (name === 'p_pole') return { t: 'pole', H: 104 }
+    if (name === 'p_flagpole') return { t: 'pole', H: 80 }
+    if (name.startsWith('mop_')) return { t: 'box', H: 18 }
+    if (/^p_(pho|banhmi|umb|fruit|cafe|kiosk)/.test(name)) return { t: 'blob', H: 44, r: 0.6 }
+    if (/^p_(bench|bin|planter|stools|cyclo)/.test(name)) return { t: 'blob', H: 14, r: 0.35 }
+    if (name.startsWith('p_shelter')) return { t: 'box', H: 42 }
+    return null
+  }
+  const VEH_H = { mo: 30, ca: 24, bu: 48, lo: 44, co: 38 }
+  const vehSh = (name) => ({ t: 'box', H: VEH_H[name.slice(0, 2)] || 24 })
+  function hull(pts) {
+    pts = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]); if (pts.length < 3) return pts
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = []
+    for (const p of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p) }
+    for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p) }
+    lo.pop(); up.pop(); return lo.concat(up)
+  }
+  function sunState() {
+    const h = sky.hour, d = clamp((h - 6) / 12, 0, 1), a = (135 - 180 * d) * Math.PI / 180, e = Math.sin(Math.PI * d), night = nightAt(h)
+    const dim = (1 - sky.cloud * 0.55) * (1 - sky.rain * 0.4)
+    const alpha = 0.36 * Math.sqrt(Math.max(0, e)) * dim + 0.1 * night * (1 - sky.cloud * 0.5)
+    const k = e > 0.05 ? 0.3 + (1 - e) * 1.5 : 1.2
+    const ang = night > 0.6 ? Math.PI / 4 : a
+    return { dx: Math.cos(ang), dy: Math.sin(ang), k, alpha, e, night }
+  }
+  function shadowPoly(o, S) {
+    const s = o.sh; if (!s) return null
+    const v = (H, f = 1) => [S.dx * H / 36 * S.k * f, S.dy * H / 36 * S.k * f], pts = []
+    const cx = (o.bb[0] + o.bb[1]) / 2, cy = (o.bb[2] + o.bb[3]) / 2
+    if (s.t === 'box') { const [vx, vy] = v(s.H); for (const [x, y] of [[o.bb[0], o.bb[2]], [o.bb[1], o.bb[2]], [o.bb[1], o.bb[3]], [o.bb[0], o.bb[3]]]) { pts.push(proj(x, y)); pts.push(proj(x + vx, y + vy)) } }
+    else if (s.t === 'pole') { const [vx, vy] = v(s.H); for (const [dx, dy] of [[-0.07, -0.07], [0.07, 0.07]]) { pts.push(proj(cx + dx, cy + dy)); pts.push(proj(cx + dx + vx, cy + dy + vy)) } }
+    else { const [vx, vy] = v(s.H, s.t === 'tree' ? 0.85 : 0.7), r0 = s.t === 'tree' ? 0.3 : s.r * 0.6; for (let i = 0; i < 8; i++) { const c = Math.cos(i * 0.785), sn = Math.sin(i * 0.785); pts.push(proj(cx + c * r0, cy + sn * r0)); pts.push(proj(cx + vx + c * s.r, cy + vy + sn * s.r)) } }
+    return hull(pts)
+  }
+  function drawShadows(vis, ox, oy, w, h) {
+    const S = sunState(); if (S.alpha < 0.02) return
+    shX.clearRect(0, 0, w, h); shX.fillStyle = '#0b1830'
+    for (const o of vis) {
+      if (o.dx + ox > w + 200 || o.dx + o.w + ox < -200 || o.dy + oy > h + 200 || o.dy + o.h + oy < -200) continue
+      const p = shadowPoly(o, S); if (!p || p.length < 3) continue
+      shX.beginPath(); shX.moveTo(p[0][0] + ox, p[0][1] + oy); for (let i = 1; i < p.length; i++) shX.lineTo(p[i][0] + ox, p[i][1] + oy); shX.closePath(); shX.fill()
+    }
+    ctx.save(); clipMap(ox, oy, 0); ctx.globalAlpha = S.alpha; ctx.drawImage(shC, 0, 0); ctx.restore()
+  }
+
+  // ───────── nhìn xuyên vật che người chơi ─────────
+  const maskCache = new WeakMap(), scratch = document.createElement('canvas'), sctx = scratch.getContext('2d')
+  function alphaMask(img) { let m = maskCache.get(img); if (!m) { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0); m = { w: c.width, d: x.getImageData(0, 0, c.width, c.height).data }; maskCache.set(img, m) } return m }
+  const solidAt = (o, sx, sy) => { const lx = Math.floor(sx - o.dx), ly = Math.floor(sy - o.dy); if (lx < 0 || ly < 0 || lx >= o.w || ly >= o.h) return false; const m = alphaMask(o.img); return m.d[(ly * m.w + lx) * 4 + 3] > 40 }
+  let xray = 0
+  function drawCut(o, ox, oy, cx, cy, R, k) {
+    if (scratch.width < o.w) scratch.width = o.w
+    if (scratch.height < o.h) scratch.height = o.h
+    sctx.globalCompositeOperation = 'source-over'; sctx.clearRect(0, 0, scratch.width, scratch.height); sctx.drawImage(o.img, 0, 0)
+    sctx.globalCompositeOperation = 'destination-out'
+    const g = sctx.createRadialGradient(cx - o.dx, cy - o.dy, R * 0.35, cx - o.dx, cy - o.dy, R)
+    g.addColorStop(0, `rgba(0,0,0,${0.93 * k})`); g.addColorStop(1, 'rgba(0,0,0,0)')
+    sctx.fillStyle = g; sctx.fillRect(0, 0, o.w, o.h)
+    ctx.drawImage(scratch, 0, 0, o.w, o.h, o.dx + ox, o.dy + oy, o.w, o.h)
+  }
+
+  // ───────── cửa sổ sáng đèn về đêm ─────────
+  const litCache = new WeakMap(), G1 = mixc('#1e4a5a', '#1c1822', 0.35), G2 = mixc('#52949a', mixc('#1e4a5a', '#1c1822', 0.35), 0.45), G3 = mixc('#8cbfba', mixc('#1e4a5a', '#1c1822', 0.35), 0.3)
+  const WARM = ['#ffd27a', '#ffe7a6', '#ffbf6a', '#fff0c8']
+  function litOverlay(o) {
+    if (litCache.has(o.img)) return litCache.get(o.img)
+    if (!/^(h_|m_)/.test(o.name || '')) { litCache.set(o.img, null); return null }
+    const W_ = o.img.width, H_ = o.img.height, c = document.createElement('canvas'); c.width = W_; c.height = H_
+    const x = c.getContext('2d'); x.drawImage(o.img, 0, 0); const d = x.getImageData(0, 0, W_, H_), a = d.data
+    const isG = (i) => { const r = a[i], g = a[i + 1], b = a[i + 2], hx = '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1); return a[i + 3] > 0 && (hx === G1 || hx === G2 || hx === G3) }
+    const lab = new Int32Array(W_ * H_).fill(-1); let n = 0; const comps = []
+    for (let p = 0; p < W_ * H_; p++) { if (lab[p] !== -1 || !isG(p * 4)) continue; const st = [p], cells = []; lab[p] = n; while (st.length) { const q = st.pop(); cells.push(q); const qx = q % W_, qy = (q / W_) | 0; for (const [dx, dy] of D4) { const nx = qx + dx, ny = qy + dy; if (nx < 0 || ny < 0 || nx >= W_ || ny >= H_) continue; const r = ny * W_ + nx; if (lab[r] === -1 && isG(r * 4)) { lab[r] = n; st.push(r) } } } comps.push(cells); n++ }
+    const out = new Uint8ClampedArray(W_ * H_ * 4); let any = false
+    comps.forEach((cells, i) => { if (((i * 2654435761) >>> 0) % 100 > 58) return; const col = hex2(WARM[i % 4]); for (const q of cells) { out[q * 4] = col[0]; out[q * 4 + 1] = col[1]; out[q * 4 + 2] = col[2]; out[q * 4 + 3] = 255; any = true } })
+    let res = null; if (any) { const oc = document.createElement('canvas'); oc.width = W_; oc.height = H_; oc.getContext('2d').putImageData(new ImageData(out, W_, H_), 0, 0); res = oc }
+    litCache.set(o.img, res); return res
+  }
+
+  // ───────── người đi bộ (NPC) ─────────
+  const PL = {}, NPC = [], NPC_SPR = []
+  const ORIG = { t: '#3a8f8a', T: '#2a6a6c', u: '#6cc1b0', p: '#3d4c7a', P: '#2b3558', h: '#2b2230', H: '#443449', b: '#b5733f', B: '#7d4a28' }
+  const NPC_LOOK = [
+    { sh: ['#c94a3a', '#8f3328', '#e78a78'], pa: ['#2f2f33', '#1c1c20'], ha: ['#2b2230', '#443449'], bag: 0 },
+    { sh: ['#e8e2d0', '#b9b2a0', '#fbf6e8'], pa: ['#3d4c7a', '#2b3558'], ha: ['#5a3a2a', '#7a5238'], bag: 1 },
+    { sh: ['#d9a53c', '#a47a22', '#f0c868'], pa: ['#6a5a48', '#4a3d2e'], ha: ['#2b2230', '#443449'], bag: 0 },
+    { sh: ['#3a6bb5', '#274a82', '#6a98d8'], pa: ['#2f2f33', '#1c1c20'], ha: ['#8a8a92', '#b0b0b8'], bag: 0 },
+    { sh: ['#5aa56a', '#3a7a48', '#8acb98'], pa: ['#3d4c7a', '#2b3558'], ha: ['#2b2230', '#443449'], bag: 1 },
+    { sh: ['#8a6bb0', '#634a86', '#b394d6'], pa: ['#2b3558', '#1c2438'], ha: ['#5a3a2a', '#7a5238'], bag: 0 },
+    { sh: ['#e07a9a', '#a85070', '#f2a8c0'], pa: ['#d8d0c0', '#b0a894'], ha: ['#2b2230', '#443449'], bag: 1 },
+    { sh: ['#2f2f33', '#1c1c20', '#55555c'], pa: ['#3d4c7a', '#2b3558'], ha: ['#2b2230', '#443449'], bag: 0 },
+    { sh: ['#e08a2a', '#a8601a', '#f2b060'], pa: ['#3d4c7a', '#2b3558'], ha: ['#b08a3a', '#d8b058'], bag: 1 },
+    { sh: ['#3a8f8a', '#2a6a6c', '#6cc1b0'], pa: ['#6a5a48', '#4a3d2e'], ha: ['#5a3a2a', '#7a5238'], bag: 1 },
+  ]
+  function recolor(img, look) {
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0)
+    const d = x.getImageData(0, 0, c.width, c.height), a = d.data
+    const M = new Map(), put = (o, n) => { const O = hex2(o); M.set((O[0] << 16) | (O[1] << 8) | O[2], hex2(n)) }
+    put(ORIG.T, look.sh[1]); put(ORIG.t, look.sh[0]); put(ORIG.u, look.sh[2]); put(ORIG.p, look.pa[0]); put(ORIG.P, look.pa[1]); put(ORIG.h, look.ha[0]); put(ORIG.H, look.ha[1])
+    if (look.bag) { put(ORIG.b, look.sh[0]); put(ORIG.B, look.sh[1]) }
+    for (let i = 0; i < a.length; i += 4) { if (!a[i + 3]) continue; const n = M.get((a[i] << 16) | (a[i + 1] << 8) | a[i + 2]); if (n) { a[i] = n[0]; a[i + 1] = n[1]; a[i + 2] = n[2] } }
+    x.putImageData(d, 0, 0); return c
+  }
+  function buildNpcSprites() {
+    if (!PL.down0) return
+    for (const look of NPC_LOOK) {
+      const s = { down: [], up: [], right: [], left: [] }
+      for (let f = 0; f < 4; f++) {
+        s.down.push(recolor(PL['down' + f], look)); s.up.push(recolor(PL['up' + f], look)); const r = recolor(PL['right' + f], look); s.right.push(r)
+        const m = document.createElement('canvas'); m.width = 16; m.height = 28; const mx = m.getContext('2d'); mx.translate(16, 0); mx.scale(-1, 1); mx.drawImage(r, 0, 0); s.left.push(m)
+      }
+      NPC_SPR.push(s)
+    }
+  }
+  let npcOK = null
+  const NPC_KINDS = new Set(['walk', 'plaza', 'market', 'grass', 'zebra_x', 'zebra_y'])
+  function buildNpcGrid() {
+    npcOK = Array.from({ length: N }, (_, y) => Array.from({ length: N }, (_, x) => {
+      if (!NPC_KINDS.has(kind[y][x]) || blk[y][x]) return false
+      for (const c of colliders) if (Math.hypot(x + 0.5 - c.x, y + 0.5 - c.y) < c.r + 0.28) return false
+      return true
+    }))
+  }
+  const D4 = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+  function findPath(sx, sy, tx, ty) {
+    const key = (x, y) => y * N + x, prev = new Map([[key(sx, sy), -1]]), q = [[sx, sy]]
+    for (let qi = 0; qi < q.length && qi < 1400; qi++) {
+      const [x, y] = q[qi]; if (x === tx && y === ty) break
+      for (const [dx, dy] of D4) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= N || ny >= N || !npcOK[ny][nx]) continue; const k = key(nx, ny); if (prev.has(k)) continue; prev.set(k, key(x, y)); q.push([nx, ny]) }
+    }
+    if (!prev.has(key(tx, ty))) return null
+    const out = []; for (let k = key(tx, ty); k !== -1; k = prev.get(k)) out.push([(k % N) + 0.5, Math.floor(k / N) + 0.5]); return out.reverse()
+  }
+  function genNpc(count) {
+    buildNpcGrid(); buildNpcSprites(); if (!NPC_SPR.length) return
+    const tiles = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (npcOK[y][x] && kind[y][x] !== 'grass') tiles.push([x, y])
+    for (let i = 0; i < count; i++) { const [x, y] = tiles[Math.floor(Math.random() * tiles.length)]; NPC.push({ gx: x + 0.5, gy: y + 0.5, path: [], pi: 0, sp: 1.0 + Math.random() * 0.6, v: i % NPC_SPR.length, dir: 'down', t: Math.random() * 9, wait: Math.random() * 3, moving: false }) }
+  }
+  function stepNpc(dt) {
+    for (const n of NPC) {
+      n.t += dt
+      if (n.pi >= n.path.length) {
+        n.moving = false; n.wait -= dt
+        if (n.wait <= 0) {
+          const tx = clamp(Math.floor(n.gx) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1), ty = clamp(Math.floor(n.gy) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1)
+          const p = npcOK[ty][tx] && kind[ty][tx] !== 'zebra_x' && kind[ty][tx] !== 'zebra_y' ? findPath(Math.floor(n.gx), Math.floor(n.gy), tx, ty) : null
+          if (p && p.length > 1) { n.path = p; n.pi = 1 } else n.wait = 0.4
+        }
+        continue
+      }
+      const [tx, ty] = n.path[n.pi], dx = tx - n.gx, dy = ty - n.gy, d = Math.hypot(dx, dy), step = n.sp * dt
+      if (d <= step) { n.gx = tx; n.gy = ty; n.pi++; if (n.pi >= n.path.length) n.wait = 1 + Math.random() * 5 } else { n.gx += dx / d * step; n.gy += dy / d * step }
+      const sx = dx - dy, sy = (dx + dy) / 2; n.dir = Math.abs(sx) >= Math.abs(sy * 2) ? (sx > 0 ? 'right' : 'left') : (sy > 0 ? 'down' : 'up'); n.moving = true
+    }
+  }
+  function npcDrawables() {
+    const out = []
+    for (const n of NPC) {
+      const sp = NPC_SPR[n.v][n.dir][n.moving ? Math.floor(n.t * 7) % 4 : 0], [sx, sy] = proj(n.gx, n.gy), bob = n.moving && (Math.floor(n.t * 7) & 1) ? 1 : 0
+      out.push({ img: sp, dx: Math.round(sx - 8), dy: Math.round(sy - 26 + bob), w: 16, h: 28, bb: [n.gx - 0.22, n.gx + 0.22, n.gy - 0.22, n.gy + 0.22], gx: n.gx, gy: n.gy, sh: { t: 'blob', H: 26, r: 0.22 } })
+    }
+    return out
+  }
+  const pedList = () => { const L = NPC.slice(); if (typeof Game !== 'undefined' && Game.state && Game.state.player) L.push(Game.state.player); return L }
+  const lamps = []
 
   // ───────── vẽ ─────────
   let cv, ctx, hud, last = 0, T = 0, tod = 0
@@ -356,11 +577,14 @@ const World = (() => {
   }
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now; T += dt
-    stepTraffic(dt); stepTrain(dt); Game.update(dt)
+    stepSky(dt); stepTraffic(dt); stepTrain(dt); stepNpc(dt); Game.update(dt)
     const z = cam.zoom, w = Math.ceil(innerWidth / z), h = Math.ceil(innerHeight / z)
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h }
-    ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#1b1d23'; ctx.fillRect(0, 0, w, h)
+    if (shC.width !== w || shC.height !== h) { shC.width = w; shC.height = h }
+    ctx.imageSmoothingEnabled = false
+    const bg = ctx.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#2c3b57'); bg.addColorStop(1, '#141824'); ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h)
     const ox = Math.round(w / 2 - cam.x), oy = Math.round(h / 2 - cam.y); Game.view = { w, h, ox, oy }
+    drawSkirt(ox, oy)
     const wf = Math.floor(T / 0.7) & 1
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const sx = (x - y) * 36 - 36 + ox, sy = (x + y) * 18 + oy
@@ -369,21 +593,25 @@ const World = (() => {
       ctx.drawImage(IMG[n], sx, sy)
     }
     for (const s of statics) if (s.flat && s.dx + ox < w && s.dx + s.w + ox > 0 && s.dy + oy < h && s.dy + s.h + oy > 0) ctx.drawImage(s.img, s.dx + ox, s.dy + oy)
+    if (sky.rain > 0.02) { ctx.save(); clipMap(ox, oy, 0); ctx.fillStyle = `rgba(28,44,72,${0.26 * sky.rain})`; ctx.fillRect(0, 0, w, h); ctx.restore(); drawRipples(dt, w, h) }
     // danh sách vẽ: tĩnh (đã sắp) + động (chèn theo quan hệ trước/sau)
     const vis = []
     for (const s of statSorted) if (s.dx + ox < w && s.dx + s.w + ox > 0 && s.dy + oy < h && s.dy + s.h + oy > 0) vis.push(s)
-    const dyn = []
+    const dyn = [], night = nightAt(sky.hour), glows = []
     for (const c of crossings) {
       const st = c.down ? (Math.floor(c.flash / 0.4) & 1 ? 'a' : 'b') : 'up'
       dyn.push(barrierD(`p_barrier_p_${st}`, c.x0 - 0.5, 40.5), barrierD(`p_barrier_n_${st}`, c.x0 + 3.5, 44.5))
+      if (c.down) glows.push({ gx: c.x0 - 0.5, gy: 40.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true }, { gx: c.x0 + 3.5, gy: 44.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true })
     }
     for (const L of LANES) for (const v of L.vs) {
       const cx = L.axis === 'x' ? v.pos : L.c + v.lat, cy = L.axis === 'x' ? L.c + v.lat : v.pos
       if (cx < -3 || cx > N + 3 || cy < -3 || cy > N + 3) continue
       const d = vehDrawable(v.name, cx, cy, 'veh'); if (d) dyn.push(d)
+      if (night > 0.05) { const f = L.dir * v.len / 2 + L.dir * 0.4; glows.push({ gx: L.axis === 'x' ? cx + f : cx, gy: L.axis === 'x' ? cy : cy + f, z: 6, r: v.type === 'moto' ? 20 : 32, c: '255,236,170', a: 0.7 }) }
     }
     if (train.state === 'run') for (const d of trainDrawables()) if (d) dyn.push(d)
-    const pl = []; Game.pushDrawable(pl); for (const p of pl) dyn.push(p)
+    for (const d of npcDrawables()) dyn.push(d)
+    const pl = []; Game.pushDrawable(pl); for (const p of pl) { p.sh = { t: 'blob', H: 26, r: 0.22 }; dyn.push(p) }
     let nveh = 0
     for (const d of dyn) {
       if (d.dx === undefined) { d.dx = Math.round(proj(d.gx, d.gy)[0] - d.ox); d.dy = Math.round(proj(d.gx, d.gy)[1] - d.oy); d.w = d.c.width; d.h = d.c.height; d.img = d.c }
@@ -393,15 +621,24 @@ const World = (() => {
       vis.splice(hi < lo ? hi : lo, 0, d); if (d.clip) nveh++
     }
     stats.objs = vis.length; stats.vehicles = nveh
-    for (const o of vis) {
-      const edge = o.clip && (o.gx < 6 || o.gx > N - 6 || o.gy < 6 || o.gy > N - 6)
+    drawShadows(vis, ox, oy, w, h)
+    // người chơi bị che? -> làm mờ (khoét) mọi vật đứng trước quanh nhân vật để thấy hè phố, đường, đồ vật phía sau
+    const pd = pl[0], pi = pd ? vis.indexOf(pd) : -1
+    let occl = false
+    if (pi >= 0) {
+      const pts = [[pd.dx + 8, pd.dy + 4], [pd.dx + 8, pd.dy + 14], [pd.dx + 8, pd.dy + 24]]
+      scan: for (let i = pi + 1; i < vis.length; i++) { const it = vis[i]; if (it.clip || !overlap(pd, it)) continue; for (const q of pts) if (solidAt(it, q[0], q[1])) { occl = true; break scan } }
+    }
+    const litDraw = []
+    xray += ((occl ? 1 : 0) - xray) * Math.min(1, dt * 8)
+    const qx = pd ? pd.dx + 8 : 0, qy = pd ? pd.dy + 14 : 0, QR = 70
+    for (let i = 0; i < vis.length; i++) {
+      const o = vis[i], edge = o.clip && (o.gx < 6 || o.gx > N - 6 || o.gy < 6 || o.gy > N - 6)
       if (edge) { ctx.save(); clipMap(ox, oy, o.clip === 'train' ? 52 : 40) }
-      ctx.drawImage(o.img, o.dx + ox, o.dy + oy)
+      if (xray > 0.02 && i > pi && pi >= 0 && !o.clip && o.dx < qx + QR && o.dx + o.w > qx - QR && o.dy < qy + QR && o.dy + o.h > qy - QR) drawCut(o, ox, oy, qx, qy, QR, xray)
+      else { ctx.drawImage(o.img, o.dx + ox, o.dy + oy); if (night > 0.05 && o.name && (o.name[0] === 'h' || o.name[0] === 'm') && o.name[1] === '_') litDraw.push(o) }
       if (edge) ctx.restore()
     }
-    // người chơi bị nhà che: vẽ thêm một bóng mờ lên trên để luôn nhìn thấy
-    const pd = pl[0]
-    if (pd) { const i0 = vis.indexOf(pd); if (i0 >= 0) { for (let i = i0 + 1; i < vis.length; i++) if (!vis[i].clip && overlap(pd, vis[i])) { ctx.globalAlpha = 0.55; ctx.drawImage(pd.img, pd.dx + ox, pd.dy + oy); ctx.globalAlpha = 1; break } } }
     // dây điện giữa các cột
     for (const a of poles) for (const b of poles) {
       if (a.axis !== b.axis) continue
@@ -412,9 +649,56 @@ const World = (() => {
       for (let k = 0; k < 3; k++) cable([pa[0] + k - 1, pa[1] + k * 3], [pb[0] + k - 1, pb[1] + k * 3], ox, oy, 0, d * 3)
     }
     drawSignals(ox, oy)
-    if (tod) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = TOD_TINT[tod]; ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over' }
+    postFx(dt, w, h, ox, oy, glows, night, litDraw)
     stats.fps = Math.round(1 / Math.max(0.001, dt))
-    hud.textContent = `Hà Nội ${N}x${N}   fps ${stats.fps}   vật thể ${stats.objs}   xe ${stats.vehicles}\n${train.state === 'run' ? 'tàu hỏa đang chạy' : 'tàu hỏa còn ' + Math.ceil(train.t) + 's'}   [wheel zoom · T giờ trong ngày · H ẩn]\n` + Game.hudLine()
+    const hh = Math.floor(sky.hour), mm = Math.floor((sky.hour - hh) * 60)
+    hud.textContent = `Hà Nội ${N}x${N}   ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${WXNAME[sky.weather]}   fps ${stats.fps}   xe ${stats.vehicles}   người ${NPC.length}\n${train.state === 'run' ? 'tàu hỏa đang chạy' : 'tàu hỏa còn ' + Math.ceil(train.t) + 's'}   [R thời tiết · T đổi giờ · Y giờ tự chạy · H ẩn]\n` + Game.hudLine()
+  }
+  function drawSkirt(ox, oy) {                                // thành đất quanh mép map như một mô hình thu nhỏ
+    const D = [-36 * N, 18 * N], C = [0, 36 * N], B = [36 * N, 18 * N], TK = 44
+    for (const [P, Q, cols] of [[D, C, ['#5f8a46', '#6a4a36', '#5a3e2d']], [C, B, ['#476a38', '#4b3425', '#3f2b1f']]]) {
+      for (let k = 0; k < TK; k += 4) {
+        ctx.fillStyle = k < 4 ? cols[0] : (k >> 2) % 2 ? cols[1] : cols[2]
+        ctx.beginPath(); ctx.moveTo(P[0] + ox, P[1] + k + oy); ctx.lineTo(Q[0] + ox, Q[1] + k + oy); ctx.lineTo(Q[0] + ox, Q[1] + k + 4 + oy); ctx.lineTo(P[0] + ox, P[1] + k + 4 + oy); ctx.closePath(); ctx.fill()
+      }
+    }
+    const g = ctx.createLinearGradient(0, 36 * N + TK + oy, 0, 36 * N + TK + 90 + oy); g.addColorStop(0, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)')
+    ctx.fillStyle = g; ctx.fillRect(0, 36 * N + TK + oy, ctx.canvas.width, 90)
+  }
+  function glowAt(gx, gy, zh, r, rgb, a, ox, oy) {
+    const [sx, sy] = proj(gx, gy), X = sx + ox, Y = sy - zh + oy
+    const g = ctx.createRadialGradient(X, Y, 0, X, Y, r); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`)
+    ctx.fillStyle = g; ctx.fillRect(X - r, Y - r, r * 2, r * 2)
+  }
+  function postFx(dt, w, h, ox, oy, glows, night, litDraw) {
+    const S = sunState(), clear = 1 - sky.cloud
+    if (clear > 0.05 && S.e > 0.05) {                       // bóng mây trôi qua phố
+      for (let k = 0; k < 5; k++) {
+        const r = 150 + k * 40, cx = ((T * (7 + k) + k * 330) % (w + 600)) - 300, cy = (k * 211 + 90) % (h + 100) - 20
+        ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.5)
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, `rgba(8,22,44,${0.12 * clear * S.e})`); g.addColorStop(1, 'rgba(8,22,44,0)')
+        ctx.fillStyle = g; ctx.fillRect(-r, -r, 2 * r, 2 * r); ctx.restore()
+      }
+    }
+    let col = gradeAt(sky.hour); col = mixc(col, '#cdd5de', sky.cloud * 0.3); col = mixc(col, '#97a6bb', sky.rain * 0.35); col = mixc(col, '#6c7990', sky.storm * 0.35)
+    ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = col; ctx.fillRect(0, 0, w, h)
+    if (clear > 0.1 && S.e > 0.1) {                         // nắng chói từ góc trên-trái
+      ctx.globalCompositeOperation = 'screen'
+      const g = ctx.createRadialGradient(w * 0.1, -h * 0.1, 0, w * 0.1, -h * 0.1, Math.max(w, h) * 0.9); g.addColorStop(0, `rgba(255,226,160,${0.2 * clear * S.e})`); g.addColorStop(1, 'rgba(255,226,160,0)')
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
+    }
+    ctx.globalCompositeOperation = 'lighter'
+    if (night > 0.05) { ctx.globalAlpha = Math.min(0.85, night); for (const o of litDraw) { const lo = litOverlay(o); if (lo) ctx.drawImage(lo, o.dx + ox, o.dy + oy) } ctx.globalAlpha = 1 }
+    if (night > 0.04) for (const l of lamps) {
+      const [sx, sy] = proj(l.gx, l.gy); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -90 || sy + oy > h + 130) continue
+      glowAt(l.gx, l.gy, 64, 62, '255,205,125', 0.6 * night, ox, oy); glowAt(l.gx, l.gy, 0, 46, '255,205,125', 0.22 * night, ox, oy)
+    }
+    for (const g of glows) { const [sx, sy] = proj(g.gx, g.gy); if (sx + ox < -60 || sx + ox > w + 60 || sy + oy < -60 || sy + oy > h + 80) continue; glowAt(g.gx, g.gy, g.z, g.r, g.c, g.a * (g.always ? 1 : Math.min(1, night * 1.2)), ox, oy) }
+    ctx.globalCompositeOperation = 'source-over'
+    if (sky.rain > 0.02) drawRain(dt, w, h)
+    if (sky.flash > 0.02) { ctx.fillStyle = `rgba(236,242,255,${0.55 * sky.flash})`; ctx.fillRect(0, 0, w, h) }
+    const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.4, w / 2, h / 2, Math.max(w, h) * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.14 + 0.12 * night + 0.1 * sky.rain})`)
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h)
   }
   function barrierD(name, gx, gy) { const m = MAN[name]; if (!m) return { dx: 0, dy: 0, w: 1, h: 1, bb: [0, 0, 0, 0], img: IMG.g_asphalt } ; const [sx, sy] = proj(gx, gy); return { name, img: IMG[name], dx: Math.round(sx - m.pivot[0]), dy: Math.round(sy - m.pivot[1]), w: m.w, h: m.h, bb: [gx - 0.2, gx + 0.2, gy - 0.2, gy + 0.2] } }
   function drawSignals(ox, oy) {
@@ -425,9 +709,18 @@ const World = (() => {
     }
   }
 
+  const HOURS = [7, 12, 15.5, 18, 21, 0.5]
+  function jumpTime() { const nx = HOURS.find((x) => x > sky.hour + 0.05); sky.hour = nx === undefined ? HOURS[0] : nx }
+  function setWeather(w) { sky.weather = w; sky.autoWx = false }
+  function buildUI() {
+    const d = document.createElement('div'); d.style.cssText = 'position:fixed;right:8px;top:8px;z-index:6;display:flex;gap:4px;font:16px system-ui,sans-serif;'
+    const mkb = (label, title, fn) => { const b = document.createElement('button'); b.textContent = label; b.title = title; b.style.cssText = 'width:36px;height:34px;border-radius:6px;border:1px solid #6b5f45;background:rgba(14,15,19,.78);color:#f4efe2;cursor:pointer;padding:0'; b.addEventListener('pointerdown', (e) => { e.stopPropagation(); fn() }); d.appendChild(b) }
+    mkb('☀', 'Nắng', () => setWeather('sunny')); mkb('☁', 'Nhiều mây', () => setWeather('cloudy')); mkb('🌧', 'Mưa', () => setWeather('rain')); mkb('⛈', 'Mưa giông', () => setWeather('storm')); mkb('🕒', 'Đổi giờ', jumpTime); mkb('⏯', 'Giờ tự chạy', () => { sky.auto = !sky.auto })
+    document.body.appendChild(d)
+  }
   // ───────── khởi động ─────────
   function generate() {
-    genGround(); genGate(); genLake(); genMarket(); genPark(); genTowers(); genBlocks(); streets(); streetLife(); nameTiles(); sortStatics(); genTraffic()
+    genGround(); genGate(); genLake(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); streets(); streetLife(); nameTiles(); sortStatics(); genTraffic(); genNpc(36)
   }
   function start(canvas, hudEl) {
     cv = canvas; ctx = cv.getContext('2d'); hud = hudEl
@@ -443,9 +736,10 @@ const World = (() => {
     cv.addEventListener('pointermove', (e) => { if (Game.mode === 'play') { Game.pointer(e, 'move'); return } if (drag) { cam.x = drag.cx - (e.clientX - drag.x) / cam.zoom; cam.y = drag.cy - (e.clientY - drag.y) / cam.zoom } })
     cv.addEventListener('pointerup', () => { drag = null })
     cv.addEventListener('wheel', (e) => { e.preventDefault(); cam.zoom = clamp(cam.zoom + (e.deltaY < 0 ? 1 : -1), 1, 5) }, { passive: false })
-    addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 't') tod = (tod + 1) % 3; if (k === 'h') hud.style.display = hud.style.display === 'none' ? '' : 'none' })
+    buildUI()
+    addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (k === 't') jumpTime(); if (k === 'y') sky.auto = !sky.auto; if (k === 'r') { const o = ['sunny', 'cloudy', 'rain', 'storm']; setWeather(o[(o.indexOf(sky.weather) + 1) % 4]) } if (k === 'h') hud.style.display = hud.style.display === 'none' ? '' : 'none' })
     window.addEventListener('error', (e) => stats.errors.push(String(e.message)))
-    window.__world = { statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
+    window.__world = { statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, sky, setWeather, setHour: (hr) => { sky.hour = hr }, NPC, lamps, npcOK: () => npcOK, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
     window.__stats = stats; window.__ready = true
     last = performance.now()
     ;(function loop(now) { try { frame(now) } catch (e) { stats.errors.push(String(e.stack || e)); hud.textContent = 'lỗi: ' + e.message; return } requestAnimationFrame(loop) })(last)

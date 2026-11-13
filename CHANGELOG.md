@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0-world — 2026-11-13
+- See-through: when a building/tree/vehicle hides the player, everything in front of them gets a soft circular cut-out (pavement, street, props behind become visible); fades in/out smoothly. Replaces the ghost silhouette.
+- Real projected shadows (buildings, trees, poles, props, vehicles, pedestrians), sun direction and length follow the hour; fainter under cloud/rain, moonlight at night.
+- Time of day (colour grading, sun glare, drifting cloud shadows) and weather: sunny, cloudy, rain (streaks, ripples, wet ground), storm (lightning). Keys R / T / Y and 6 on-screen buttons (usable on phones). Weather changes by itself now and then until the player picks one.
+- Night: lit windows on houses, lamp pools, vehicle headlights, flashing crossing lamps, traffic signal glow.
+- 36 pedestrians (10 recoloured looks of the player sprite) walk the pavements, plazas and zebra crossings with BFS paths; traffic stops for anyone standing on the road or a crossing.
+- Map edge now a soil slab (diorama skirt) over a sky gradient instead of a hard cut.
+- Fixes found while playing: pavement pedestrians froze whole lanes (yield only on road/zebra tiles), flag pole standing in water, enclosed empty yards (21 unreachable tiles -> 0).
+
 ## 0.3.0-world — 2026-11-13
 - Whole world redrawn from scratch with claude-pxl (pixel-art-studio): 409 sprites in `assets/world/` — ground tiles, 200+ shophouse/modern building variants, glass towers, Ô Quan Chưởng gate, Thê Húc bridge + gate, Ngọc Sơn temple, Tháp Rùa, trees (bàng, phượng, liễu, small, bush), motorbikes (6), cars (5), buses (3), locomotive + coach, level-crossing barriers (down a/b flash, up), street props and market stalls. None of the 59 old sprites is loaded any more.
 - New engine `js/world.js`: 64x64 map (old quarter, market, lake with island, modern district, park, rail street), 12 traffic lanes with signalled junctions, buses stop at shelters, vehicles yield to the player.
