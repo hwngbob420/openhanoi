@@ -208,7 +208,7 @@ const World = (() => {
   function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
     const gx = 24, gy = CORRY[PED][0]
     mark(gx, gy, 1, 7, false)
-    for (const dy of [0.22, 1.78, 5.22, 6.78]) colliders.push({ x: gx + 0.5, y: gy + dy, r: 0.24 })      // chỉ các trụ tường chặn: đi bộ qua được cả 3 cổng (giữa + 2 ô nhỏ)
+    for (const dy of [0.22, 1.78, 5.22, 6.78]) for (const dx of [0.2, 0.5, 0.8]) colliders.push({ x: gx + dx, y: gy + dy, r: 0.24 })      // chỉ các trụ tường chặn: đi bộ qua được cả 3 cổng (giữa + 2 ô nhỏ)
     sprite('lm_gate', gx, gy)
     pois.push({ id: 'gate', label: 'Ô Quan Chưởng', gx: gx + 2.2, gy: gy + 3.5, r: 2.6 })
   }
@@ -498,7 +498,7 @@ const World = (() => {
     const tg = WXD[sky.weather], k = Math.min(1, dt * 0.5)
     sky.cloud += (tg[0] - sky.cloud) * k; sky.rain += (tg[1] - sky.rain) * k; sky.storm += (tg[2] - sky.storm) * k
     if (sky.autoWx) { sky.wxTimer -= dt; if (sky.wxTimer <= 0) { sky.wxTimer = 70 + Math.random() * 80; const r = Math.random(); sky.weather = r < 0.45 ? 'sunny' : r < 0.7 ? 'cloudy' : r < 0.92 ? 'rain' : 'storm' } }
-    sky.flash = Math.max(0, sky.flash - dt * (sky.bolts.length ? 6 : 2.8)); sky.shake = Math.max(0, sky.shake - dt * 14)
+    sky.flash = Math.max(0, sky.flash - dt * (sky.bolts.length ? 6 : 2.8))
     if (sky.fury) { if (sky.rain > 0.3) { sky.nextStrike -= dt; if (sky.nextStrike <= 0) { strike(); sky.nextStrike = 1.8 + Math.random() * 6 } } }
     else if (sky.storm > 0.6) { sky.nextFlash -= dt; if (sky.nextFlash <= 0) { sky.flash = 1; sky.nextFlash = 5 + Math.random() * 8; thunder(0.9, 1.4) } }
     for (let i = sky.bolts.length - 1; i >= 0; i--) { const b = sky.bolts[i]; b.t += dt; for (const pu of b.pulses) if (!pu.done && b.t >= pu[0]) { pu.done = true; sky.flash = Math.max(sky.flash, pu[1]) } if (b.t > b.life) sky.bolts.splice(i, 1) }
@@ -790,7 +790,7 @@ const World = (() => {
     for (let i = 0; i <= n; i++) { const t = i / n; ctx.fillRect(Math.round(a[0] + (b[0] - a[0]) * t + ox), Math.round(a[1] + (b[1] - a[1]) * t + sag * 4 * t * (1 - t) + oy + off), 1, 1) }
   }
   function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000); last = now; T += dt
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; T += dt
     stepSky(dt); stepTraffic(dt); stepTrain(dt); stepNpc(dt); Game.update(dt)
     const z = cam.zoom, w = Math.ceil(innerWidth / z), h = Math.ceil(innerHeight / z)
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h }
@@ -831,7 +831,8 @@ const World = (() => {
       if (d.dx === undefined) { d.dx = Math.round(proj(d.gx, d.gy)[0] - d.ox); d.dy = Math.round(proj(d.gx, d.gy)[1] - d.oy); d.w = d.c.width; d.h = d.c.height; d.img = d.c }
       if (d.dx + ox > w || d.dx + d.w + ox < 0 || d.dy + oy > h || d.dy + d.h + oy < 0) continue
       let lo = 0, hi = vis.length
-      for (let i = 0; i < vis.length; i++) { const s = vis[i]; if (!overlap(d, s)) continue; if (behind(s.bb, d.bb)) lo = i + 1; else if (behind(d.bb, s.bb) && i < hi) hi = i }
+      const ped = d.sh && d.sh.H === 26 && d.gx !== undefined
+      for (let i = 0; i < vis.length; i++) { const s = vis[i]; if (!overlap(d, s)) continue; if (ped && s.name && /^lm_(gate|arch)/.test(s.name)) { if (d.gx > s.bb[0] + 0.1) lo = Math.max(lo, i + 1); else if (i < hi) hi = i; continue } if (behind(s.bb, d.bb)) lo = i + 1; else if (behind(d.bb, s.bb) && i < hi) hi = i }
       vis.splice(hi < lo ? hi : lo, 0, d); if (d.clip) nveh++
     }
     stats.objs = vis.length; stats.vehicles = nveh
