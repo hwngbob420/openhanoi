@@ -5,3 +5,4 @@ __pycache__/
 *.key
 .env
 assets/src/_build/
+dist/
