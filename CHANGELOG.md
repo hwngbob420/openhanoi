@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 - Hồ Hoàn Kiếm, map 108x108, biển hiệu Hà Nội
+- Map mở rộng 72 -> 108 ô mỗi cạnh (gấp 1,5 lần theo từng chiều): 5 cột x 6 hàng khối, 4 trục đường Bắc-Nam, 4 trục Đông-Tây (1 là phố đi bộ), 4 điểm giao đường sắt có thanh chắn.
+- Khối hồ lớn 25x27 ô: hồ dài theo hướng Bắc-Nam, đảo Ngọc + đền Ngọc Sơn phía bắc, cầu Thê Húc đỏ (hơi vồng) nối từ bờ đông, cổng cầu, Tháp Bút, Đài Nghiên, Tháp Rùa trên gò giữa hồ, đường dạo quanh hồ có liễu / phượng / ghế đá.
+- Phố đi bộ Hồ Gươm chạy ngay phía bắc hồ, nối ra phố cổ (Ô Quan Chưởng ở giữa), 3 cổng chào (PHỐ ĐI BỘ, MUA SẮM VUI CHƠI, HỒ HOÀN KIẾM). Đối diện hồ là khu vui chơi - mua sắm (đang để quảng trường mở, hằng PLAY trong world.js).
+- Biển hiệu: chữ pixel 3x5 có dấu tiếng Việt (core.js), biển cửa hàng có chữ thật, biển dọc thò ra phố, cờ đỏ sao vàng, phù điêu xi măng niên đại, biển tên phố xanh chữ trắng 2 dòng.
+- Đèn cửa sổ ban đêm theo từng tầng / hộ, áo mưa cho NPC, nút sấm chớp dữ dội (0.6.x).
+
 ## 0.5.0-world — 2026-11-13
 - Map grown to 72x72 and re-laid out: pavements are now 2 tiles wide (poles, lamps, trees on the kerb row only, building-side row left clear; shop props never block the same cross-section).
 - Road A is now a pedestrian night-market / food street (brick walkway, stall rows on both sides, lamps) and Ô Quan Chưởng stands in the middle of it, so both sides of the gate are market. The gate arch now shows the light on the far side (it no longer looks like a closed wall) and no cars use that street.

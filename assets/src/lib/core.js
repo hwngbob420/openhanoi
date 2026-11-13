@@ -131,3 +131,45 @@ function blockLayout(wu, du, hup, extraL = 0, extraR = 0) {
   return { w: wu + du + 2 * M + extraL + extraR, h: Math.ceil(hup + (wu + du) / 2) + 2 * M, px: du + M + extraL, py: hup + M }
 }
 function newSprite(L) { const cv = new Cv(L.w, L.h); return { cv, I: new Iso(cv, L.px, L.py) } }
+
+// ───────── chữ pixel 3x5 (có dấu tiếng Việt) để viết biển hiệu ─────────
+const FONT = {
+  A: '.#.|#.#|###|#.#|#.#', B: '##.|#.#|##.|#.#|##.', C: '.##|#..|#..|#..|.##', D: '##.|#.#|#.#|#.#|##.', E: '###|#..|##.|#..|###', F: '###|#..|##.|#..|#..',
+  G: '.##|#..|#.#|#.#|.##', H: '#.#|#.#|###|#.#|#.#', I: '###|.#.|.#.|.#.|###', J: '..#|..#|..#|#.#|.#.', K: '#.#|#.#|##.|#.#|#.#', L: '#..|#..|#..|#..|###',
+  M: '#.#|###|###|#.#|#.#', N: '##.|#.#|#.#|#.#|#.#', O: '.#.|#.#|#.#|#.#|.#.', P: '##.|#.#|##.|#..|#..', Q: '.#.|#.#|#.#|##.|.##', R: '##.|#.#|##.|#.#|#.#',
+  S: '.##|#..|.#.|..#|##.', T: '###|.#.|.#.|.#.|.#.', U: '#.#|#.#|#.#|#.#|###', V: '#.#|#.#|#.#|#.#|.#.', W: '#.#|#.#|###|###|#.#', X: '#.#|#.#|.#.|#.#|#.#',
+  Y: '#.#|#.#|.#.|.#.|.#.', Z: '###|..#|.#.|#..|###', 'Đ': '##.|###|#.#|#.#|##.',
+  0: '###|#.#|#.#|#.#|###', 1: '.#.|##.|.#.|.#.|###', 2: '##.|..#|.#.|#..|###', 3: '##.|..#|.#.|..#|##.', 4: '#.#|#.#|###|..#|..#', 5: '###|#..|##.|..#|##.',
+  6: '.##|#..|###|#.#|###', 7: '###|..#|.#.|.#.|.#.', 8: '###|#.#|###|#.#|###', 9: '###|#.#|###|..#|##.', '-': '...|...|###|...|...', '.': '...|...|...|...|.#.', '&': '.#.|#.#|.#.|#.#|.##', ' ': '...|...|...|...|...',
+}
+// tách thành cụm "chữ cái + dấu"
+function glyphClusters(str) {
+  const out = []
+  for (const ch of str.normalize('NFD')) { if (/[̀-ͯ]/.test(ch)) { if (out.length) out[out.length - 1].m.push(ch) } else out.push({ c: ch.toUpperCase(), m: [] }) }
+  return out
+}
+const textLen = (str) => glyphClusters(str).length * 4 - 1
+// vẽ 1 chữ tại (a, z) trên mặt F ('R' mặt x=const, ngang theo y ngược chiều; 'L' mặt y=const, ngang theo x). sc = kích thước 1 điểm (u)
+function drawGlyph(I, F, P, a, z, cl, col, sc) {
+  const g = (FONT[cl.c] || FONT[' ']).split('|'), d = F === 'R' ? -1 : 1
+  const px = (k, r) => { const a0 = a + d * k * sc, a1 = a0 + d * sc, z0 = z + r * sc; if (F === 'R') I.fR(P, a0, a1, z0, z0 + sc, col); else I.fL(P, a0, a1, z0, z0 + sc, col) }
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 3; k++) if (g[r][k] === '#') px(k, 4 - r)
+  for (const m of cl.m) {                                   // dấu mũ/râu ở hàng 5, dấu thanh ở hàng 6, nặng ở dưới
+    if (m === '̂') { px(0, 5); px(2, 5) } else if (m === '̆') { px(0, 5); px(1, 5); px(2, 5) } else if (m === '̛') { px(3, 3) }
+    else if (m === '́') px(2, 6); else if (m === '̀') px(0, 6); else if (m === '̉') px(1, 6); else if (m === '̃') { px(0, 6); px(2, 6) } else if (m === '̣') px(1, -1)
+  }
+  if (cl.c === 'Đ') { /* gạch ngang đã có trong glyph */ }
+}
+// chữ ngang, aLeft = toạ độ (theo hệ mặt) của đầu TRÁI trên màn hình; z = chân chữ
+function drawText(I, F, P, aLeft, z, str, col, sc = 1) {
+  let a = aLeft; const d = F === 'R' ? -1 : 1
+  for (const cl of glyphClusters(str)) { drawGlyph(I, F, P, a, z, cl, col, sc); a += d * 4 * sc }
+}
+// chữ dọc (biển dọc): mỗi chữ một hàng, từ trên xuống
+function drawVText(I, F, P, a, zTop, str, col) {
+  let z = zTop - 5
+  for (const cl of glyphClusters(str.replace(/ /g, ''))) { drawGlyph(I, F, P, a, z, cl, col, 1); z -= cl.m.length ? 8 : 6 }
+}
+const SIGN_TEXTS = ['PHỞ BÒ', 'BÚN CHẢ', 'CÀ PHÊ', 'BÁNH MÌ', 'TẠP HÓA', 'THUỐC', 'ĐIỆN THOẠI', 'HOA TƯƠI', 'MAY ĐO', 'NHÀ HÀNG', 'CƠM PHỞ', 'CHÈ KEM', 'VÀNG BẠC', 'SÁCH', 'XE ĐẠP', 'TRÀ ĐÁ', 'SPA', 'NỘI THẤT', 'BÁNH CỐM', 'QUÀ TẶNG', 'ĐỒNG HỒ', 'MÌ VẰN THẮN', 'NEM RÁN', 'CHẢ CÁ']
+const BLADE_TEXTS = ['PHỞ', 'CAFE', 'BÚN', 'SPA', 'THUỐC', 'LỘC', 'CƠM', 'TRÀ', 'KEM', 'HOA', 'BÁNH', 'MỲ']
+const lumaOf = (c) => { const [r, g, b] = hex2rgb(c); return 0.3 * r + 0.59 * g + 0.11 * b }

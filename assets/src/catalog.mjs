@@ -59,7 +59,13 @@ export function specs() {
   // ── công trình mốc ──
   add({ name: 'lm_gate', kind: 'gate', group: 'landmark', w: 1, d: 7, hup: 180 })
   add({ name: 'lm_bridge', kind: 'bridge', group: 'landmark', w: 1, d: 2, z: 9, hup: 40 })
+  add({ name: 'lm_bridge_lo', kind: 'bridge', group: 'landmark', w: 1, d: 2, z: 5, hup: 40 })
   add({ name: 'lm_bridge_gate', kind: 'bridge_gate', group: 'landmark', w: 150, h: 130, px: 92, py: 86 })
+  add({ name: 'lm_arch_walk', kind: 'arch', group: 'landmark', w: 1, d: 7, hup: 112, text: 'PHỐ ĐI BỘ', sc: 3, outline: 0.5 })
+  add({ name: 'lm_arch_lake', kind: 'arch', group: 'landmark', w: 1, d: 7, hup: 112, text: 'HỒ HOÀN KIẾM', sc: 2, outline: 0.5 })
+  add({ name: 'lm_arch_shop', kind: 'arch', group: 'landmark', w: 1, d: 7, hup: 112, text: 'MUA SẮM VUI CHƠI', sc: 2, outline: 0.5 })
+  add({ name: 'lm_pen', kind: 'pen_tower', group: 'landmark', w: 1, d: 1, hup: 170 })
+  add({ name: 'lm_ink', kind: 'inkstone', group: 'landmark', w: 1, d: 1, hup: 50 })
   add({ name: 'lm_temple', kind: 'temple', group: 'landmark', w: 3, d: 3, hup: 140 })
   add({ name: 'lm_turtle', kind: 'turtle_tower', group: 'landmark', w: 1, d: 1, hup: 150 })
 
@@ -79,6 +85,9 @@ export function specs() {
   const TCS = [['a', ['#d4382c', '#efe6d2'], ['#d4382c', '#3a6bb5', '#2f8f59', '#f2c23c']], ['b', ['#2f7a58', '#fbf6e8'], ['#3a6bb5', '#d4382c', '#f2c23c', '#2f8f59']], ['c', ['#3a6bb5', '#fbf6e8'], ['#f2c23c', '#2f8f59', '#d4382c', '#3a6bb5']], ['d', ['#e08a2a', '#efe6d2'], ['#2f8f59', '#f2c23c', '#3a6bb5', '#d4382c']], ['e', ['#8a6bb0', '#fbf6e8'], ['#d4382c', '#f2c23c', '#2f8f59', '#3a6bb5']]]
   for (const [n, cols, st] of TCS) P('tc_set_' + n, 'tc_set', { cols, st })
   P('tc_cooler', 'tc_cooler', { w: 70, h: 60, px: 35, py: 48 }); P('tc_plants', 'tc_plants', { w: 100, h: 70, px: 50, py: 56 }); P('tc_flag', 'tc_flag', { py: 56, h: 70 })
+  // ── biển tên phố ──
+  const PLATES = ['PHỐ\nHÀNG KHAY', 'PHỐ\nLÊ THÁI TỔ', 'PHỐ\nTRÀNG TIỀN', 'PHỐ\nHÀNG ĐÀO', 'PHỐ\nHÀNG BẠC', 'ĐƯỜNG\nĐINH TIÊN HOÀNG', 'PHỐ\nĐI BỘ', 'PHỐ\nLÝ THƯỜNG KIỆT']
+  PLATES.forEach((t, i) => { for (const ax of ['x', 'y']) P(`plate_${ax}_${i}`, 'plate', { axis: ax, text: t, w: 130, h: 150, px: 65, py: 122 }) })
   for (const [d, nm] of [[1, 'p'], [-1, 'n']]) for (const st of ['a', 'b', 'up']) P(`barrier_${nm}_${st}`, 'barrier', { dir: d, state: st, w: 150, h: 128, px: d > 0 ? 28 : 122, py: 82 })
   return S
 }

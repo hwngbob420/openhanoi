@@ -1,4 +1,4 @@
-LAYOUT.gate = LAYOUT.bridge = LAYOUT.temple = LAYOUT.turtle_tower = LAYOUT.struct
+LAYOUT.gate = LAYOUT.bridge = LAYOUT.temple = LAYOUT.turtle_tower = LAYOUT.arch = LAYOUT.pen_tower = LAYOUT.inkstone = LAYOUT.struct
 LAYOUT.bridge_gate = LAYOUT.prop = LAYOUT.free
 
 // ───────── đồ phố, quầy hàng, thanh chắn tàu ─────────
@@ -109,6 +109,18 @@ DRAW.prop = (cv, s, I) => {
     if (up) { for (let k = 0; k < 6; k++) I.box(d * 3 - 1.5, -1.5, 14 + k * 8, d * 3 + 1.5, 1.5, 22 + k * 8, null, faceCols(k % 2 ? '#e8e2d0' : '#d4382c')) }
     else for (let k = 0; k < 8; k++) { const x0 = d > 0 ? 3 + k * 9 : -3 - (k + 1) * 9, x1 = x0 + 9; I.box(x0, -1.5, 26, x1, 1.5, 29.5, null, faceCols(k % 2 ? '#e8e2d0' : '#d4382c')) }
     I.box(-7, 5, 22, 7, 6, 36, null, faceCols('#e8e2d0')); I.line3([-6, 6, 24], [6, 6, 34], '#d4382c'); I.line3([-6, 6, 34], [6, 6, 24], '#d4382c')   // biển chữ X
+  } else if (t === 'plate') {
+    // biển tên phố trên cột: nền xanh, chữ trắng, viền trắng
+    const lines = s.text.split('\n'), mw = Math.max(...lines.map(textLen)), bw = mw + 6, bh = lines.length * 8 + 3, zt = 88, zb = zt - bh
+    groundShadow(cv, I.ox + 4, I.oy + 1, 7, 3)
+    I.box(-3, -3, 0, 3, 3, 4, null, faceCols('#6f7a86')); I.post(0, 0, 4, zb, 3, '#6f7a86')
+    if (s.axis === 'x') {
+      I.box(-bw / 2 - 1.5, -1.2, zb - 1, bw / 2 + 1.5, 1.2, zt + 1, null, faceCols('#e8eef4')); I.box(-bw / 2, -1.2, zb, bw / 2, 1.8, zt, null, faceCols('#2a5ea8'))
+      lines.forEach((ln, i) => drawText(I, 'L', 1.8, -textLen(ln) / 2, zt - 9 - i * 8, ln, '#f4f6f8'))
+    } else {
+      I.box(-1.2, -bw / 2 - 1.5, zb - 1, 1.2, bw / 2 + 1.5, zt + 1, null, faceCols('#e8eef4')); I.box(-1.2, -bw / 2, zb, 1.8, bw / 2, zt, null, faceCols('#2a5ea8'))
+      lines.forEach((ln, i) => drawText(I, 'R', 1.8, textLen(ln) / 2, zt - 9 - i * 8, ln, '#f4f6f8'))
+    }
   } else if (t === 'fence') {
     // hàng rào an toàn dọc đường tàu: cọc thép, thanh ngang trắng, nan sơn đỏ-trắng, biển cảnh báo vàng
     const L = 36

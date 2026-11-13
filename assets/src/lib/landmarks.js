@@ -123,3 +123,42 @@ DRAW.turtle_tower = (cv, s, I) => {
   I.post(wu / 2, wu / 2, z + 12, z + 22, 2, RAMP.sun_yellow[2])
   cv.outline(0.5)
 }
+
+// ── cổng chào phố đi bộ: hai trụ đỏ, băng rôn chữ vàng bắc ngang phố, đèn lồng ──
+DRAW.arch = (cv, s, I) => {
+  const wu = TILE * s.w, du = TILE * s.d, RED = RAMP.flag_red, Y = RAMP.sun_yellow, cx = wu / 2
+  for (const y of [10, du - 10]) {
+    I.box(cx - 9, y - 9, 0, cx + 9, y + 9, 8, null, faceCols(RAMP.stone_cream[2]))
+    I.box(cx - 6, y - 6, 8, cx + 6, y + 6, 100, null, faceCols(RED[2]))
+    for (const z of [30, 62]) I.box(cx - 7, y - 7, z, cx + 7, y + 7, z + 3, null, faceCols(Y[2]))
+    I.box(cx - 8, y - 8, 100, cx + 8, y + 8, 105, null, faceCols(Y[2]))
+  }
+  const x1 = cx + 3
+  I.box(cx - 3, 4, 70, x1, du - 4, 102, null, faceCols(RED[1]))
+  I.fR(x1, 8, du - 8, 73, 74.5, Y[2]); I.fR(x1, 8, du - 8, 97, 98.5, Y[2])
+  I.box(cx - 5, 2, 102, x1 + 2, du - 2, 106, null, faceCols(TCR[2]))
+  const txt = s.text, tw = (textLen(txt)) * 2 * (s.sc || 2) / 2
+  drawText(I, 'R', x1, du / 2 + tw / 2 * 1, 79, txt, '#ffe27a', s.sc || 2)
+  for (const y of [34, du - 34]) { I.line3([cx, y, 70], [cx, y, 64], '#4a2a1c'); I.box(cx - 3, y - 3, 52, cx + 3, y + 3, 64, null, faceCols(RED[3])); I.box(cx - 2, y - 2, 50, cx + 2, y + 2, 52, null, faceCols(Y[2])) }
+  cv.outline(0.5)
+}
+// ── Tháp Bút (bờ đông hồ, cạnh cổng cầu Thê Húc): trụ đá 5 tầng, đầu nhọn như ngòi bút, khắc "TẢ THANH THIÊN" ──
+DRAW.pen_tower = (cv, s, I) => {
+  const stone = '#b4b6ac', f = faceCols(stone), c = 18
+  I.box(1, 1, 0, 35, 35, 5, null, faceCols(RAMP.stone_cream[2])); I.box(5, 5, 5, 31, 31, 11, null, faceCols(mix(stone, RAMP.stone_cream[2], 0.4)))
+  I.box(9, 9, 11, 27, 27, 104, null, f)
+  for (const z of [34, 58, 82]) I.box(8, 8, z, 28, 28, z + 3, null, faceCols(lite(stone, 0.15)))
+  I.box(11, 11, 104, 25, 25, 128, null, faceCols(mix(stone, RAMP.foliage[3], 0.1))); I.box(10, 10, 128, 26, 26, 131, null, faceCols(lite(stone, 0.15)))
+  const tip = [c, c, 164], top = (z, x0, x1, col, colR) => { const P = (x, y) => I.P(x, y, z); cv.poly([P(x1, x0), P(x1, x1), I.P(...tip)], colR); cv.poly([P(x0, x1), P(x1, x1), I.P(...tip)], col) }
+  top(131, 12, 24, f.left, f.right)
+  { const z = 150, w = 12 * (164 - z) / 33; const P = (x, y) => I.P(x, y, z); cv.poly([P(c + w, c - w), P(c + w, c + w), I.P(...tip)], '#34343a'); cv.poly([P(c - w, c + w), P(c + w, c + w), I.P(...tip)], '#4a4a52') }
+  drawVText(I, 'R', 27, 19.5, 100, 'TẢTHANHTHIÊN', '#52564e')
+  cv.outline(0.5)
+}
+// ── Đài Nghiên: bệ đá, nghiên mực bằng đá ──
+DRAW.inkstone = (cv, s, I) => {
+  I.box(4, 4, 0, 32, 32, 8, null, faceCols(RAMP.stone_cream[2])); I.box(9, 9, 8, 27, 27, 15, null, faceCols(mix('#b4b6ac', RAMP.stone_cream[2], 0.3)))
+  const [cx, cy] = I.P(18, 18, 21); cv.ell(cx, cy + 1, 13, 6.5, '#6a6e68'); cv.ell(cx, cy, 13, 6.5, '#9a9e96'); cv.ell(cx, cy, 11, 5, '#26262c'); cv.ell(cx - 2, cy - 1, 5, 2, '#3c3c46')
+  I.box(14, 14, 15, 22, 22, 20, null, faceCols('#8a8e86'))
+  cv.outline(0.5)
+}

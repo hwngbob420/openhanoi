@@ -1,12 +1,12 @@
-// Thế giới mở Hà Nội 64x64 (isometric 2:1, ô 72x36). Toàn bộ hình ảnh lấy từ assets/world (dựng bằng claude-pxl).
+// Thế giới mở Hà Nội 108x108 (isometric 2:1, ô 72x36). Toàn bộ hình ảnh lấy từ assets/world (dựng bằng claude-pxl).
 // Phần này: sinh bản đồ, mô phỏng xe/tàu/thanh chắn/đèn, vẽ. Nhân vật & va chạm người chơi ở js/player.js.
 'use strict'
 const World = (() => {
-  const N = 72, TW = 72, TH = 36
+  const N = 108, TW = 72, TH = 36
   const proj = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2]
   const cam = { x: 0, y: 0, zoom: 2 }
   const stats = { errors: [], fps: 0, objs: 0, vehicles: 0 }
-  let MAN = null; const IMG = {}
+  let MAN = null; const IMG = {}; const MAN_V = Date.now().toString(36)
   function rngOf(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
   const R = rngOf(20241113), rnd = () => R(), pick = (a) => a[Math.floor(R() * a.length)], rr = (a, b) => a + R() * (b - a)
   const inR = (v, r) => v >= r[0] && v <= r[1], inAny = (v, L) => L.some((r) => inR(v, r))
@@ -14,16 +14,20 @@ const World = (() => {
 
   // ───────── bố cục đường ─────────
   const SW = 2                                                                              // vỉa hè rộng 2 ô mỗi bên
-  const CORRX = [[12, 18], [31, 37], [52, 58]], ROADX = [[14, 16], [33, 35], [54, 56]]     // hành lang + lòng đường Bắc-Nam
-  const CORRY = [[10, 16], [31, 37], [57, 63]], ROADY_ALL = [[12, 14], [33, 35], [59, 61]] // Đông-Tây: A = phố đi bộ, B và C = đường xe
-  const PED = 0, ROADY = [ROADY_ALL[1], ROADY_ALL[2]], CORRY_T = [CORRY[1], CORRY[2]]
-  const RAILC = [44, 50], RAIL_Y = 47                                                       // phố tàu hỏa: ray hàng y=47, chạy hết map
+  const CORRX = [[12, 18], [31, 37], [63, 69], [82, 88]], ROADX = [[14, 16], [33, 35], [65, 67], [84, 86]]    // hành lang + lòng đường Bắc-Nam
+  const CORRY = [[10, 16], [31, 37], [65, 71], [91, 97]], ROADY_ALL = [[12, 14], [33, 35], [67, 69], [93, 95]] // Đông-Tây: PED = phố đi bộ nối từ hồ, còn lại là đường xe
+  const PED = 1, ROADY = ROADY_ALL.filter((_, i) => i !== PED), CORRY_T = CORRY.filter((_, i) => i !== PED)
+  const BUSY = ROADY_ALL[2]                                                                  // tuyến buýt chạy dọc bờ nam hồ
+  const RAILC = [78, 84], RAIL_Y = 81                                                       // phố tàu hỏa: ray hàng y=81, chạy hết map
   const RS = RAILC[0] + SW - 1, RN = RAILC[1] - (SW - 1)                                    // hàng vỉa hè đặt thanh chắn (phía bắc / phía nam)
-  const BLOCKX = [[0, 11], [19, 30], [38, 51], [59, 71]], BLOCKY = [[0, 9], [17, 30], [38, 43], [51, 56], [64, 71]]
+  const BLOCKX = [[0, 11], [19, 30], [38, 62], [70, 81], [89, 107]], BLOCKY = [[0, 9], [17, 30], [38, 64], [72, 77], [85, 90], [98, 107]]
+  const LAKE = { x0: 38, y0: 38, x1: 62, y1: 64 }                                           // khối hồ lớn (25 x 27 ô)
+  const PLAY = { x0: 38, y0: 17, x1: 62, y1: 30 }                                           // khu vui chơi - mua sắm tương lai, đối diện hồ qua phố đi bộ
+  const ARCHX = [38, 47, 61], SPAWN = [56.5, 34.5]
 
   async function load() {
-    MAN = (await (await fetch('assets/world/manifest.json')).json()).sprites
-    await Promise.all(Object.keys(MAN).map((n) => new Promise((res) => { const i = new Image(); i.onload = () => { IMG[n] = i; res() }; i.onerror = () => { stats.errors.push('thiếu ảnh ' + n); res() }; i.src = 'assets/world/' + n + '.png' })))
+    MAN = (await (await fetch('assets/world/manifest.json', { cache: 'no-cache' })).json()).sprites
+    await Promise.all(Object.keys(MAN).map((n) => new Promise((res) => { const i = new Image(); i.onload = () => { IMG[n] = i; res() }; i.onerror = () => { stats.errors.push('thiếu ảnh ' + n); res() }; i.src = 'assets/world/' + n + '.png?v=' + MAN_V })))
     await Promise.all(['down', 'up', 'right'].flatMap((d) => [0, 1, 2, 3].map((f) => new Promise((res) => { const i = new Image(); i.onload = () => { PL[d + f] = i; res() }; i.onerror = () => res(); i.src = `assets/player/pl_${d}_${f}.png` }))))
   }
 
@@ -33,7 +37,7 @@ const World = (() => {
   const blk = Array.from({ length: N }, () => Array(N).fill(false))         // ô bị chặn (tĩnh)
   const occ = Array.from({ length: N }, () => Array(N).fill(false))         // ô đã có công trình / đã đặt chỗ
   const used = new Set()                                                     // ô vỉa hè đã đặt đồ
-  const bridgeT = new Set()
+  const bridgeT = new Set(), bridgeZ = new Map()
   const statics = [], colliders = [], poles = []
   const pois = []
 
@@ -113,17 +117,33 @@ const World = (() => {
     const cn = (c) => c[0] + SW - 1, cs = (c) => c[1] - (SW - 1)
     for (const c of CORRY_T) for (let x = 2; x < N - 1; x += 5) if (!inAny(x, CORRX) && tileUse(x, cn(c))) { prop('p_pole', x + 0.5, cn(c) + 0.5); poles.push({ gx: x + 0.5, gy: cn(c) + 0.5, axis: 'x' }) }
     for (const c of CORRX) for (let y = 3; y < N - 1; y += 5) if (!inAny(y, CORRY) && !inR(y, RAILC) && tileUse(cn(c), y)) { prop('p_pole', cn(c) + 0.5, y + 0.5); poles.push({ gx: cn(c) + 0.5, gy: y + 0.5, axis: 'y' }) }
-    for (const x of [3, 8, 21, 27, 40, 46, 62, 68]) { const y = RS; if (!inAny(x, CORRX) && tileUse(x, y)) { prop('p_pole', x + 0.5, y + 0.5); poles.push({ gx: x + 0.5, gy: y + 0.5, axis: 'x' }) } }
+    for (const [bx0, bx1] of BLOCKX) for (let x = bx0 + 7; x <= bx1; x += 8) { const y = RS; if (!inAny(x, CORRX) && tileUse(x, y)) { prop('p_pole', x + 0.5, y + 0.5); poles.push({ gx: x + 0.5, gy: y + 0.5, axis: 'x' }) } }
     for (const c of CORRY_T) for (let x = 4; x < N - 1; x += 6) if (!inAny(x, CORRX) && tileUse(x, cs(c))) prop('p_lamp', x + 0.5, cs(c) + 0.5)
     for (const c of CORRX) for (let y = 5; y < N - 1; y += 6) if (!inAny(y, CORRY) && !inR(y, RAILC) && tileUse(cs(c), y)) prop('p_lamp', cs(c) + 0.5, y + 0.5)
     for (const c of CORRY_T) for (let x = 7; x < N - 2; x += 9) if (!inAny(x, CORRX) && !inAny(x + 1, CORRX) && tileUse(x, cs(c))) prop(pick(['t_bang_1', 't_bang_2', 't_bang_3', 't_phuong_1']), x + 0.5, cs(c) + 0.6)
     for (const c of CORRX) for (let y = 7; y < N - 2; y += 9) if (!inAny(y, CORRY) && !inAny(y + 1, CORRY) && !inR(y, RAILC) && tileUse(cs(c), y)) prop(pick(['t_bang_1', 't_bang_2', 't_small_3']), cs(c) + 0.5, y + 0.6)
-    for (let x = 3; x < N - 1; x += 6) if (!inAny(x, CORRX) && Math.abs(x - 24) > 2) for (const y of [CORRY[PED][0], CORRY[PED][1]]) if (tileUse(x, y)) prop('p_lamp', x + 0.5, y + 0.5)
-    const yb = cn(CORRY[1])
-    for (const x of [6, 24, 44, 64]) { for (let k = -1; k <= 1; k++) used.add((x + k) + ',' + yb); prop('p_shelter_x', x + 0.5, yb + 0.5, { r: 0, bb: [x - 0.4, x + 1.4, yb + 0.1, yb + 0.9] }); colliders.push({ x: x + 0.5, y: yb + 0.2, r: 0.42 }, { x: x - 0.1, y: yb + 0.2, r: 0.3 }, { x: x + 1.1, y: yb + 0.2, r: 0.3 }) }
-    BUSSTOPS.push(...[6, 24, 44, 64].map((x) => x + 0.5))
+    for (let x = 3; x < N - 1; x += 6) if (!inAny(x, CORRX) && Math.abs(x - 24) > 2 && ARCHX.every((q) => Math.abs(x - q) > 1)) for (const y of [CORRY[PED][0], CORRY[PED][1]]) if (tileUse(x, y)) prop('p_lamp', x + 0.5, y + 0.5)
+    const yb = cn(CORRY[2])
+    for (const x of [6, 24, 46, 74, 96]) { for (let k = -1; k <= 1; k++) used.add((x + k) + ',' + yb); prop('p_shelter_x', x + 0.5, yb + 0.5, { r: 0, bb: [x - 0.4, x + 1.4, yb + 0.1, yb + 0.9] }); colliders.push({ x: x + 0.5, y: yb + 0.2, r: 0.42 }, { x: x - 0.1, y: yb + 0.2, r: 0.3 }, { x: x + 1.1, y: yb + 0.2, r: 0.3 }) }
+    BUSSTOPS.push(...[6, 24, 46, 74, 96].map((x) => x + 0.5))
   }
   const BUSSTOPS = []
+  function genSigns() {                                       // biển tên phố (xanh, chữ trắng) quanh hồ và ở các ngã tư; cổng chào phố đi bộ
+    const plate = (ax, k, x, y) => { if (tileUse(Math.floor(x), Math.floor(y))) prop(`p_plate_${ax}_${k}`, Math.floor(x) + 0.5, Math.floor(y) + 0.5) }
+    plate('y', 5, CORRX[2][0] + 1, LAKE.y0 + 1); plate('y', 5, CORRX[2][0] + 1, LAKE.y1 - 1)            // Đinh Tiên Hoàng (đông hồ)
+    plate('y', 1, CORRX[1][1] - 1, LAKE.y0 + 1); plate('y', 1, CORRX[1][1] - 1, LAKE.y1 - 1)            // Lê Thái Tổ (tây hồ)
+    plate('x', 0, LAKE.x0 + 2, CORRY[2][0] + 1); plate('x', 0, LAKE.x1 - 2, CORRY[2][0] + 1)             // Hàng Khay (nam hồ)
+    plate('x', 6, LAKE.x0 + 3, CORRY[PED][1]); plate('x', 6, LAKE.x1 - 3, CORRY[PED][0])                   // phố đi bộ
+    let k = 0; const names = [2, 3, 4, 7]
+    for (const cx of CORRX) for (const cy of CORRY_T) { plate(k % 2 ? 'x' : 'y', names[k++ % 4], cx[0] + 1, cy[0] + 1) }
+    for (const ax of ARCHX) {
+      const nm = ax === 47 ? 'lm_arch_shop' : ax === 38 ? 'lm_arch_walk' : 'lm_arch_lake', gy = CORRY[PED][0]
+      mark(ax, gy, 1, 7, false); sprite(nm, ax, gy)
+      colliders.push({ x: ax + 0.5, y: gy + 10 / 36, r: 0.3 }, { x: ax + 0.5, y: gy + 7 - 10 / 36, r: 0.3 })
+      for (const cy of [0.28, 6.72]) nightLights.push({ gx: ax + 0.5, gy: gy + cy, z: 60, r: 30, a: 0.5 })
+      nightLights.push({ gx: ax + 0.5, gy: gy + 3.5, z: 85, r: 70, a: 0.35 })
+    }
+  }
 
   function streetLife() {                                    // sạp cà phê, phở, xe máy đỗ trước cửa nhà
     for (const f of fronts) {
@@ -148,25 +168,41 @@ const World = (() => {
   }
 
   function genLake() {
-    const X0 = BLOCKX[2][0], Y0 = BLOCKY[1][0], dx = X0 - 34, dy = Y0 - 15, P = (x, y) => [x + dx, y + dy]
-    for (let y = Y0 + 2; y <= Y0 + 11; y++) for (let x = X0 + 2; x <= X0 + 11; x++) { kind[y][x] = 'water'; occ[y][x] = true }
-    for (let y = Y0 + 1; y <= Y0 + 12; y++) for (let x = X0 + 1; x <= X0 + 12; x++) if (kind[y][x] !== 'water') kind[y][x] = 'walk'
-    for (let y = Y0 + 5; y <= Y0 + 9; y++) for (let x = X0 + 5; x <= X0 + 9; x++) { kind[y][x] = 'grass'; occ[y][x] = true }
-    for (let y = Y0 + 6; y <= Y0 + 8; y++) for (let x = X0 + 6; x <= X0 + 8; x++) kind[y][x] = 'plaza'
-    for (const [x, y] of [[9, 10], [10, 10], [9, 11], [10, 11]]) { kind[Y0 + y][X0 + x] = 'grass'; occ[Y0 + y][X0 + x] = true }
-    for (let y = Y0 + 7; y <= Y0 + 8; y++) for (let x = X0 + 2; x <= X0 + 4; x++) { bridgeT.add(x + ',' + y); occ[y][x] = true }
-    for (let y = Y0; y <= Y0 + 13; y++) for (let x = X0; x <= X0 + 13; x++) occ[y][x] = true
-    mark(X0 + 6, Y0 + 6, 3, 3); sprite('lm_temple', X0 + 6, Y0 + 6)
-    mark(X0 + 10, Y0 + 10, 1, 1); sprite('lm_turtle', X0 + 10, Y0 + 10)
-    for (let x = X0 + 2; x <= X0 + 4; x++) sprite('lm_bridge', x, Y0 + 7, { flat: true })
-    prop('lm_bridge_gate', X0 + 1.5, Y0 + 7, { r: 0, bb: [X0 + 1.3, X0 + 1.7, Y0 + 7.0, Y0 + 9.0] }); colliders.push({ x: X0 + 1.5, y: Y0 + 7.15, r: 0.2 }, { x: X0 + 1.5, y: Y0 + 8.85, r: 0.2 })
-    const ringTrees = [[34.5, 17], [34.5, 20], [34.5, 24], [34.5, 27], [47.5, 17], [47.5, 21], [47.5, 25], [47.5, 27.5], [37, 15.5], [41, 15.5], [45, 15.5], [37, 28.5], [41, 28.5], [45, 28.5]]
-    ringTrees.forEach(([x, y], i) => prop(['t_lieu_1', 't_phuong_1', 't_lieu_2', 't_bang_2'][i % 4], ...P(x, y)))
-    for (const [x, y, n] of [[35.4, 19.5, 'p_bench_y'], [35.4, 25.5, 'p_bench_y'], [46.6, 19.5, 'p_bench_y'], [46.6, 24, 'p_bench_y'], [38, 16.5, 'p_bench_x'], [43.5, 16.5, 'p_bench_x'], [38.5, 27.5, 'p_bench_x'], [43.5, 27.5, 'p_bench_x']]) prop(n, ...P(x, y))
-    for (const [x, y] of [[35.5, 17.5], [35.5, 27.5], [46.5, 17.5], [46.5, 27.5], [40.5, 16.5], [40.5, 27.5]]) prop('p_lamp', ...P(x, y))
-    for (const [x, y] of [[41, 20.4], [42.4, 24.2], [39.4, 24.0], [40.0, 20.3]]) prop('t_small_2', ...P(x, y), { r: 0.3 })
-    prop('p_flagpole', ...P(35.4, 25.2)); prop('p_cyclo', ...P(47.0, 22.8))
-    pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: X0 + 2.5, gy: Y0 + 8, r: 2 }, { id: 'temple', label: 'Đền Ngọc Sơn', gx: X0 + 7.5, gy: Y0 + 9.6, r: 2 }, { id: 'tower', label: 'Tháp Rùa', gx: X0 + 10, gy: Y0 + 9.3, r: 1.8 })
+    // Hồ Hoàn Kiếm: dài theo hướng Bắc-Nam. Đảo Ngọc + đền Ngọc Sơn ở phía bắc, cầu Thê Húc đỏ nối từ bờ đông (cổng cầu, Tháp Bút, Đài Nghiên),
+    // Tháp Rùa trên gò giữa hồ, đường dạo quanh hồ có liễu, phượng, ghế đá. Phố đi bộ chạy ngay phía bắc hồ.
+    const X0 = LAKE.x0, Y0 = LAKE.y0, W = LAKE.x1 - X0 + 1, H = LAKE.y1 - Y0 + 1
+    const at = (lx, ly) => [X0 + lx, Y0 + ly]
+    const wet = (lx, ly) => { const dx = (lx + 0.5 - 12.5) / 9.6, dy = (ly + 0.5 - 13.5) / 11.2; return dx * dx + dy * dy < 1 }
+    const water = Array.from({ length: H }, (_, ly) => Array.from({ length: W }, (_, lx) => wet(lx, ly)))
+    for (let ly = 7; ly <= 8; ly++) water[ly][21] = false                 // bờ đông chỗ cầu hạ cánh
+    for (let ly = 0; ly < H; ly++) for (let lx = 0; lx < W; lx++) { const [x, y] = at(lx, ly); occ[y][x] = true; kind[y][x] = water[ly][lx] ? 'water' : 'grass' }
+    const near = (lx, ly) => { for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (water[ly + j]?.[lx + i]) return true; return false }
+    for (let ly = 0; ly < H; ly++) for (let lx = 0; lx < W; lx++) { if (water[ly][lx]) continue; const [x, y] = at(lx, ly); if (lx === 0 || ly === 0 || lx === W - 1 || ly === H - 1 || near(lx, ly)) kind[y][x] = 'walk' }
+    const land = (lx0, ly0, lx1, ly1, k) => { for (let ly = ly0; ly <= ly1; ly++) for (let lx = lx0; lx <= lx1; lx++) { const [x, y] = at(lx, ly); water[ly][lx] = false; kind[y][x] = k } }
+    land(11, 4, 16, 10, 'grass'); land(15, 6, 16, 9, 'plaza'); land(11, 14, 13, 16, 'grass'); land(12, 15, 12, 15, 'plaza')      // đảo Ngọc, gò Rùa
+    for (let lx = 17; lx <= 20; lx++) for (let ly = 7; ly <= 8; ly++) { const [x, y] = at(lx, ly); bridgeT.add(x + ',' + y); bridgeZ.set(x + ',' + y, [5, 9, 9, 5][lx - 17]); occ[y][x] = true }
+    for (let lx = 17; lx <= 20; lx++) sprite(lx === 17 || lx === 20 ? 'lm_bridge_lo' : 'lm_bridge', X0 + lx, Y0 + 7, { flat: true })
+    prop('lm_bridge_gate', X0 + 21.5, Y0 + 7, { r: 0, bb: [X0 + 21.3, X0 + 21.7, Y0 + 7.0, Y0 + 9.0] }); colliders.push({ x: X0 + 21.5, y: Y0 + 7.15, r: 0.2 }, { x: X0 + 21.5, y: Y0 + 8.85, r: 0.2 })
+    mark(X0 + 12, Y0 + 6, 3, 3); sprite('lm_temple', X0 + 12, Y0 + 6)
+    mark(X0 + 12, Y0 + 15, 1, 1); sprite('lm_turtle', X0 + 12, Y0 + 15)
+    mark(X0 + 21, Y0 + 4, 1, 1); sprite('lm_pen', X0 + 21, Y0 + 4)
+    mark(X0 + 21, Y0 + 11, 1, 1); sprite('lm_ink', X0 + 21, Y0 + 11)
+    // cây, ghế, đèn quanh hồ: dải cỏ ngoài cùng trồng liễu / phượng, ghế đá xen kẽ; không đặt lên đường dạo sát mép nước
+    const T = ['t_lieu_1', 't_phuong_1', 't_lieu_2', 't_bang_2', 't_lieu_1', 't_phuong_2']
+    const reserved = (lx, ly) => (lx >= 18 && ly >= 3 && ly <= 12)
+    let ti = 0
+    for (let ly = 0; ly < H; ly++) for (let lx = 0; lx < W; lx++) {
+      const [x, y] = at(lx, ly)
+      if (kind[y][x] !== 'grass' || water[ly][lx] || near(lx, ly) || reserved(lx, ly)) continue
+      if ((lx + 2 * ly) % 4 === 0 && (lx <= 2 || lx >= W - 3 || ly <= 2 || ly >= H - 3)) prop(T[ti++ % T.length], x + 0.5, y + 0.55)
+      else if ((lx + 2 * ly) % 4 === 2 && (lx === 1 || lx === W - 2)) prop('p_bench_y', x + 0.5, y + 0.5)
+      else if ((lx + 2 * ly) % 4 === 2 && (ly === 1 || ly === H - 2)) prop('p_bench_x', x + 0.5, y + 0.5)
+    }
+    for (const [lx, ly] of [[0, 3], [0, 10], [0, 17], [0, 24], [24, 3], [24, 14], [24, 20], [24, 25], [6, 0], [13, 0], [19, 0], [6, 26], [13, 26], [19, 26]]) prop('p_lamp', ...at(lx, ly).map((v) => v + 0.5))
+    for (const [lx, ly] of [[14.4, 5.2], [11.6, 9.4], [15.4, 9.8], [11.6, 4.6]]) prop('t_small_2', X0 + lx, Y0 + ly, { r: 0.3 })     // cây trên đảo Ngọc
+    prop('p_flagpole', X0 + 23, Y0 + 9); prop('p_cyclo', X0 + 23.2, Y0 + 15.5)
+    pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: X0 + 19, gy: Y0 + 8, r: 2.6 }, { id: 'temple', label: 'Đền Ngọc Sơn (đảo Ngọc)', gx: X0 + 15.5, gy: Y0 + 7.5, r: 2.4 },
+      { id: 'pen', label: 'Tháp Bút - Đài Nghiên', gx: X0 + 21.5, gy: Y0 + 5.5, r: 2.4 }, { id: 'tower', label: 'Tháp Rùa (ngắm từ bờ đông)', gx: X0 + 22, gy: Y0 + 15, r: 11 })
   }
 
   function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
@@ -179,15 +215,17 @@ const World = (() => {
     const y0 = CORRY[PED][0], names = ['p_umb_red', 'p_pho', 'p_umb_yellow', 'p_banhmi', 'p_umb_teal', 'p_fruit', 'p_cafe_red', 'p_umb_orange', 'p_cafe_green', 'p_kiosk']
     let k = 0
     for (let x = 1; x < N - 2; x += 3) {
-      if ([0, 1, 2].some((d) => inAny(x + d, CORRX)) || (x >= 22 && x <= 25)) continue
+      if ([0, 1, 2].some((d) => inAny(x + d, CORRX)) || (x >= 22 && x <= 25) || (x >= 44 && x <= 56) || ARCHX.some((q) => Math.abs(x + 1 - q) <= 1)) continue
       for (const row of [y0 + 1, y0 + 5]) {
         const nm = names[(k++ * 7 + x) % names.length]
         prop(nm, x + 1.0, row + 0.5); nightLights.push({ gx: x + 1.0, gy: row + 0.5, z: 48, r: 46, a: 0.62 })
         if (rnd() < 0.5) prop('p_stools', x + 1.0 + (row === y0 + 1 ? 0.05 : -0.05), row + (row === y0 + 1 ? 1.1 : -0.1), { r: 0 })
       }
     }
-    for (const x of [8, 45, 65]) prop('p_planter', x + 0.5, y0 + 3.5)
-    pois.push({ id: 'walkstreet', label: 'Phố đi bộ chợ đêm', gx: 41.5, gy: y0 + 3.5, r: 2.6 })
+    for (const x of [8, 41, 59, 92]) prop('p_planter', x + 0.5, y0 + 3.5)
+    for (const x of [45, 49, 53, 56]) { prop('p_bench_x', x + 0.5, y0 + 1.6); prop('p_bench_x', x + 0.5, y0 + 5.4) }
+    prop('p_cyclo', 51.5, y0 + 3.5); prop('p_flagpole', 55.2, y0 + 3.5)
+    pois.push({ id: 'walkstreet', label: 'Phố đi bộ Hồ Gươm', gx: 51.5, gy: y0 + 3.5, r: 3.2 })
   }
 
   const lanterns = []
@@ -247,36 +285,59 @@ const World = (() => {
     prop('p_stools', 23.5 + sx, 20.4 + sy); prop('p_stools', 23.6 + sx, 23.4 + sy); prop('p_lamp', 22.3 + sx, 18.3 + sy); prop('p_lamp', 24.8 + sx, 25.3 + sy); prop('p_umb_orange', 23.5 + sx, 18.4 + sy, { r: 0.4 })
     pois.push({ id: 'market', label: 'Chợ phố cổ', gx: 23.5 + sx, gy: 22 + sy, r: 2.4 })
   }
+  // khu vui chơi - mua sắm (sắp mở): quảng trường mở ngay bên kia phố đi bộ, đối diện hồ; hiện có sạp hàng + chỗ trống để thêm trò chơi / cửa hàng
+  function genPlay() {
+    const { x0, y0, x1, y1 } = PLAY
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { kind[y][x] = 'plaza'; occ[y][x] = true }
+    for (let y = y0 + 4; y <= y1 - 4; y++) for (let x = x0 + 3; x <= x1 - 3; x++) kind[y][x] = 'market'
+    const names = ['p_umb_red', 'p_pho', 'p_umb_yellow', 'p_banhmi', 'p_umb_teal', 'p_fruit', 'p_cafe_red', 'p_umb_orange', 'p_cafe_green', 'p_kiosk']
+    let k = 0
+    for (let x = x0 + 2; x < x1 - 1; x += 3) for (const row of [y0 + 2, y1 - 2]) { prop(names[(k++ * 3 + x) % names.length], x + 1.0, row + 0.5); nightLights.push({ gx: x + 1.0, gy: row + 0.5, z: 48, r: 46, a: 0.6 }) }
+    for (const x of [x0 + 12, x0 + 13]) for (const y of [y0 + 4, y1 - 4]) prop('p_planter', x + 0.5, y + 0.5)
+    for (let x = x0 + 2; x <= x1 - 2; x += 4) for (const y of [y0 + 1, y1 - 1]) prop('p_lamp', x + 0.5, y + 0.5)
+    for (const [x, y] of [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]]) prop('t_bang_1', x + 0.5, y + 0.55)
+    prop('p_flagpole', x0 + 12.5, y0 + 6.5); prop('p_bench_x', x0 + 10.5, y0 + 7.5); prop('p_bench_x', x0 + 14.5, y0 + 7.5)
+    pois.push({ id: 'play', label: 'Khu vui chơi - mua sắm (sắp mở)', gx: (x0 + x1) / 2 + 0.5, gy: (y0 + y1) / 2 + 0.5, r: 5 })
+  }
 
-  function genPark() {
-    const X0 = BLOCKX[2][0], Y0 = BLOCKY[4][0], b = { x0: X0, x1: X0 + 13, y0: Y0, y1: Y0 + 7 }, sx = X0 - 34, sy = Y0 - 56
-    for (let x = b.x0; x <= b.x1; x++) for (let y = Y0 + 3; y <= Y0 + 4; y++) kind[y][x] = 'walk'
-    for (let y = b.y0; y <= b.y1; y++) for (let x = X0 + 6; x <= X0 + 7; x++) kind[y][x] = 'walk'
-    for (let y = Y0 + 3; y <= Y0 + 4; y++) for (let x = X0 + 6; x <= X0 + 7; x++) kind[y][x] = 'plaza'
-    for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) occ[y][x] = true
-    const T = ['t_bang_1', 't_bang_2', 't_bang_3', 't_phuong_2', 't_small_1', 't_small_2', 't_lieu_2']
-    for (const [x, y] of [[35.5, 57.5], [38, 57], [44, 57.5], [46, 57], [35.5, 62], [37.5, 61.5], [44, 62], [46.2, 61.5], [36.5, 62], [45.2, 62]]) prop(pick(T), x + sx, y + sy)
-    for (const [x, y] of [[37, 61], [43, 57.2], [38.4, 57.4], [44.6, 62]]) prop('t_bush_2', x + sx, y + sy, { r: 0.25 })
-    for (const [x, y, n] of [[37.5, 59.5, 'p_bench_x'], [44, 59.5, 'p_bench_x'], [40.4, 57.5, 'p_bench_y'], [41.6, 62, 'p_bench_y']]) prop(n, x + sx, y + sy)
-    for (const [x, y] of [[39.5, 59.0], [42.5, 61.0], [39.4, 61.1], [42.6, 58.9]]) prop('p_planter', x + sx, y + sy)
-    for (const [x, y] of [[38.5, 58.5], [43.5, 58.5], [38.5, 61.5], [43.5, 61.5]]) prop('p_lamp', x + sx, y + sy)
-    pois.push({ id: 'park', label: 'Công viên', gx: 41 + sx, gy: 60 + sy, r: 2.4 })
+  function genPark() {                                          // công viên: hai lối dạo cắt nhau, quảng trường giữa, cây rải đều
+    const b = { x0: BLOCKX[3][0], x1: BLOCKX[3][1], y0: BLOCKY[2][0], y1: BLOCKY[2][1] }, cx = 75, cy = 50
+    for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) { kind[y][x] = 'grass'; occ[y][x] = true }
+    for (let y = b.y0; y <= b.y1; y++) for (const x of [cx, cx + 1]) kind[y][x] = 'walk'
+    for (let x = b.x0; x <= b.x1; x++) for (const y of [cy, cy + 1]) kind[y][x] = 'walk'
+    for (let y = cy - 1; y <= cy + 2; y++) for (let x = cx - 1; x <= cx + 2; x++) kind[y][x] = 'plaza'
+    const T = ['t_bang_1', 't_bang_2', 't_bang_3', 't_phuong_2', 't_small_1', 't_small_2', 't_lieu_2', 't_phuong_1']
+    for (let y = b.y0 + 1; y <= b.y1 - 1; y += 3) for (let x = b.x0 + 1; x <= b.x1 - 1; x += 3) {
+      const gx = x + (y % 2), gy = y; if (kind[gy][gx] !== 'grass' || Math.abs(gx - cx) < 2 && Math.abs(gy - cy) < 3) continue
+      if (kind[gy][gx + 1] !== 'grass') continue
+      prop(pick(T), gx + 0.5, gy + 0.6)
+    }
+    for (const [x, y] of [[cx - 1.5, cy - 2.5], [cx + 2.5, cy - 2.5], [cx - 1.5, cy + 3.5], [cx + 2.5, cy + 3.5]]) prop('t_bush_2', x, y, { r: 0.25 })
+    for (const [x, y, n] of [[cx - 1.5, cy + 0.5, 'p_bench_y'], [cx + 3, cy + 0.5, 'p_bench_y'], [cx + 0.5, cy - 1.8, 'p_bench_x'], [cx + 1.5, cy + 3.2, 'p_bench_x']]) prop(n, x + 0.5, y)
+    for (const [x, y] of [[cx - 2.5, cy - 2.5], [cx + 3.5, cy - 2.5], [cx - 2.5, cy + 3.5], [cx + 3.5, cy + 3.5]]) prop('p_lamp', x + 0.5, y + 0.5)
+    for (const [x, y] of [[cx + 0.5, cy - 4], [cx + 0.5, cy + 5], [cx - 4, cy + 0.5], [cx + 5, cy + 0.5]]) prop('p_planter', x + 0.5, y + 0.5)
+    pois.push({ id: 'park', label: 'Công viên', gx: cx + 1, gy: cy + 1, r: 3 })
   }
 
   function genTowers() {
-    const X0 = BLOCKX[3][0]
+    const X0 = BLOCKX[4][0]
     mark(X0 + 3, 3, 3, 3); sprite('tower_a', X0 + 3, 3)
     mark(X0 + 3, BLOCKY[1][0] + 4, 3, 3); sprite('tower_a', X0 + 3, BLOCKY[1][0] + 4)
-    mark(X0 + 3, BLOCKY[4][0] + 3, 2, 3); sprite('tower_b', X0 + 3, BLOCKY[4][0] + 3)
+    mark(X0 + 3, BLOCKY[2][0] + 5, 3, 3); sprite('tower_a', X0 + 3, BLOCKY[2][0] + 5)
+    mark(X0 + 8, BLOCKY[2][0] + 14, 2, 3); sprite('tower_b', X0 + 8, BLOCKY[2][0] + 14)
+    mark(X0 + 3, BLOCKY[5][0] + 3, 2, 3); sprite('tower_b', X0 + 3, BLOCKY[5][0] + 3)
     pois.push({ id: 'glass', label: 'Khu cao ốc', gx: X0 + 6.5, gy: 6.5, r: 2.4 })
   }
 
   function genBlocks() {
     const B = (i, j) => ({ x0: BLOCKX[i][0], x1: BLOCKX[i][1], y0: BLOCKY[j][0], y1: BLOCKY[j][1] })
-    for (const [i, j, mix] of [[0, 0, 'old'], [1, 0, 'old'], [2, 0, 'mid'], [0, 1, 'old'], [1, 1, 'old'], [0, 2, 'rail'], [1, 2, 'rail'], [2, 2, 'rail'], [3, 2, 'rail'], [0, 3, 'rail'], [1, 3, 'rail'], [2, 3, 'rail'], [3, 3, 'rail'], [0, 4, 'mid'], [1, 4, 'mid']]) {
-      const b = B(i, j); perimeter(b, { mix, shop: j >= 2 && j <= 3 ? 0.4 : 0.55 }); interior(b, mix)
+    const skip = new Set(['2,2', '2,1', '3,2']), modern = new Set(['4,0', '4,1', '4,2', '4,5'])
+    for (let i = 0; i < BLOCKX.length; i++) for (let j = 0; j < BLOCKY.length; j++) {
+      const key = i + ',' + j; if (skip.has(key)) continue
+      if (modern.has(key)) { modernBlock(B(i, j)); continue }
+      const mix = j === 3 || j === 4 ? 'rail' : i <= 1 && j <= 2 ? 'old' : 'mid'
+      const b = B(i, j); perimeter(b, { mix, shop: j >= 3 && j <= 4 ? 0.4 : 0.55 }); interior(b, mix)
     }
-    modernBlock(B(3, 0)); modernBlock(B(3, 1)); modernBlock(B(3, 4))
   }
 
   function fillGaps() {                                       // lấp các ô trống kín trong khu nhà bằng nhà / bụi cây
@@ -365,7 +426,7 @@ const World = (() => {
         const front = v.pos + L.dir * v.len / 2
         for (const s of L.stops) { const d = (s.pos - front) * L.dir; if (d > -0.05 && d < 7 && s.closed()) { if (d < 0.12) tv = 0; else tv = Math.min(tv, d * 1.8) } }
         for (const P of peds) { const along = (L.axis === 'x' ? P.gx : P.gy), lat = (L.axis === 'x' ? P.gy : P.gx), d = (along - front) * L.dir; if (d > -0.3 && d < 1.7 && Math.abs(lat - (L.c + v.lat)) < 0.8 && roadLike.has(kind[clamp(Math.floor(P.gy), 0, N - 1)][clamp(Math.floor(P.gx), 0, N - 1)])) { tv = 0; break } }
-        if (v.type === 'bus' && L.axis === 'x' && L.dir < 0 && L.c === ROADY[0][0] + 0.5) for (const bx of BUSSTOPS) if (!v.visited.has(bx) && Math.abs(v.pos - bx) < 0.3) { v.visited.add(bx); v.dwell = 3.5 }
+        if (v.type === 'bus' && L.axis === 'x' && L.dir < 0 && L.c === BUSY[0] + 0.5) for (const bx of BUSSTOPS) if (!v.visited.has(bx) && Math.abs(v.pos - bx) < 0.3) { v.visited.add(bx); v.dwell = 3.5 }
         v.v += clamp(tv - v.v, -dt * 6.5, dt * 2.2); v.pos += L.dir * v.v * dt
         if (L.dir > 0 && v.pos > N + 5) { Object.assign(v, newVeh(L, -5 - rnd() * 4)) }
         else if (L.dir < 0 && v.pos < -5) { Object.assign(v, newVeh(L, N + 5 + rnd() * 4)) }
@@ -419,7 +480,7 @@ const World = (() => {
     if ((ty === RS || ty === RN)) for (const c of crossings) if (c.down && tx >= c.x0 && tx <= c.x0 + 2) return true
     return false
   }
-  const groundZ = (gx, gy) => bridgeT.has(Math.floor(gx) + ',' + Math.floor(gy)) ? 9 : 0
+  const groundZ = (gx, gy) => bridgeZ.get(Math.floor(gx) + ',' + Math.floor(gy)) || 0
 
   // ───────── giờ trong ngày, thời tiết ─────────
   const sky = { hour: 15.5, auto: false, speed: 0.06, weather: 'sunny', cloud: 0, rain: 0, storm: 0, wxTimer: 80, autoWx: true, flash: 0, nextFlash: 7, fury: false, nextStrike: 3, shake: 0, bolts: [], pulses: [] }
@@ -822,7 +883,7 @@ const World = (() => {
     for (const a of poles) for (const b of poles) {
       if (a.axis !== b.axis) continue
       const d = a.axis === 'x' ? (b.gx - a.gx) * (Math.abs(b.gy - a.gy) < 0.1) : (b.gy - a.gy) * (Math.abs(b.gx - a.gx) < 0.1)
-      if (d <= 0 || d > 7) continue
+      if (d <= 0 || d > 9.5) continue
       const pa = proj(a.gx, a.gy), pb = proj(b.gx, b.gy); pa[1] -= 96; pb[1] -= 96
       if (Math.max(pa[0], pb[0]) + ox < 0 || Math.min(pa[0], pb[0]) + ox > w) continue
       for (let k = 0; k < 3; k++) cable([pa[0] + k - 1, pa[1] + k * 3], [pb[0] + k - 1, pb[1] + k * 3], ox, oy, 0, d * 3)
@@ -903,16 +964,16 @@ const World = (() => {
   }
   // ───────── khởi động ─────────
   function generate() {
-    genGround(); genGate(); genLake(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); genTrainStreet(); streets(); streetLife(); genPedStreet(); nameTiles(); sortStatics(); genTraffic(); genNpc(48)
+    genGround(); genGate(); genLake(); genPlay(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); genTrainStreet(); streets(); streetLife(); genPedStreet(); genSigns(); nameTiles(); sortStatics(); genTraffic(); genNpc(90)
   }
   function start(canvas, hudEl) {
     cv = canvas; ctx = cv.getContext('2d'); hud = hudEl
-    const [cx, cy] = proj(20.5, 13.5); cam.x = cx; cam.y = cy
+    const [cx, cy] = proj(...SPAWN); cam.x = cx; cam.y = cy
     if (innerWidth < 700) { cam.zoom = 1; hud.style.display = 'none' }
-    Game.init({ W: { ground: kind }, N, proj, cam, tile: () => [TW, TH], isBlocked, colliders, groundZ, spawn: [20.5, 13.5] })
+    Game.init({ W: { ground: kind }, N, proj, cam, tile: () => [TW, TH], isBlocked, colliders, groundZ, spawn: SPAWN })
     const found = new Set()
     const sync = () => { Game.extraHud = `khám phá ${found.size}/${pois.length}` }; sync()
-    pois.push({ id: 'rail', label: 'Phố Tàu hỏa', gx: 34.5, gy: RS - 0.6, r: 2.4 })
+    pois.push({ id: 'rail', label: 'Phố Tàu hỏa', gx: 23.5, gy: RS - 0.6, r: 2.4 })
     for (const p of pois) Game.registerPOI({ ...p, onInteract: (q) => { found.add(q.id); sync(); Game.toast(found.size === pois.length ? `${q.label} — bạn đã khám phá đủ ${pois.length} địa danh!` : `${q.label} — đã khám phá ${found.size}/${pois.length}`) } })
     let drag = null
     cv.addEventListener('pointerdown', (e) => { if (Game.mode === 'play') { Game.pointer(e, 'down'); return } drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; cv.setPointerCapture(e.pointerId) })

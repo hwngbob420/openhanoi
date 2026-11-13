@@ -16,8 +16,8 @@ for (const d of ['down', 'up', 'right']) for (let f = 0; f < 4; f++) player[`${d
 
 function must(src, old, neu) { if (!src.includes(old)) throw new Error('không tìm thấy đoạn cần thay: ' + old.slice(0, 60)); return src.replace(old, neu) }
 let worldJs = rd('js/world.js')
-worldJs = must(worldJs, "MAN = (await (await fetch('assets/world/manifest.json')).json()).sprites", 'MAN = window.__BUNDLE.manifest.sprites')
-worldJs = must(worldJs, "i.src = 'assets/world/' + n + '.png'", 'i.src = window.__BUNDLE.world[n]')
+worldJs = must(worldJs, "MAN = (await (await fetch('assets/world/manifest.json', { cache: 'no-cache' })).json()).sprites", 'MAN = window.__BUNDLE.manifest.sprites')
+worldJs = must(worldJs, "i.src = 'assets/world/' + n + '.png?v=' + MAN_V", 'i.src = window.__BUNDLE.world[n]')
 worldJs = must(worldJs, 'i.src = `assets/player/pl_${d}_${f}.png`', 'i.src = window.__BUNDLE.player[d + "_" + f]')
 let playerJs = rd('js/player.js')
 playerJs = must(playerJs, "im.src = 'assets/player/pl_' + dir + '_' + f + '.png'", "im.src = window.__BUNDLE.player[dir + '_' + f]")

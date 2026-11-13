@@ -7,7 +7,7 @@ const houseH = (s) => GH + (s.floors - 1) * FH
 LAYOUT.house = (s) => {
   const wu = TILE * s.w, du = TILE * s.d
   const extra = s.roof === 'tile' ? roofRise(s) + 2 : 26
-  const L = blockLayout(wu, du, houseH(s) + extra)
+  const L = blockLayout(wu, du, houseH(s) + extra, 9, 9)
   L.fp = [s.w, s.d]; return L
 }
 
@@ -59,7 +59,10 @@ DRAW.house = (cv, s, I) => {
         const sc = s.sign || SIGN_COLS[Math.floor(rnd() * SIGN_COLS.length)]
         const sa0 = Math.max(1, a0 - 4), sa1 = Math.min(span - 1, a1 + 4)
         fq(F, sa0, sa1, 26, 34, sc); fq(F, sa0, sa1, 33, 34, lite(sc, 0.35)); fq(F, sa0, sa1, 26, 27, dark(sc, 0.35))
-        for (let a = sa0 + 3; a < sa1 - 4; a += 5) fq(F, a, a + 3, 29, 31, lite(sc, 0.8))        // "chữ" biển
+        {                                                                                           // chữ trên biển hiệu (tiếng Việt có dấu)
+          const room = Math.floor((sa1 - sa0 - 2 + 1) / 4), cand = SIGN_TEXTS.filter((t) => glyphClusters(t).length <= room)
+          if (cand.length) { const txt = cand[Math.floor(rnd() * cand.length)], tw = textLen(txt), mid = (sa0 + sa1) / 2; drawText(I, F, F === 'R' ? wu : du, F === 'R' ? mid + tw / 2 : mid - tw / 2, 27, txt, lumaOf(sc) > 150 ? '#6b1a12' : '#fff3d4') }
+        }
         if (rnd() < 0.5) { const aw = [RAMP.flag_red[2], RAMP.sun_yellow[2], RAMP.moss_shutter[3]][Math.floor(rnd() * 3)]; fq(F, a0 - 1, a1 + 1, 21, 25, aw) }
       } else {
         const da = Math.round(span / 2 - 5)
@@ -68,6 +71,21 @@ DRAW.house = (cv, s, I) => {
       }
     } else {
       for (let i = 0; i < n; i++) { const c = pitch * (i + 0.5), a0 = Math.round(c - 4); if (rnd() < 0.3) continue; fq(F, a0, a0 + 8, 11, 25, GREEN); fq(F, a0 + 2, a0 + 6, 11, 25, GLASS) }
+    }
+    // phù điêu xi măng kiểu Pháp thuộc: biển niên đại đắp nổi ở diềm mái
+    if (isFront && rnd() < 0.3) { const yr = ['1936', '1928', '1952', '1941', '1963'][Math.floor(rnd() * 5)], c = span / 2, tw = textLen(yr); fq(F, c - tw / 2 - 3, c + tw / 2 + 3, Hb - 8, Hb - 1, lite(col, 0.3)); drawText(I, F, F === 'R' ? wu : du, F === 'R' ? c + tw / 2 : c - tw / 2, Hb - 7, yr, dark(col, 0.45)) }
+    // biển dọc thò ra phố / cờ đỏ sao vàng (đặc trưng phố Hà Nội)
+    if (isFront && s.floors >= 2) {
+      const r = rnd(), pos = F === 'R' ? (rnd() < 0.5 ? 7 : du - 7) : (rnd() < 0.5 ? 7 : wu - 7), out = 9
+      if (r < 0.55) {
+        const bc = ['#d4382c', '#2f7a58', '#2f62c9', '#e0a52a', '#a3202a'][Math.floor(rnd() * 5)], bt = BLADE_TEXTS[Math.floor(rnd() * BLADE_TEXTS.length)], hh = glyphClusters(bt).reduce((q, c) => q + (c.m.length ? 8 : 6), 0) + 2, zt = 76, zb = zt - hh, tc = lumaOf(bc) > 150 ? '#6b1a12' : '#fff3d4'
+        if (F === 'R') { I.box(wu, pos - 0.9, zb, wu + out, pos + 0.9, zt, null, faceCols(bc)); I.box(wu, pos - 0.4, zt, wu + out, pos + 0.4, zt + 1.5, null, faceCols('#4a4a50')); drawVText(I, 'L', pos + 0.9, wu + (out - 3) / 2, zt - 1, bt, tc) }
+        else { I.box(pos - 0.9, du, zb, pos + 0.9, du + out, zt, null, faceCols(bc)); I.box(pos - 0.4, du, zt, pos + 0.4, du + out, zt + 1.5, null, faceCols('#4a4a50')); drawVText(I, 'R', pos + 0.9, du + out - (out - 3) / 2, zt - 1, bt, tc) }
+      } else if (r < 0.78) {
+        const zt = 70, fh = 10, RF = RAMP.flag_red[2], ST = '#ffd83a'
+        if (F === 'R') { I.box(wu - 1, pos - 0.6, zt - fh - 8, wu + 1, pos + 0.6, zt + 3, null, faceCols('#8a929a')); I.fL(pos, wu + 1, wu + out + 2, zt - fh, zt, RF); I.fL(pos, wu + out / 2 + 1.5, wu + out / 2 + 2.5, zt - fh / 2 - 1.5, zt - fh / 2 + 1.5, ST); I.fL(pos, wu + out / 2 + 0.5, wu + out / 2 + 3.5, zt - fh / 2 - 0.5, zt - fh / 2 + 0.5, ST) }
+        else { I.box(pos - 0.6, du - 1, zt - fh - 8, pos + 0.6, du + 1, zt + 3, null, faceCols('#8a929a')); I.fR(pos, du + 1, du + out + 2, zt - fh, zt, RF); I.fR(pos, du + out / 2 + 1.5, du + out / 2 + 2.5, zt - fh / 2 - 1.5, zt - fh / 2 + 1.5, ST); I.fR(pos, du + out / 2 + 0.5, du + out / 2 + 3.5, zt - fh / 2 - 0.5, zt - fh / 2 + 0.5, ST) }
+      }
     }
     // máy lạnh + đồ phơi trên mặt không phải mặt tiền
     if (!isFront) for (let q = 0; q < 1 + Math.floor(rnd() * 3); q++) {
