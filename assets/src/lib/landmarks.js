@@ -20,41 +20,49 @@ function hipRoof(I, x0, y0, x1, y1, z, rise, near1, near2, far, line) {
   I.line3([x0, y1, z], [x1, y1, z], dark(near2, 0.25)); I.line3([x1, y1, z], [x1, y0, z], dark(near1, 0.25))
 }
 
-// ── Ô Quan Chưởng (Đông Hà Môn): tường gạch vồ, 3 cổng vòm cuốn (giữa to, 2 bên nhỏ), bảng "ĐÔNG HÀ MÔN" trên cổng giữa,
-//    nóc có lan can và vọng lâu 4 mái thu nhỏ đặt ngay trên cổng chính. Cổng xuyên suốt: nền, trời và phố bên kia nhìn thấy qua lòng cổng. ──
+// ── Ô Quan Chưởng (Đông Hà Môn), dựng theo ảnh thật: hai cánh tường gạch đỏ thấp có lan can ô hoa thị và vòm cuốn thấp rộng; khối giữa cao hơn,
+//    trát vữa xám, cổng chính vòm cuốn cao hẹp, bảng "ĐÔNG HÀ MÔN" ngay trên vòm, trên nóc là vọng lâu 4 mái nhỏ. Lòng cổng trong suốt. ──
 DRAW.gate = (cv, s, I) => {
-  const wu = TILE * s.w, du = TILE * s.d, rnd = rngOf(77), Hb = 108
-  const f = faceCols(TCR[2]), PLAST = '#e4d8bc'
-  I.fL(du, 0, wu, 0, Hb, f.left); I.fR(wu, 0, du, 0, Hb, f.right)
-  I.topq(0, wu, 0, du, Hb, mix(TCR[3], RAMP.stone_cream[2], 0.3))
-  brickFace(I, 'R', 0, du, 0, Hb, f.right, rnd, wu, du); brickFace(I, 'L', 0, wu, 0, Hb, f.left, rnd, wu, du)
-  for (let k = 0; k < 14; k++) { const a0 = Math.floor(rnd() * (du - 30)), z0 = 8 + Math.floor(rnd() * 60); I.fR(wu, a0, a0 + 8 + Math.floor(rnd() * 20), z0, z0 + 4 + Math.floor(rnd() * 6), mix(f.right, PLAST, 0.35)) }   // mảng vữa bong tróc
-  I.fR(wu, 0, du, 0, 6, dark(f.right, 0.22)); I.fL(du, 0, wu, 0, 6, dark(f.left, 0.18))                                     // chân đế
-  I.fR(wu, 0, du, Hb - 7, Hb - 4, lite(f.right, 0.3)); I.fL(du, 0, wu, Hb - 7, Hb - 4, lite(f.left, 0.3))                  // gờ phào
+  const wu = TILE * s.w, du = TILE * s.d, rnd = rngOf(77), Hw = 84, Hc = 122, pc = du / 2, c0 = pc - 44, c1 = pc + 44
+  const f = faceCols(TCR[2]), PLAST = '#d9cfb8', fp = faceCols('#b9ae98')
+  // hai cánh + khối giữa
+  I.box(0, 0, 0, wu, du, Hw, null, f)
+  brickFace(I, 'R', 0, du, 0, Hw, f.right, rnd, wu, du); brickFace(I, 'L', 0, wu, 0, Hw, f.left, rnd, wu, du)
+  I.box(0, c0, Hw - 1, wu, c1, Hc, null, fp)
+  brickFace(I, 'R', c0, c1, 0, 34, f.right, rnd, wu, du)
+  for (let k = 0; k < 10; k++) { const a0 = c0 + 2 + Math.floor(rnd() * 70), z0 = 36 + Math.floor(rnd() * 70); I.fR(wu, a0, a0 + 6 + Math.floor(rnd() * 14), z0, z0 + 3 + Math.floor(rnd() * 8), mix(fp.right, f.right, 0.55)) }   // vữa bong, lộ gạch
+  for (let k = 0; k < 12; k++) { const a0 = Math.floor(rnd() * (du - 30)); if (a0 + 12 > c0 && a0 < c1) continue; const z0 = 8 + Math.floor(rnd() * 56); I.fR(wu, a0, a0 + 8 + Math.floor(rnd() * 16), z0, z0 + 3 + Math.floor(rnd() * 5), mix(f.right, PLAST, 0.3)) }
+  I.fR(wu, 0, du, 0, 6, dark(f.right, 0.22)); I.fL(du, 0, wu, 0, 6, dark(f.left, 0.18))
+  I.fR(wu, c0, c1, Hc - 7, Hc - 4, lite(fp.right, 0.3)); I.fR(wu, 0, c0, Hw - 6, Hw - 3, lite(f.right, 0.28)); I.fR(wu, c1, du, Hw - 6, Hw - 3, lite(f.right, 0.28))
   const arch = (yc, hw, zs, zt, col) => {
     const pts = [[wu, yc + hw, 0], [wu, yc + hw, zs]]
     for (let t = 0; t <= 14; t++) { const a = t / 14 * Math.PI; pts.push([wu, yc + hw * Math.cos(a), zs + (zt - zs) * Math.sin(a)]) }
     pts.push([wu, yc - hw, zs], [wu, yc - hw, 0]); cv.poly(pts.map((p) => I.P(...p)), col)
   }
-  const OPEN = '#ff00ff', holes = [[du / 2, 22, 46, 84], [56, 17, 24, 46], [du - 56, 17, 24, 46]]
-  for (const [yc, hw, zs, zt] of holes) arch(yc, hw + 5, zs, zt + 5, lite(f.right, 0.38))                                        // viền vòm cuốn
+  const OPEN = '#ff00ff', holes = [[pc, 20, 58, 90], [44, 20, 26, 52], [du - 44, 20, 26, 52]]
+  for (const [yc, hw, zs, zt] of holes) arch(yc, hw + 4, zs, zt + 4, lite(fp.right, 0.2))
   for (const [yc, hw, zs, zt] of holes) arch(yc, hw, zs, zt, OPEN)
-  // bảng "ĐÔNG HÀ MÔN" đắp nổi mảnh sứ xanh, ngay trên vòm cổng chính, dưới vọng lâu
-  const pc = du / 2, tw = textLen('ĐÔNG HÀ MÔN')
-  I.fR(wu, pc - 31, pc + 31, 92, 104, lite(PLAST, 0.1)); I.fR(wu, pc - 30, pc + 30, 93, 103, '#2f8f86'); I.fR(wu, pc - 29, pc + 29, 94, 102, PLAST)
-  drawText(I, 'R', wu, pc + tw / 2, 95, 'ĐÔNG HÀ MÔN', '#2a7f78')
-  // lan can nóc (ô hoa thị / tứ giác) + vọng lâu 4 mái thu nhỏ ngay trên cổng chính
-  const rail = (F) => { for (let a = 2; a < (F === 'R' ? du : wu) - 2; a += 5) { if (F === 'R') I.box(wu - 3, a, Hb, wu - 1, a + 2.5, Hb + 8, null, faceCols(PLAST)); else I.box(a, du - 3, Hb, a + 2.5, du - 1, Hb + 8, null, faceCols(PLAST)) } }
-  rail('R'); rail('L')
-  I.box(wu - 3.5, 0, Hb + 8, wu - 0.5, du, Hb + 10, null, faceCols(lite(PLAST, 0.1))); I.box(0, du - 3.5, Hb + 8, wu, du - 0.5, Hb + 10, null, faceCols(lite(PLAST, 0.1)))
-  const z1 = Hb + 2, bw = 34, by0 = pc - 28, by1 = pc + 28, wf = faceCols(PLAST)
-  I.box((wu - bw) / 2, by0, z1, (wu + bw) / 2, by1, z1 + 26, null, wf)
-  for (const a of [by0 + 8, pc - 6, by1 - 20]) { I.fR((wu + bw) / 2, a, a + 12, z1 + 4, z1 + 22, RAMP.moss_shutter[1]); I.fR((wu + bw) / 2, a + 2, a + 10, z1 + 6, z1 + 20, RAMP.moss_shutter[2]) }
-  for (const a of [(wu - bw) / 2 + 8, wu / 2 - 4]) I.fL(by1, a, a + 9, z1 + 4, z1 + 22, RAMP.moss_shutter[2])
-  const z2 = z1 + 26
-  hipRoof(I, (wu - bw) / 2 - 7, by0 - 8, (wu + bw) / 2 + 7, by1 + 8, z2, 22, TCR[2], TCR[3], TCR[1], dark(TCR[3], 0.28))
-  I.post(wu / 2, pc, z2 + 22, z2 + 34, 2, RAMP.sun_yellow[2])
-  // lòng cổng trong suốt (thấy nền, phố, người phía sau); chỉ giữ một dải má cổng mỏng bên phải để thấy độ dày tường
+  // bảng "ĐÔNG HÀ MÔN" (mảnh sứ xanh) ngay trên vòm cổng chính
+  const tw = textLen('ĐÔNG HÀ MÔN')
+  I.fR(wu, pc - 30, pc + 30, 96, 108, lite(PLAST, 0.1)); I.fR(wu, pc - 29, pc + 29, 97, 107, '#2f8f86'); I.fR(wu, pc - 28, pc + 28, 98, 106, PLAST)
+  drawText(I, 'R', wu, pc + tw / 2, 99, 'ĐÔNG HÀ MÔN', '#2a7f78')
+  // lan can ô hoa thị: dọc hai cánh (cao Hw) và quanh khối giữa (cao Hc)
+  const rail = (z, y0, y1) => {
+    for (let a = y0 + 2; a < y1 - 2; a += 5) I.box(wu - 3, a, z, wu - 1, a + 2.5, z + 8, null, faceCols(PLAST))
+    I.box(wu - 3.5, y0, z + 8, wu - 0.5, y1, z + 10, null, faceCols(lite(PLAST, 0.1)))
+    for (let a = y0 + 4; a < y1 - 6; a += 10) I.fR(wu - 0.5, a, a + 4, z + 3, z + 6, dark(PLAST, 0.35))
+  }
+  rail(Hw, 0, c0); rail(Hw, c1, du); rail(Hc, c0, c1)
+  for (const [y0, y1] of [[0, c0], [c1, du]]) for (let a = 2; a < wu - 2; a += 5) I.box(a, du - 3, Hw, a + 2.5, du - 1, Hw + 8, null, faceCols(PLAST))
+  I.box(0, du - 3.5, Hw + 8, wu, du - 0.5, Hw + 10, null, faceCols(lite(PLAST, 0.1)))
+  // vọng lâu 4 mái nhỏ trên khối giữa
+  const z1 = Hc + 10, bw = 20, tx0 = (wu - bw) / 2, tx1 = (wu + bw) / 2, tf = faceCols('#cfc5ae')
+  I.box(tx0, pc - 13, z1, tx1, pc + 13, z1 + 22, null, tf)
+  I.fR(tx1, pc - 5, pc + 5, z1 + 2, z1 + 15, mix(INK, '#6a5a48', 0.35))
+  I.fL(pc + 13, tx0 + 5, tx0 + 15, z1 + 2, z1 + 15, mix(INK, '#6a5a48', 0.35))
+  hipRoof(I, tx0 - 5, pc - 18, tx1 + 5, pc + 18, z1 + 22, 17, TCR[2], TCR[3], TCR[1], dark(TCR[3], 0.28))
+  I.post(wu / 2, pc, z1 + 39, z1 + 49, 2, RAMP.sun_yellow[2])
+  cv.outline(0.5)                                                                   // viền trước, rồi mới khoét lòng cổng (không có vạch ngang ở ngưỡng cửa)
   const wallCol = (k) => mix(dark(f.right, 0.35), INK, 0.25 + 0.1 * k)
   const hwAt = ([, hw, zs, zt], z) => z <= zs ? hw : z >= zt ? 0 : hw * Math.sqrt(1 - ((z - zs) / (zt - zs)) ** 2)
   for (let y = 0; y < cv.h; y++) for (let x = 0; x < cv.w; x++) {
@@ -63,9 +71,10 @@ DRAW.gate = (cv, s, I) => {
     const h = holes.reduce((best, q) => (Math.abs(Y - q[0]) < Math.abs(Y - best[0]) ? q : best))
     let hit = false
     for (let t = 1; t <= 9 && t <= z; t++) { if (Math.abs(Y - t - h[0]) > hwAt(h, z - t) + 0.01) { hit = true; break } }
-    if (hit) cv.set(x, y, wallCol(Math.min(1, (wu - (Y - h[0] + h[1]) / 2) / wu))); else cv.set(x, y, null)
+    cv.set(x, y, hit ? wallCol(0.5) : null)                                          // chỉ giữ dải má cổng mỏng; còn lại trong suốt
   }
-  cv.outline(0.5)
+  const BAD = dark(OPEN, 0.5)                                                      // viền sinh ra quanh pixel lòng cổng: bỏ
+  for (let y = 0; y < cv.h; y++) for (let x = 0; x < cv.w; x++) if (cv.get(x, y) === BAD) cv.set(x, y, null)
 }
 
 // ── cầu Thê Húc: đoạn cầu gỗ đỏ dọc trục x, rộng 2 ô ──

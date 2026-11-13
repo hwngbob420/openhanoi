@@ -208,7 +208,7 @@ const World = (() => {
   function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
     const gx = 24, gy = CORRY[PED][0]
     mark(gx, gy, 1, 7, false)
-    for (const [a0, a1] of [[0, 1.083], [2.028, 2.889], [4.111, 4.972], [5.917, 7]]) {                    // chỉ các trụ tường chặn: đi bộ qua được cả 3 cổng (giữa + 2 ô nhỏ)
+    for (const [a0, a1] of [[0, 0.667], [1.778, 2.944], [4.056, 5.222], [6.333, 7]]) {                    // chỉ các trụ tường chặn: đi bộ qua được cả 3 cổng (giữa + 2 ô nhỏ)
       const n = Math.max(2, Math.ceil((a1 - a0 - 0.4) / 0.35) + 1)
       for (let i = 0; i < n; i++) for (const dx of [0.2, 0.5, 0.8]) colliders.push({ x: gx + dx, y: gy + a0 + 0.2 + (a1 - a0 - 0.4) * i / (n - 1), r: 0.2 })
     }
