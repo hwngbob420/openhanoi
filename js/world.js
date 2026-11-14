@@ -148,7 +148,7 @@ const World = (() => {
           if (!inB(nx, ny)) return false
           if (alleyT.has(kk(nx, ny))) { ended = 'join'; return 'stop' }
           if (ring(nx, ny)) {
-            if (!mouthOk(nx, ny)) return false
+            if (style === 'br' || !mouthOk(nx, ny)) return false          // ngách cụt không được thông ra phố (thông ra phố thì gọi là ngõ)
             for (const [ex, ey] of D8) { const mx = nx + ex, my = ny + ey; if (alleyT.has(kk(mx, my)) && !(mx === cur[0] && my === cur[1])) return false }
             add(nx, ny); exit = [nx, ny]; ended = 'thru'; return 'stop'
           }
@@ -453,17 +453,22 @@ const World = (() => {
     const axisOf = (x, y) => { const ex = has(x - 1, y) || has(x + 1, y), ey = has(x, y - 1) || has(x, y + 1); return ex && !ey ? 'x' : ey && !ex ? 'y' : null }
     const edgeOf = (x, y) => { const bx = BLOCKX.find((r) => inR(x, r)), by = BLOCKY.find((r) => inR(y, r)); return x === bx[1] ? 'E' : y === by[1] ? 'S' : x === bx[0] ? 'W' : 'N' }
     let pn = 0
+    const NGO_STREET = [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11]                   // biển NGÕ gắn ở cửa ngõ ra phố (index 8 là biển NGÁCH, chỉ treo ở chỗ ngách tách ra từ ngõ)
     const done = new Set()
     for (const a of alleys) {
       for (const m of [a.mouth, a.mouth2]) if (m && !done.has(kk(...m))) {
         done.add(kk(...m)); const [x, y] = m, e = edgeOf(x, y), ax = e === 'E' || e === 'W' ? 'y' : 'x'
         const px = e === 'E' ? x + 0.86 : x + 0.14, py = e === 'S' ? y + 0.86 : y + 0.14
-        prop(`p_ngo_${ax}_${pn++ % 12}`, px, py, { r: 0.06 })
+        prop(`p_ngo_${ax}_${NGO_STREET[pn++ % NGO_STREET.length]}`, px, py, { r: 0.06 })
         nightLights.push({ gx: x + 0.5, gy: y + 0.5, z: 56, r: 40, a: 0.55 })
         const [fx, fy] = e === 'E' ? [1, 0] : e === 'W' ? [-1, 0] : e === 'S' ? [0, 1] : [0, -1]
         for (let k = 1; k <= SW; k++) used.add(kk(x + fx * k, y + fy * k))          // vỉa hè trước cửa ngõ để trống: không đặt cột điện, đèn, cây, sạp
       }
       const T = a.tiles
+      if (!a.main && T.length > 2 && rnd() < 0.6) {                // biển NGÁCH 9/3 ở chỗ ngách tách khỏi ngõ lớn
+        const [bx, by] = T[1], [px0, py0] = T[0], horiz = bx !== px0
+        prop(`p_ngo_${horiz ? 'y' : 'x'}_8`, bx + 0.14, by + 0.14, { r: 0.06 })
+      }
       T.forEach(([x, y], i) => {
         if (a.mouth && i === 0 || yardT.has(kk(x, y))) return
         const ax = axisOf(x, y), cx = x + 0.5, cy = y + 0.5; if (!ax) return
@@ -959,6 +964,7 @@ const World = (() => {
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; T += dt
     stepSky(dt); stepTraffic(dt); stepTrain(dt); stepNpc(dt); Game.update(dt)
     const z = cam.zoom, w = Math.ceil(innerWidth / z), h = Math.ceil(innerHeight / z)
+    if (w < 8 || h < 8) return                                 // cửa sổ chưa có kích thước (đang xoay màn hình / tab nền): bỏ qua khung này
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h }
     if (shC.width !== w || shC.height !== h) { shC.width = w; shC.height = h }
     ctx.imageSmoothingEnabled = false

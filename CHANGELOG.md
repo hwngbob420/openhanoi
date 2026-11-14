@@ -6,6 +6,7 @@
 - Nhà đứng chắn trước mặt ngõ (phía camera) bị hạ xuống tối đa 2 tầng để nhìn vào được ngõ. Một điểm khám phá mới: "Ngõ ngoằn nghèo".
 - Sửa lỗi nhà "thòi ra thụt vào": bước lấp ô trống (fillGaps) trước đây có thể đặt nhà 3 ô lấn sang vỉa hè; giờ nhà luôn nằm trọn trong block.
 - NPC cũng đi vào ngõ.
+- Sửa lỗi nền: nếu cửa sổ chưa có kích thước lúc mở (xoay màn hình điện thoại) vòng lặp vẽ bị dừng hẳn; giờ bỏ qua khung đó và tiếp tục.
 
 ## 0.7.0 - Hồ Hoàn Kiếm, map 108x108, biển hiệu Hà Nội
 - Map mở rộng 72 -> 108 ô mỗi cạnh (gấp 1,5 lần theo từng chiều): 5 cột x 6 hàng khối, 4 trục đường Bắc-Nam, 4 trục Đông-Tây (1 là phố đi bộ), 4 điểm giao đường sắt có thanh chắn.
