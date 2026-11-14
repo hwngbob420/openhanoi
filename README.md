@@ -8,7 +8,10 @@ Open-world pixel-art game set in modern Hà Nội. Workflow: `../indie_game_prod
 ## Run (no build step, no dependencies)
 
 ```bash
-python -m http.server 8790
+npm i        # lần đầu
+npm run dev  # chơi thử tại http://localhost:8790
+npm run build  # xuất 1 file dist/hanoi-pixel.html (chạy offline, dùng cho điện thoại)
+npm test       # kịch bản Playwright (cần build trước)
 ```
 
 Open <http://localhost:8790/index.html> (must be served over HTTP; `file://` blocks asset loading).
@@ -17,7 +20,7 @@ Open <http://localhost:8790/index.html> (must be served over HTTP; `file://` blo
 
 | Path | Purpose |
 |---|---|
-| `index.html` + `js/world.js` + `js/player.js` | Current game (vanilla JS + Canvas 2D): 64x64 world, traffic, train, player. `index_legacy_v3.html`, `index_v1.html`, `index_v2.html` are frozen history. |
+| `index.html` + `src/` (Vite): `src/world`, `src/gameplay`, `src/ui`, `src/audio`, `src/assets`, hợp đồng giữa các khối ở `src/core/CONTRACT.md`; | Current game (vanilla JS + Canvas 2D): 64x64 world, traffic, train, player. `index_legacy_v3.html`, `index_v1.html`, `index_v2.html` are frozen history. |
 | `assets/src/lib/*.js`, `assets/src/catalog.mjs`, `tools/build_world_art.mjs` | Art source: isometric drawing library + catalog; `node tools/build_world_art.mjs` rebuilds every sprite with claude-pxl into `assets/world/` (+ manifest). `python tools/sheet.py <prefix>` makes a contact sheet to look at. |
 | `assets/sprites`, `assets/tiles`, `assets/manifest.json` | Runtime art. Manifest is the import contract (pivot, footprint, facing, group). |
 | `tools/` | Python asset pipeline. `process_codex2.py` (Codex output -> pixel art), `qa_check.py` (image QA gate). |
