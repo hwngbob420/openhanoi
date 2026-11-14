@@ -111,7 +111,7 @@ DRAW.prop = (cv, s, I) => {
     I.box(-7, 5, 22, 7, 6, 36, null, faceCols('#e8e2d0')); I.line3([-6, 6, 24], [6, 6, 34], '#d4382c'); I.line3([-6, 6, 34], [6, 6, 24], '#d4382c')   // biển chữ X
   } else if (t === 'plate') {
     // biển tên phố trên cột: nền xanh, chữ trắng, viền trắng
-    const lines = s.text.split('\n'), mw = Math.max(...lines.map(textLen)), bw = mw + 6, bh = lines.length * 8 + 3, zt = 88, zb = zt - bh
+    const lines = s.text.split('\n'), mw = Math.max(...lines.map(textLen)), bw = mw + 6, bh = lines.length * 8 + 3, zt = s.zt || 88, zb = zt - bh
     groundShadow(cv, I.ox + 4, I.oy + 1, 7, 3)
     I.box(-3, -3, 0, 3, 3, 4, null, faceCols('#6f7a86')); I.post(0, 0, 4, zb, 3, '#6f7a86')
     if (s.axis === 'x') {
@@ -121,6 +121,45 @@ DRAW.prop = (cv, s, I) => {
       I.box(-1.2, -bw / 2 - 1.5, zb - 1, 1.2, bw / 2 + 1.5, zt + 1, null, faceCols('#e8eef4')); I.box(-1.2, -bw / 2, zb, 1.8, bw / 2, zt, null, faceCols('#2a5ea8'))
       lines.forEach((ln, i) => drawText(I, 'R', 1.8, textLen(ln) / 2, zt - 9 - i * 8, ln, '#f4f6f8'))
     }
+  } else if (t === 'laundry') {
+    // dây phơi căng ngang ngõ giữa hai bức tường: áo, quần, khăn nhiều màu. axis = hướng ngõ chạy; dây căng vuông góc
+    const A = s.axis === 'x', z0 = 50 + s.v * 3, H = 18
+    const P2 = (u, z) => A ? [0, u, z] : [u, 0, z], sag = (u) => { const t = (u + H) / (2 * H); return 9 * t * (1 - t) }
+    const face = (u0, u1, za, zb, c) => A ? I.fR(0, u0, u1, za, zb, c) : I.fL(0, u0, u1, za, zb, c)
+    const PAL = ['#f4f1e6', '#d4382c', '#3a6bb5', '#f2c23c', '#e9a3b8', '#7fb08a', '#8a6bb0', '#ece3c8']
+    for (let u = -H; u < H; u += 3) I.line3(P2(u, z0 - sag(u)), P2(u + 3, z0 - sag(u + 3)), '#2a2a30')
+    for (const u of [-H, H]) I.line3(P2(u, z0 - 6), P2(u, z0 + 3), '#2a2a30')
+    let u = -H + 4 + Math.floor(rnd() * 3)
+    while (u < H - 5) {
+      const kind = Math.floor(rnd() * 3), c = PAL[Math.floor(rnd() * PAL.length)], zt = z0 - sag(u)
+      if (kind === 0) { face(u - 3, u + 3, zt - 12, zt, c); face(u - 5, u - 3, zt - 5, zt, c); face(u + 3, u + 5, zt - 5, zt, c); face(u - 1, u + 1, zt - 1.5, zt, dark(c, 0.25)) }       // áo
+      else if (kind === 1) { face(u - 3, u + 3, zt - 5, zt, c); face(u - 3, u - 0.5, zt - 15, zt - 5, c); face(u + 0.5, u + 3, zt - 15, zt - 5, dark(c, 0.12)) }                     // quần
+      else face(u - 4, u + 4, zt - 8, zt, c)                                                                                                                                            // khăn
+      u += 8 + Math.floor(rnd() * 3)
+    }
+  } else if (t === 'wires') {
+    // dây điện, dây cáp chằng chịt chạy dọc ngõ, rũ nhẹ, thỉnh thoảng có hộp nối
+    const A = s.axis === 'x', L = 18, zs = [46, 51, 56].map((z, i) => z + (s.v ? 2 - i * 3 : 0)), offs = [-8, 1, 9]
+    const P2 = (u, o, z) => A ? [u, o, z] : [o, u, z]
+    zs.forEach((z, i) => { let pv = P2(-L, offs[i], z); for (let u = -L + 4; u <= L; u += 4) { const q = P2(u, offs[i] + (rnd() - 0.5) * 2.5, z - 2.4 * Math.sin((u + L) / (2 * L) * Math.PI)); I.line3(pv, q, i === 1 ? '#4a3a2a' : '#1c1c20'); pv = q } })
+  } else if (t === 'pots') {
+    // chậu cây cảnh sát chân tường: chậu sành, hoa giấy, nha đam, cây cảnh
+    const kinds = [[[-6, -4, 7], [5, 3, 9], [-1, 8, 6]], [[0, 0, 10], [-8, 6, 6]], [[-5, -3, 8], [5, -2, 6], [0, 7, 9], [9, 6, 5]], [[-3, 0, 12], [7, 5, 7]]][s.v]
+    groundShadow(cv, I.ox + 3, I.oy + 1, 14, 5)
+    for (const [x, y, h] of kinds) {
+      I.box(x - 3.5, y - 3.5, 0, x + 3.5, y + 3.5, 6, null, faceCols(s.v % 2 ? '#b35a3a' : '#c8774a')); I.box(x - 4, y - 4, 6, x + 4, y + 4, 7.5, null, faceCols('#8a3e2a'))
+      const [px, py] = I.P(x, y, 7.5 + h * 0.5); cv.circ(px, py, 3 + (h > 8 ? 1 : 0), [RAMP.foliage[3], RAMP.foliage[4], RAMP.foliage[2]][Math.floor(rnd() * 3)])
+      if (rnd() < 0.5) cv.set(px + 1, py - 2, [RAMP.bougainvillea[2], '#f2c23c', '#fbf6e8'][Math.floor(rnd() * 3)])
+    }
+  } else if (t === 'shrine') {
+    // miếu thổ địa / bàn thờ nhỏ cuối ngõ: bệ đá, hộc gỗ sơn son, mái ngói, hương, đèn đỏ
+    groundShadow(cv, I.ox + 5, I.oy + 2, 18, 8)
+    I.box(-9, -7, 0, 9, 7, 9, null, faceCols(RAMP.stone_cream[2])); I.box(-10, -8, 9, 10, 8, 11, null, faceCols(RAMP.stone_cream[3]))
+    I.box(-7, -5, 11, 7, 5, 25, null, faceCols('#b8321f')); I.fL(5.2, -4.5, 4.5, 13, 22, '#2a1814'); I.fL(5.3, -4.5, 4.5, 21.5, 22.5, '#e0a52a'); I.fR(7.2, -3.5, 3.5, 13, 22, '#2a1814')
+    I.quad([-9, -7, 25], [9, -7, 25], [9, 0, 31], [-9, 0, 31], '#7a3c28'); I.quad([-9, 7, 25], [9, 7, 25], [9, 0, 31], [-9, 0, 31], '#9a4c30')
+    I.box(-9, -0.5, 30.5, 9, 0.5, 32, null, faceCols('#5a2a1c'))
+    I.post(-4, 9, 11, 17, 0.6, '#8a5a34'); I.post(4, 9, 11, 19, 0.6, '#8a5a34'); { const [ix, iy] = I.P(4, 9, 19.5); cv.set(ix, iy, '#ff8a3a'); cv.set(ix, iy - 1, '#c8c8c8') }
+    I.box(-12, -2, 9, -9, 2, 14, null, faceCols('#d4382c'))
   } else if (t === 'fence') {
     // hàng rào an toàn dọc đường tàu: cọc thép, thanh ngang trắng, nan sơn đỏ-trắng, biển cảnh báo vàng
     const L = 36

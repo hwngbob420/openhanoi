@@ -73,6 +73,8 @@ const World = (() => {
   const WALLS = ['ochre', 'lemon', 'mint', 'salmon', 'sky', 'cream']
   function house(fam, F, fl, wall, shop, gx, gy) {
     const along = fam.endsWith('R'), w = along ? 3 : F, d = along ? F : 3
+    for (let i = 0; i < d; i++) if (alleyT.has(kk(gx - 1, gy + i))) fl = Math.min(fl, 2)                // nhà che trước mặt ngõ (phía camera) thấp xuống 2 tầng để nhìn vào được ngõ
+    for (let i = 0; i < w; i++) if (alleyT.has(kk(gx + i, gy - 1))) fl = Math.min(fl, 2)
     const nm = `h_${fam}_${F}_${fl}_${wall}${shop && !fam.startsWith('n') ? '_s' : ''}`
     if (!MAN[nm] || !cellsFree(gx, gy, w, d)) return false
     mark(gx, gy, w, d); sprite(nm, gx, gy)
@@ -84,10 +86,123 @@ const World = (() => {
   const MIX = { old: [[2, 0.12], [3, 0.4], [4, 0.48]], rail: [[2, 0.5], [3, 0.4], [4, 0.1]], mid: [[2, 0.25], [3, 0.5], [4, 0.25]] }
   function perimeter(b, o = {}) {
     const mix = MIX[o.mix || 'mid'], shopP = o.shop ?? 0.5
-    for (let y = b.y0; y <= b.y1;) { let F = rnd() < 0.5 ? 2 : 1; if (y + F - 1 > b.y1) F = 1; house('R', F, wfloors(mix), pick(WALLS), rnd() < shopP, b.x1 - 2, y); y += F }
-    for (let y = b.y0; y <= b.y1;) { let F = rnd() < 0.5 ? 2 : 1; if (y + F - 1 > b.y1) F = 1; house('nR', F, wfloors(mix), pick(WALLS), false, b.x0, y); y += F }
-    for (let x = b.x0 + 3; x <= b.x1 - 3;) { let F = rnd() < 0.5 ? 2 : 1; if (x + F - 1 > b.x1 - 3) F = 1; house('L', F, wfloors(mix), pick(WALLS), rnd() < shopP, x, b.y1 - 2); x += F }
-    for (let x = b.x0 + 3; x <= b.x1 - 3;) { let F = rnd() < 0.5 ? 2 : 1; if (x + F - 1 > b.x1 - 3) F = 1; house('nL', F, wfloors(mix), pick(WALLS), false, x, b.y0); x += F }
+    // dọc một cạnh block: nhà 2 ô, nếu vướng cửa ngõ thì thử lại 1 ô; ô nào không đặt được thì bỏ qua
+    const side = (fam, lo, hi, fixed, horiz, shopOK) => {
+      for (let t = lo; t <= hi;) {
+        let step = 1
+        for (const F of rnd() < 0.5 && t < hi ? [2, 1] : [1]) {
+          const [gx, gy] = horiz ? [t, fixed] : [fixed, t]
+          if (house(fam, F, wfloors(mix), pick(WALLS), shopOK && rnd() < shopP, gx, gy)) { step = F; break }
+        }
+        t += step
+      }
+    }
+    side('R', b.y0, b.y1, b.x1 - 2, false, true); side('nR', b.y0, b.y1, b.x0, false, false)
+    side('L', b.x0 + 3, b.x1 - 3, b.y1 - 2, true, true); side('nL', b.x0 + 3, b.x1 - 3, b.y0, true, false)
+  }
+
+  // ───────── ngõ, ngách: đường nhỏ xuyên ruột block nhà ─────────
+  // Ngõ thông (hai đầu ra phố), ngõ cụt có sân chung / miếu thổ địa ở cuối, ngõ ngoằn nghèo rẽ liên tục, ngách nhỏ tách từ ngõ lớn.
+  // Ngõ rộng 1 ô; hai ngõ không bao giờ sát nhau (luôn có ít nhất một dãy nhà ở giữa).
+  const alleyT = new Set(), alleys = [], yardT = new Set(), mouthTiles = []
+  const D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], kk = (x, y) => x + ',' + y
+  function carveAlleys(b, bi, bj) {
+    const inB = (x, y) => x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1
+    const ring = (x, y) => x === b.x0 || x === b.x1 || y === b.y0 || y === b.y1
+    const edges = []
+    if (bi < BLOCKX.length - 1) edges.push(['E', [-1, 0]], ['E', [-1, 0]])             // cửa ngõ ưu tiên hai cạnh nhìn thấy từ camera (đông, nam)
+    if (bj < BLOCKY.length - 1) edges.push(['S', [0, -1]], ['S', [0, -1]])
+    if (bi > 0) edges.push(['W', [1, 0]])
+    if (bj > 0) edges.push(['N', [0, 1]])
+    const mouths = []
+    const mouthOk = (x, y) => {
+      if (occ[y][x] || alleyT.has(kk(x, y))) return false
+      const onX = x === b.x0 || x === b.x1, onY = y === b.y0 || y === b.y1; if (onX && onY) return false
+      const t = onX ? y : x, lo = onX ? b.y0 : b.x0, hi = onX ? b.y1 : b.x1
+      if (t < lo + 2 || t > hi - 2) return false
+      if (x === b.x1 && x + 1 >= N || x === b.x0 && x < 1 || y === b.y1 && y + 1 >= N || y === b.y0 && y < 1) return false     // mép bản đồ: không có phố bên ngoài
+      return mouths.every(([mx, my]) => Math.abs(mx - x) + Math.abs(my - y) >= 4)
+    }
+    const ok = (x, y, px, py, dx, dy) => {                     // ô (x,y) đi từ (px,py) theo hướng (dx,dy): không được dính ngõ khác
+      if (!inB(x, y) || ring(x, y) || occ[y][x] || alleyT.has(kk(x, y))) return false
+      const ax = x + dx, ay = y + dy, aheadIn = alleyT.has(kk(ax, ay))
+      for (const [ex, ey] of D8) {
+        const nx = x + ex, ny = y + ey; if (!alleyT.has(kk(nx, ny)) || (nx === px && ny === py)) continue
+        if (Math.abs(nx - px) + Math.abs(ny - py) === 1) continue
+        if (aheadIn && ((nx === ax && ny === ay) || Math.abs(nx - ax) + Math.abs(ny - ay) === 1)) continue
+        return false
+      }
+      return true
+    }
+    const ri = (a, c) => a + Math.floor(rnd() * (c - a + 1))
+    const walk = (start, dir0, style, fresh) => {
+      const path = [], add = (x, y) => { alleyT.add(kk(x, y)); path.push([x, y]) }
+      let cur = start, dir = dir0, ended = 'dead', exit = null
+      if (fresh) add(start[0], start[1])
+      const maxLen = style === 'cut' ? ri(6, 10) : style === 'br' ? ri(3, 5) : 99
+      const segLen = () => style === 'wind' ? ri(2, 4) : style === 'br' ? 99 : ri(5, 9)
+      let seg = style === 'wind' ? ri(2, 3) : 99
+      for (let guard = 0; guard < 90 && path.length < maxLen; guard++) {
+        const fwd = () => {
+          const nx = cur[0] + dir[0], ny = cur[1] + dir[1]
+          if (!inB(nx, ny)) return false
+          if (alleyT.has(kk(nx, ny))) { ended = 'join'; return 'stop' }
+          if (ring(nx, ny)) {
+            if (!mouthOk(nx, ny)) return false
+            for (const [ex, ey] of D8) { const mx = nx + ex, my = ny + ey; if (alleyT.has(kk(mx, my)) && !(mx === cur[0] && my === cur[1])) return false }
+            add(nx, ny); exit = [nx, ny]; ended = 'thru'; return 'stop'
+          }
+          if (!ok(nx, ny, cur[0], cur[1], dir[0], dir[1])) return false
+          add(nx, ny); cur = [nx, ny]; seg--; return true
+        }
+        const turn = () => {
+          const sides = rnd() < 0.5 ? [[dir[1], dir[0]], [-dir[1], -dir[0]]] : [[-dir[1], -dir[0]], [dir[1], dir[0]]]
+          for (const s of sides) {
+            const tx = cur[0] + s[0], ty = cur[1] + s[1]
+            if (ok(tx, ty, cur[0], cur[1], s[0], s[1])) { add(tx, ty); cur = [tx, ty]; dir = s; seg = segLen(); return true }
+          }
+          return false
+        }
+        const r = seg <= 0 ? (turn() || fwd()) : (fwd() || turn())
+        if (r === 'stop') break
+        if (!r) { ended = 'dead'; break }
+      }
+      return { path, cur, dir, ended, exit }
+    }
+    const undo = (w) => { for (const [x, y] of w.path) alleyT.delete(kk(x, y)) }
+    const area = (b.x1 - b.x0 + 1) * (b.y1 - b.y0 + 1), want = area < 150 ? 1 : area < 260 ? 2 : Math.min(5, Math.ceil(area / 110))
+    const mine = []
+    for (let k = 0; k < want; k++) for (let tries = 0; tries < 24; tries++) {
+      const [e, d] = pick(edges), style = k === 0 ? (rnd() < 0.5 ? 'easy' : 'wind') : pick(['wind', 'wind', 'wind', 'cut', 'easy'])
+      const x = e === 'E' ? b.x1 : e === 'W' ? b.x0 : ri(b.x0 + 2, b.x1 - 2), y = e === 'S' ? b.y1 : e === 'N' ? b.y0 : ri(b.y0 + 2, b.y1 - 2)
+      if (!mouthOk(x, y)) continue
+      const w = walk([x, y], d, style, true)
+      if (w.path.length < 4 && w.ended === 'dead') { undo(w); continue }
+      mouths.push([x, y]); if (w.exit) mouths.push(w.exit)
+      mine.push({ style, main: true, mouth: [x, y], mouth2: w.exit, tiles: w.path, ended: w.ended, yard: [], last: w.cur, dir: w.dir })
+      break
+    }
+    for (const a of mine.slice()) {                          // ngách: nhánh cụt ngắn tách ra từ ngõ dài
+      if (a.tiles.length < 7 || rnd() < 0.3) continue
+      for (let tries = 0; tries < 6; tries++) {
+        const i = ri(2, a.tiles.length - 3), [bx, by] = a.tiles[i], [px, py] = a.tiles[i - 1], [nx, ny] = a.tiles[i + 1]
+        if (px - nx !== 0 && py - ny !== 0) continue          // chỉ tách ở đoạn thẳng
+        const s = px === nx ? (rnd() < 0.5 ? [1, 0] : [-1, 0]) : (rnd() < 0.5 ? [0, 1] : [0, -1])
+        const w = walk([bx, by], s, 'br', false)
+        if (w.path.length < 2) { undo(w); continue }
+        mine.push({ style: 'br', main: false, mouth: null, tiles: [[bx, by], ...w.path], ended: 'dead', yard: [], last: w.cur, dir: w.dir }); break
+      }
+    }
+    for (const a of mine) if (a.ended === 'dead' && (a.main || rnd() < 0.4)) {   // sân chung ở cuối ngõ cụt (2x2)
+      const [ex, ey] = a.last, [dx, dy] = a.dir, sx = dy, sy = dx
+      for (const sg of rnd() < 0.5 ? [1, -1] : [-1, 1]) {
+        const T = [[ex + dx, ey + dy], [ex + sx * sg, ey + sy * sg], [ex + dx + sx * sg, ey + dy + sy * sg]], tail = new Set(a.tiles.slice(-3).map(([x, y]) => kk(x, y)))
+        const fine = T.every(([x, y]) => inB(x, y) && !ring(x, y) && !occ[y][x] && !alleyT.has(kk(x, y)) && D8.every(([ex2, ey2]) => { const q = kk(x + ex2, y + ey2); return !alleyT.has(q) || tail.has(q) || T.some(([tx, ty]) => kk(tx, ty) === q) }))
+        if (fine) { for (const [x, y] of T) { alleyT.add(kk(x, y)); yardT.add(kk(x, y)); a.yard.push([x, y]) } break }
+      }
+    }
+    for (const a of mine) { alleys.push(a); for (const [x, y] of a.tiles.concat(a.yard)) { kind[y][x] = 'alley'; occ[y][x] = true } }
+    for (const m of mouths) mouthTiles.push(m)
   }
   function interior(b, mix) {
     for (let y = b.y0 + 3; y <= b.y1 - 3;) { const F = (b.y1 - 3 - y >= 1 && rnd() < 0.5) ? 2 : 1; for (let x = b.x0 + 3; x <= b.x1 - 5; x += 3) house('R', F, wfloors(MIX[mix || 'mid']), pick(WALLS), false, x, y); y += F }
@@ -333,14 +448,60 @@ const World = (() => {
     pois.push({ id: 'glass', label: 'Khu cao ốc', gx: 88.5, gy: 4.5, r: 4.2 })
   }
 
+  function genAlleyLife() {                                   // biển số ngõ ở cửa ngõ, dây điện, dây phơi, chậu cây, xe máy, sân chung, miếu thổ địa
+    const has = (x, y) => alleyT.has(kk(x, y)), ri = (a, c) => a + Math.floor(rnd() * (c - a + 1))
+    const axisOf = (x, y) => { const ex = has(x - 1, y) || has(x + 1, y), ey = has(x, y - 1) || has(x, y + 1); return ex && !ey ? 'x' : ey && !ex ? 'y' : null }
+    const edgeOf = (x, y) => { const bx = BLOCKX.find((r) => inR(x, r)), by = BLOCKY.find((r) => inR(y, r)); return x === bx[1] ? 'E' : y === by[1] ? 'S' : x === bx[0] ? 'W' : 'N' }
+    let pn = 0
+    const done = new Set()
+    for (const a of alleys) {
+      for (const m of [a.mouth, a.mouth2]) if (m && !done.has(kk(...m))) {
+        done.add(kk(...m)); const [x, y] = m, e = edgeOf(x, y), ax = e === 'E' || e === 'W' ? 'y' : 'x'
+        const px = e === 'E' ? x + 0.86 : x + 0.14, py = e === 'S' ? y + 0.86 : y + 0.14
+        prop(`p_ngo_${ax}_${pn++ % 12}`, px, py, { r: 0.06 })
+        nightLights.push({ gx: x + 0.5, gy: y + 0.5, z: 56, r: 40, a: 0.55 })
+        const [fx, fy] = e === 'E' ? [1, 0] : e === 'W' ? [-1, 0] : e === 'S' ? [0, 1] : [0, -1]
+        for (let k = 1; k <= SW; k++) used.add(kk(x + fx * k, y + fy * k))          // vỉa hè trước cửa ngõ để trống: không đặt cột điện, đèn, cây, sạp
+      }
+      const T = a.tiles
+      T.forEach(([x, y], i) => {
+        if (a.mouth && i === 0 || yardT.has(kk(x, y))) return
+        const ax = axisOf(x, y), cx = x + 0.5, cy = y + 0.5; if (!ax) return
+        let wires = false
+        if (i % 4 === 1) { prop(`p_wires_${ax}_${ri(0, 1)}`, cx, cy, { r: 0 }); wires = true }
+        if (!wires && i % 4 === 3) prop(`p_laundry_${ax}_${ri(0, 2)}`, cx, cy, { r: 0 })
+        const sg = rnd() < 0.5 ? 1 : -1, ox = ax === 'x' ? 0 : sg * 0.42, oy = ax === 'x' ? sg * 0.42 : 0
+        if (i % 2 === 0 && rnd() < 0.55) prop('p_pots_' + ri(0, 3), cx + ox, cy + oy, { r: 0, bb: [cx + ox - 0.12, cx + ox + 0.12, cy + oy - 0.12, cy + oy + 0.12] })
+        else if (i % 5 === 3 && rnd() < 0.55) { const m = ri(0, 5), s2 = 0.42 * -sg; prop(`mop_${m}_${ax}`, ax === 'x' ? cx : cx + s2, ax === 'x' ? cy + s2 : cy, { r: 0, bb: ax === 'x' ? [cx - 0.35, cx + 0.35, cy + s2 - 0.1, cy + s2 + 0.1] : [cx + s2 - 0.1, cx + s2 + 0.1, cy - 0.35, cy + 0.35] }) }
+        if (i % 5 === 0) nightLights.push({ gx: cx, gy: cy, z: 50, r: 30, a: 0.5 })
+      })
+      const Y = a.yard
+      if (Y.length === 4 || Y.length === 3) {
+        const [t0, t1, t2] = Y, c = (t) => [t[0] + 0.5, t[1] + 0.5]
+        const [a0, b0] = c(t0), [a1, b1] = c(t1), [a2, b2] = c(t2)
+        const out = (px, py, d) => { const mx = (a0 + a1 + a2 + (a0 + a1 - a2)) / 4, my = (b0 + b1 + b2 + (b0 + b1 - b2)) / 4, vx = px - mx, vy = py - my, L = Math.hypot(vx, vy) || 1; return [px + vx / L * d, py + vy / L * d] }
+        const q0 = out(a0, b0, 0.22), q1 = out(a1, b1, 0.22), q2 = out(a2, b2, 0.22)
+        const f2 = out(a2, b2, 0.3), f0 = out(a0, b0, 0.3), f1 = out(a1, b1, 0.3)
+        prop('p_shrine', f2[0], f2[1], { r: 0.12 }); prop('t_small_' + ri(1, 3), f0[0], f0[1], { r: 0.1 }); prop('p_pots_' + ri(0, 3), f1[0], f1[1], { r: 0 })
+        for (const t of Y) nightLights.push({ gx: t[0] + 0.5, gy: t[1] + 0.5, z: 52, r: 44, a: 0.6 })
+      } else if (a.ended === 'dead' && a.last) {
+        const [ex, ey] = a.last, [dx, dy] = a.dir
+        prop('p_shrine', ex + 0.5 + dx * 0.34, ey + 0.5 + dy * 0.34, { r: 0.07 }); nightLights.push({ gx: ex + 0.5, gy: ey + 0.5, z: 30, r: 34, a: 0.6 })
+      }
+    }
+    const win = alleys.filter((a) => a.style === 'wind' && a.tiles.length >= 8).sort((p, q) => q.tiles.length - p.tiles.length)[0]
+    if (win) { const [x, y] = win.tiles[Math.floor(win.tiles.length / 2)]; pois.push({ id: 'ngo', label: 'Ngõ ngoằn nghèo', gx: x + 0.5, gy: y + 0.5, r: 2.2 }) }
+  }
+
   function genBlocks() {
     const B = (i, j) => ({ x0: BLOCKX[i][0], x1: BLOCKX[i][1], y0: BLOCKY[j][0], y1: BLOCKY[j][1] })
     const skip = new Set(['2,2', '2,1', '3,2']), modern = new Set(['4,0', '4,1', '4,2', '4,5'])
     for (let i = 0; i < BLOCKX.length; i++) for (let j = 0; j < BLOCKY.length; j++) {
       const key = i + ',' + j; if (skip.has(key)) continue
-      if (modern.has(key)) { modernBlock(B(i, j)); continue }
+      if (modern.has(key)) { carveAlleys(B(i, j), i, j); modernBlock(B(i, j)); continue }
       const mix = j === 3 || j === 4 ? 'rail' : i <= 1 && j <= 2 ? 'old' : 'mid'
-      const b = B(i, j); perimeter(b, { mix, shop: j >= 3 && j <= 4 ? 0.4 : 0.55 }); interior(b, mix)
+      const b = B(i, j); if (mix !== 'rail') carveAlleys(b, i, j)
+      perimeter(b, { mix, shop: j >= 3 && j <= 4 ? 0.4 : 0.55 }); interior(b, mix)
     }
   }
 
@@ -349,7 +510,8 @@ const World = (() => {
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       if (occ[y][x] || kind[y][x] !== 'grass' || !inBlock(x, y)) continue
       let ok = false
-      for (const [fam, F] of [['R', 2], ['R', 1], ['L', 2], ['L', 1]]) if (house(fam, F, wfloors(MIX.mid), pick(WALLS), false, x, y)) { ok = true; break }
+      const bk = (px, py) => BLOCKX.findIndex((r) => inR(px, r)) * 100 + BLOCKY.findIndex((r) => inR(py, r))
+      for (const [fam, F] of [['R', 2], ['R', 1], ['L', 2], ['L', 1]]) if (bk(x, y) === bk(x + (fam === 'R' ? 2 : F - 1), y + (fam === 'R' ? F - 1 : 2)) && house(fam, F, wfloors(MIX.mid), pick(WALLS), false, x, y)) { ok = true; break }
       if (!ok) { mark(x, y, 1, 1); prop('t_bush_1', x + 0.5, y + 0.55, { r: 0.2 }) }
     }
   }
@@ -365,6 +527,7 @@ const World = (() => {
       else if (k === 'railroad') n = 'g_railroad'; else if (k === 'rail') n = 'g_rail'; else if (k === 'gravel') n = 'g_gravel'
       else if (k === 'walk') { const m = (roadLike.has(nb(0, -1)) ? 1 : 0) | (roadLike.has(nb(1, 0)) ? 2 : 0) | (roadLike.has(nb(0, 1)) ? 4 : 0) | (roadLike.has(nb(-1, 0)) ? 8 : 0); n = 'g_walk_m' + m }
       else if (k === 'plaza') n = 'g_plaza_' + ((x + y) & 1)
+      else if (k === 'alley') n = 'g_alley_' + (yardT.has(kk(x, y)) ? 1 : (x * 5 + y * 3) % 11 === 0 ? 2 : 0)
       else if (k === 'market') n = 'g_market_' + ((x * 3 + y) & 1)
       else if (k === 'water') { const m = (nb(0, -1) !== 'water' ? 1 : 0) | (nb(1, 0) !== 'water' ? 2 : 0) | (nb(0, 1) !== 'water' ? 4 : 0) | (nb(-1, 0) !== 'water' ? 8 : 0); n = 'WATER' + m }
       else n = 'g_grass_' + (rnd() < 0.1 ? 1 : 0)
@@ -727,7 +890,7 @@ const World = (() => {
     COAT[k] = lookSet({ sh: c, pa: [c[1], c[1]], ha: [c[1], c[0]], bag: 1, hand: base.ha }); return COAT[k]
   }
   let npcOK = null, npcTiles = []
-  const NPC_KINDS = new Set(['walk', 'plaza', 'market', 'grass', 'zebra_x', 'zebra_y'])
+  const NPC_KINDS = new Set(['walk', 'plaza', 'market', 'alley', 'grass', 'zebra_x', 'zebra_y'])
   function buildNpcGrid() {
     npcOK = Array.from({ length: N }, (_, y) => Array.from({ length: N }, (_, x) => {
       if (!NPC_KINDS.has(kind[y][x]) || blk[y][x]) return false
@@ -947,7 +1110,7 @@ const World = (() => {
   }
   // ───────── khởi động ─────────
   function generate() {
-    genGround(); genGate(); genLake(); genPlay(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); genTrainStreet(); streets(); streetLife(); genPedStreet(); genSigns(); nameTiles(); sortStatics(); genTraffic(); genNpc(90)
+    genGround(); genGate(); genLake(); genPlay(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); genAlleyLife(); genTrainStreet(); streets(); streetLife(); genPedStreet(); genSigns(); nameTiles(); sortStatics(); genTraffic(); genNpc(90)
   }
   function start(canvas, hudEl) {
     cv = canvas; ctx = cv.getContext('2d'); hud = hudEl
@@ -967,7 +1130,7 @@ const World = (() => {
     addEventListener('pointerdown', audioInit)
     addEventListener('keydown', (e) => { audioInit(); const k = e.key.toLowerCase(); if (k === 'f') document.querySelector('button[title^="Sấm"]').dispatchEvent(new Event('pointerdown')); if (k === 't') jumpTime(); if (k === 'y') sky.auto = !sky.auto; if (k === 'r') { const o = ['sunny', 'cloudy', 'rain', 'storm']; setWeather(o[(o.indexOf(sky.weather) + 1) % 4]) } if (k === 'h') hud.style.display = hud.style.display === 'none' ? '' : 'none' })
     window.addEventListener('error', (e) => stats.errors.push(String(e.message)))
-    window.__world = { strike, thunder, litFrac, instWins, decodeWins, statSorted: () => statSorted, statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, sky, setWeather, setHour: (hr) => { sky.hour = hr }, NPC, lamps, npcOK: () => npcOK, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
+    window.__world = { alleys, alleyT, occ, blk, pois, strike, thunder, litFrac, instWins, decodeWins, statSorted: () => statSorted, statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, sky, setWeather, setHour: (hr) => { sky.hour = hr }, NPC, lamps, npcOK: () => npcOK, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
     window.__stats = stats; window.__ready = true
     last = performance.now()
     ;(function loop(now) { try { frame(now) } catch (e) { stats.errors.push(String(e.stack || e)); hud.textContent = 'lỗi: ' + e.message; return } requestAnimationFrame(loop) })(last)

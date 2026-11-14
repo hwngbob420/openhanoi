@@ -18,6 +18,7 @@ export function specs() {
   add({ name: 'g_rail', kind: 'tile', k: 'rail' })
   add({ name: 'g_railroad', kind: 'tile', k: 'railroad' })
   for (const a of [0, 1]) add({ name: 'g_market_' + a, kind: 'tile', k: 'market', alt: a })
+  for (const a of [0, 1, 2]) add({ name: 'g_alley_' + a, kind: 'tile', k: 'alley', alt: a })
   add({ name: 'g_dirt', kind: 'tile', k: 'dirt' })
   add({ name: 'g_gravel', kind: 'tile', k: 'gravel' })
 
@@ -88,6 +89,12 @@ export function specs() {
   // ── biển tên phố ──
   const PLATES = ['PHỐ\nHÀNG KHAY', 'PHỐ\nLÊ THÁI TỔ', 'PHỐ\nTRÀNG TIỀN', 'PHỐ\nHÀNG ĐÀO', 'PHỐ\nHÀNG BẠC', 'ĐƯỜNG\nĐINH TIÊN HOÀNG', 'PHỐ\nĐI BỘ', 'PHỐ\nLÝ THƯỜNG KIỆT']
   PLATES.forEach((t, i) => { for (const ax of ['x', 'y']) P(`plate_${ax}_${i}`, 'plate', { axis: ax, text: t, w: 130, h: 150, px: 65, py: 122 }) })
+  // ── ngõ: biển số ngõ, dây phơi quần áo, dây điện chằng chịt, chậu cây, miếu thổ địa ──
+  const NGO = ['NGÕ 7', 'NGÕ 12', 'NGÕ 25', 'NGÕ 33', 'NGÕ 41', 'NGÕ 58', 'NGÕ 66', 'NGÕ 74', 'NGÁCH 9/3', 'NGÕ 91', 'NGÕ 105', 'NGÕ 118']
+  NGO.forEach((t, i) => { for (const ax of ['x', 'y']) P(`ngo_${ax}_${i}`, 'plate', { axis: ax, text: t, zt: 56, w: 110, h: 100, px: 55, py: 78 }) })
+  for (const ax of ['x', 'y']) { for (const v of [0, 1, 2]) P(`laundry_${ax}_${v}`, 'laundry', { axis: ax, v }); for (const v of [0, 1]) P(`wires_${ax}_${v}`, 'wires', { axis: ax, v }) }
+  for (let v = 0; v < 4; v++) P('pots_' + v, 'pots', { v, w: 70, h: 60, px: 35, py: 50 })
+  P('shrine', 'shrine', { w: 70, h: 70, px: 35, py: 56 })
   for (const [d, nm] of [[1, 'p'], [-1, 'n']]) for (const st of ['a', 'b', 'up']) P(`barrier_${nm}_${st}`, 'barrier', { dir: d, state: st, w: 150, h: 128, px: d > 0 ? 28 : 122, py: 82 })
   return S
 }

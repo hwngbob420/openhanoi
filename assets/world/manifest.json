@@ -6023,6 +6023,477 @@
    "fp": null,
    "kind": "prop",
    "group": "prop"
+  },
+  "g_alley_0": {
+   "w": 72,
+   "h": 36,
+   "pivot": [
+    36,
+    0
+   ],
+   "fp": [
+    1,
+    1
+   ],
+   "kind": "tile",
+   "group": null
+  },
+  "g_alley_1": {
+   "w": 72,
+   "h": 36,
+   "pivot": [
+    36,
+    0
+   ],
+   "fp": [
+    1,
+    1
+   ],
+   "kind": "tile",
+   "group": null
+  },
+  "g_alley_2": {
+   "w": 72,
+   "h": 36,
+   "pivot": [
+    36,
+    0
+   ],
+   "fp": [
+    1,
+    1
+   ],
+   "kind": "tile",
+   "group": null
+  },
+  "p_ngo_x_0": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_0": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_1": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_1": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_2": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_2": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_3": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_3": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_4": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_4": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_5": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_5": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_6": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_6": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_7": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_7": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_8": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_8": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_9": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_9": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_10": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_10": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_x_11": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_ngo_y_11": {
+   "w": 114,
+   "h": 104,
+   "pivot": [
+    57,
+    80
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_laundry_x_0": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_laundry_x_1": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_laundry_x_2": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_laundry_y_0": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_laundry_y_1": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_laundry_y_2": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_wires_x_0": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_wires_x_1": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_wires_y_0": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_wires_y_1": {
+   "w": 124,
+   "h": 144,
+   "pivot": [
+    62,
+    114
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_pots_0": {
+   "w": 74,
+   "h": 64,
+   "pivot": [
+    37,
+    52
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_pots_1": {
+   "w": 74,
+   "h": 64,
+   "pivot": [
+    37,
+    52
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_pots_2": {
+   "w": 74,
+   "h": 64,
+   "pivot": [
+    37,
+    52
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_pots_3": {
+   "w": 74,
+   "h": 64,
+   "pivot": [
+    37,
+    52
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
+  },
+  "p_shrine": {
+   "w": 74,
+   "h": 74,
+   "pivot": [
+    37,
+    58
+   ],
+   "fp": null,
+   "kind": "prop",
+   "group": "prop"
   }
  }
 }

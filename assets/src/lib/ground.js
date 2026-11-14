@@ -93,6 +93,25 @@ DRAW.tile = (cv, s) => {
     if (h2(x, y, 32) > 0.92) c = TC[1]
     return c
   })
+  else if (k === 'alley') paintTile(cv, (u, v, x, y) => {      // sân ngõ: alt0 bê tông đổ tấm, alt1 gạch đỏ lát nghiêng (sân chung), alt2 bê tông có nắp cống
+    const ed = edgeD(u, v), a = s.alt || 0, r = h2(x, y, 61 + a)
+    const gu = Math.floor(u * 2), gv = Math.floor(v * 2), fu = (u * 2) % 1, fv = (v * 2) % 1
+    let c
+    if (a === 1) {
+      const bu = Math.floor(u * 6), bv = Math.floor(v * 6), fb = ((u + v) * 6) % 1
+      c = h2(bu, bv, 66) > 0.55 ? TC[3] : TC[2]
+      if (fb < 0.1) c = TC[1]
+      if (r > 0.94) c = mix(c, GR[2], 0.4)
+    } else {
+      c = mix(ST[2], A[3], 0.42)
+      if (r > 0.92) c = mix(ST[3], A[3], 0.3); else if (r < 0.16) c = mix(ST[1], A[2], 0.45)
+      if (fu < 0.05 || fv < 0.05) c = mix(ST[1], A[2], 0.6)                                   // khe tấm bê tông
+      if (Math.abs(v - 0.5) < 0.035 && h2(gu, 1, 67) > 0.5) c = mix(A[2], LK[1], 0.35)        // rãnh thoát nước ẩm giữa ngõ
+    }
+    for (let i = 0; i < 4; i++) if (ed[i] < 0.14 && h2(x >> 1, y, 68 + i) > 0.8) c = mix(c, GR[2], 0.55)   // rêu chân tường
+    if (a === 2 && Math.hypot(u - 0.5, v - 0.5) < 0.17) c = Math.hypot(u - 0.5, v - 0.5) < 0.12 && ((x + y) & 1) ? A[1] : A[2]
+    return c
+  })
   else if (k === 'dirt') paintTile(cv, (u, v, x, y) => { const r = h2(x, y, 41); return r > 0.9 ? OC[3] : r < 0.15 ? OC[1] : OC[2] })
   else if (k === 'gravel') paintTile(cv, (u, v, x, y) => { const r = h2(x, y, 51); return r > 0.8 ? A[4] : r < 0.2 ? A[2] : A[3] })
 }

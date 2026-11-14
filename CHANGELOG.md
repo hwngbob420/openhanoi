@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 - Hệ thống ngõ, ngách trong các block nhà
+- Mỗi block nhà (trừ phố tàu) có 1-5 ngõ rộng 1 ô, sinh ngẫu nhiên có luật (carveAlleys trong world.js): ngõ thẳng thông hai đầu ra phố, ngõ ngoằn nghèo rẽ liên tục, ngõ cụt có sân chung 2x2 (cây, miếu thổ địa) hoặc miếu nhỏ ở cuối, ngách cụt ngắn tách từ ngõ dài. Hai ngõ luôn cách nhau ít nhất một dãy nhà; cửa ngõ ưu tiên cạnh đông/nam để nhìn thấy từ camera.
+- Cửa ngõ có biển xanh "NGÕ 12" (12 biển, 2 hướng), vỉa hè trước cửa ngõ để trống. Trong ngõ: nền bê tông có rãnh thoát nước và rêu, sân gạch đỏ, dây phơi quần áo, dây điện chằng chịt, chậu cây, xe máy dựng sát tường, đèn sáng ban đêm. 30 sprite mới (g_alley_*, p_ngo_*, p_laundry_*, p_wires_*, p_pots_*, p_shrine).
+- Nhà đứng chắn trước mặt ngõ (phía camera) bị hạ xuống tối đa 2 tầng để nhìn vào được ngõ. Một điểm khám phá mới: "Ngõ ngoằn nghèo".
+- Sửa lỗi nhà "thòi ra thụt vào": bước lấp ô trống (fillGaps) trước đây có thể đặt nhà 3 ô lấn sang vỉa hè; giờ nhà luôn nằm trọn trong block.
+- NPC cũng đi vào ngõ.
+
 ## 0.7.0 - Hồ Hoàn Kiếm, map 108x108, biển hiệu Hà Nội
 - Map mở rộng 72 -> 108 ô mỗi cạnh (gấp 1,5 lần theo từng chiều): 5 cột x 6 hàng khối, 4 trục đường Bắc-Nam, 4 trục Đông-Tây (1 là phố đi bộ), 4 điểm giao đường sắt có thanh chắn.
 - Khối hồ lớn 25x27 ô: hồ dài theo hướng Bắc-Nam, đảo Ngọc + đền Ngọc Sơn phía bắc, cầu Thê Húc đỏ (hơi vồng) nối từ bờ đông, cổng cầu, Tháp Bút, Đài Nghiên, Tháp Rùa trên gò giữa hồ, đường dạo quanh hồ có liễu / phượng / ghế đá.
