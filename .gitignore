@@ -1,8 +1,10 @@
 /builds/
 __pycache__/
 *.pyc
-.claude/
+.claude/*
+!.claude/agents/
 *.key
 .env
 assets/src/_build/
 dist/
+node_modules/

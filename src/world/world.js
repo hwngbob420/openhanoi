@@ -6,7 +6,7 @@ const World = (() => {
   const proj = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2]
   const cam = { x: 0, y: 0, zoom: 2 }
   const stats = { errors: [], fps: 0, objs: 0, vehicles: 0 }
-  let MAN = null; const IMG = {}; const MAN_V = Date.now().toString(36)
+  let MAN = null; const IMG = {};
   function rngOf(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
   const R = rngOf(20241113), rnd = () => R(), pick = (a) => a[Math.floor(R() * a.length)], rr = (a, b) => a + R() * (b - a)
   const inR = (v, r) => v >= r[0] && v <= r[1], inAny = (v, L) => L.some((r) => inR(v, r))
@@ -26,9 +26,9 @@ const World = (() => {
   const ARCHX = [38, 47, 61], SPAWN = [56.5, 34.5]
 
   async function load() {
-    MAN = (await (await fetch('assets/world/manifest.json', { cache: 'no-cache' })).json()).sprites
-    await Promise.all(Object.keys(MAN).map((n) => new Promise((res) => { const i = new Image(); i.onload = () => { IMG[n] = i; res() }; i.onerror = () => { stats.errors.push('thiếu ảnh ' + n); res() }; i.src = 'assets/world/' + n + '.png?v=' + MAN_V })))
-    await Promise.all(['down', 'up', 'right'].flatMap((d) => [0, 1, 2, 3].map((f) => new Promise((res) => { const i = new Image(); i.onload = () => { PL[d + f] = i; res() }; i.onerror = () => res(); i.src = `assets/player/pl_${d}_${f}.png` }))))
+    MAN = window.__BUNDLE.manifest.sprites
+    await Promise.all(Object.keys(MAN).map((n) => new Promise((res) => { const i = new Image(); i.onload = () => { IMG[n] = i; res() }; i.onerror = () => { stats.errors.push('thiếu ảnh ' + n); res() }; i.src = window.__BUNDLE.world[n] })))
+    await Promise.all(['down', 'up', 'right'].flatMap((d) => [0, 1, 2, 3].map((f) => new Promise((res) => { const i = new Image(); i.onload = () => { PL[d + f] = i; res() }; i.onerror = () => res(); i.src = window.__BUNDLE.player[d + "_" + f] }))))
   }
 
   // ───────── sinh bản đồ ─────────
@@ -1143,3 +1143,5 @@ const World = (() => {
   }
   return { load, generate, start, cam, stats, N, proj }
 })()
+window.World = World
+export { World }

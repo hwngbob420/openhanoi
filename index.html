@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#141824">
 <title>Hà Nội Pixel</title>
 <style>
   html, body { margin: 0; height: 100%; background: #1b1d23; overflow: hidden; }
@@ -13,13 +14,6 @@
 <body>
 <canvas id="c"></canvas>
 <div id="hud">đang tải…</div>
-<script src="js/player.js?v=8"></script>
-<script src="js/world.js?v=25"></script>
-<script>
-(async () => {
-  try { await World.load(); World.generate(); World.start(document.getElementById('c'), document.getElementById('hud')) }
-  catch (e) { document.getElementById('hud').textContent = 'lỗi: ' + (e.stack || e); (window.__stats ||= { errors: [] }).errors.push(String(e.stack || e)) }
-})()
-</script>
+<script type="module" src="/src/main.js"></script>
 </body>
 </html>

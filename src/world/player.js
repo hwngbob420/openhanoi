@@ -74,7 +74,7 @@ const Game = (() => {
           mx.translate(16, 0); mx.scale(-1, 1); mx.drawImage(got['right' + g], 0, 0); sprites.left[g] = m;
         }
       };
-      im.src = 'assets/player/pl_' + dir + '_' + f + '.png';
+      im.src = window.__BUNDLE.player[dir + '_' + f];
     }
   }
 
@@ -191,3 +191,5 @@ const Game = (() => {
   };
 })();
 window.__game = Game;
+window.Game = Game
+export { Game }
