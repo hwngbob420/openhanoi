@@ -122,7 +122,7 @@ function ensureChip() {
   if (chip) return chip
   chip = document.createElement('div')
   chip.id = 'gp-job-chip'
-  chip.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:20;max-width:min(300px,70vw);background:rgba(20,16,12,.86);color:#f4efe2;border:2px solid #9b8658;border-radius:8px;padding:6px 9px;font:600 12.5px/1.35 "Segoe UI",system-ui,sans-serif;display:none;pointer-events:auto;user-select:none'
+  chip.style.cssText = 'position:fixed;left:8px;bottom:96px;z-index:19;max-width:min(300px,62vw);background:rgba(20,16,12,.86);color:#f4efe2;border:2px solid #9b8658;border-radius:8px;padding:6px 9px;font:600 12.5px/1.35 "Segoe UI",system-ui,sans-serif;display:none;pointer-events:auto;user-select:none'
   chip.addEventListener('pointerdown', (e) => e.stopPropagation())
   document.body.appendChild(chip)
   return chip
@@ -135,7 +135,7 @@ function updateChip() {
   c.textContent = ''
   const t = document.createElement('div'); t.style.cssText = 'color:#ffd96a;font-weight:800'; t.textContent = j.title
   const s = document.createElement('div'); s.textContent = `${j.arrived ? 'Bấm E / chạm vòng sáng để làm' : 'Đi theo chấm vàng tới ' + (siteById(j.siteId)?.label || 'điểm làm việc')} · hạn ${hh(j.deadlineAbs)} (${left.toFixed(1)}h)`
-  const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Hủy việc'; b.style.cssText = 'margin-top:4px;background:#3a2c26;color:#f4efe2;border:1px solid #6b5f45;border-radius:5px;padding:3px 9px;font:inherit;cursor:pointer'
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Hủy việc'; b.style.cssText = 'margin-top:4px;background:#3a2c26;color:#f4efe2;border:1px solid #6b5f45;border-radius:6px;padding:3px 12px;font:inherit;cursor:pointer;min-height:44px;min-width:44px'
   b.addEventListener('click', () => cancel())
   c.append(t, s, b); c.style.display = ''
 }

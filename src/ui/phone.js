@@ -98,6 +98,10 @@ export function createPhone({ sfx, toast, onOpenChange }) {
     // làm tươi nhẹ: đồng hồ, tiền, khoảng cách
     tick() { if (!isOpen) return; refreshStatus(); for (const f of lives) { try { f() } catch (e) { /* bỏ qua */ } } },
     refresh: schedule,
+    notify(msg, kind) {
+      screen.querySelectorAll('.hx-notify').forEach((n) => n.remove())
+      const n = h('div', { class: 'hx-notify' + (kind ? ' ' + kind : ''), text: String(msg) }); screen.append(n); setTimeout(() => n.remove(), 2600)
+    },
   }
   return api
 }

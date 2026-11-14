@@ -30,7 +30,7 @@ const CSS = `
 .gm-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffd96a}
 .gm-time{font-variant-numeric:tabular-nums;min-width:44px;text-align:right}
 .gm-score{font-size:13px;color:#cfe8d0;white-space:nowrap}
-.gm-x{background:#3a2c26;color:#f4efe2;border:2px solid #6b5f45;border-radius:6px;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer}
+.gm-x{background:#3a2c26;color:#f4efe2;border:2px solid #6b5f45;border-radius:6px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer;min-height:44px;min-width:60px}
 .gm-tbar{height:7px;background:#2a2118;border:1px solid #6b5f45;border-radius:4px;overflow:hidden}
 .gm-tbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#6bd06b,#e8c34a);transform-origin:left}
 .gm-stage{position:relative;border:3px solid #2a2118;border-radius:4px;background:#000;overflow:hidden;box-shadow:0 0 0 2px #6b5f45}
@@ -39,7 +39,7 @@ const CSS = `
 .gm-pane h2{margin:0;font-size:clamp(17px,3.6vw,26px);color:#ffd96a}
 .gm-pane p{margin:0;font-size:clamp(12px,2.6vw,17px);line-height:1.35;max-width:34em;color:#f1e9d4;white-space:pre-line}
 .gm-pane .big{font-size:clamp(22px,5vw,38px);font-weight:800;color:#8ff08f}
-.gm-go{background:#d9a441;color:#2a1c0a;border:3px solid #fff2b0;border-radius:8px;padding:8px 22px;font:inherit;font-size:clamp(15px,3.2vw,20px);font-weight:800;cursor:pointer;margin-top:4px}
+.gm-go{background:#d9a441;color:#2a1c0a;border:3px solid #fff2b0;border-radius:8px;padding:8px 22px;min-height:48px;min-width:48px;font:inherit;font-size:clamp(15px,3.2vw,20px);font-weight:800;cursor:pointer;margin-top:4px}
 .gm-hint{font-size:12.5px;color:#cbbf9f;min-height:16px;text-align:center}
 .gm-ctrl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:56px}
 .gm-ctrl button{flex:1 1 90px;max-width:230px;min-height:56px;background:#4a3a2a;color:#fff6dc;border:3px solid #9b8658;border-radius:10px;font:inherit;font-size:16px;font-weight:700;line-height:1.15;cursor:pointer;touch-action:none;white-space:pre-line;padding:4px 8px}

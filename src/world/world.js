@@ -1123,7 +1123,7 @@ const World = (() => {
   function setWeather(w) { sky.weather = w; sky.autoWx = false }
   function buildUI() {
     const d = document.createElement('div'); d.style.cssText = 'position:fixed;right:8px;top:8px;z-index:6;display:flex;gap:4px;font:16px system-ui,sans-serif;'
-    const mkb = (label, title, fn) => { const b = document.createElement('button'); b.textContent = label; b.title = title; b.style.cssText = 'width:36px;height:34px;border-radius:6px;border:1px solid #6b5f45;background:rgba(14,15,19,.78);color:#f4efe2;cursor:pointer;padding:0'; b.addEventListener('pointerdown', (e) => { e.stopPropagation(); audioInit(); fn() }); d.appendChild(b); return b }
+    const mkb = (label, title, fn) => { const b = document.createElement('button'); b.textContent = label; b.title = title; b.style.cssText = 'width:' + (innerWidth < 700 ? 44 : 36) + 'px;height:' + (innerWidth < 700 ? 44 : 34) + 'px;border-radius:6px;border:1px solid #6b5f45;background:rgba(14,15,19,.78);color:#f4efe2;cursor:pointer;padding:0'; b.addEventListener('pointerdown', (e) => { e.stopPropagation(); audioInit(); fn() }); d.appendChild(b); return b }
     mkb('☀', 'Nắng', () => setWeather('sunny')); mkb('☁', 'Nhiều mây', () => setWeather('cloudy')); mkb('🌧', 'Mưa', () => setWeather('rain')); mkb('⛈', 'Mưa giông', () => setWeather('storm')); const fb = mkb('⚡', 'Sấm chớp dữ dội (ngẫu nhiên)', () => { sky.fury = !sky.fury; fb.style.background = sky.fury ? 'rgba(120,90,20,.9)' : 'rgba(14,15,19,.78)'; if (sky.fury && sky.rain < 0.3 && sky.weather !== 'rain' && sky.weather !== 'storm') setWeather('storm') }); mkb('🕒', 'Đổi giờ', jumpTime); mkb('⏯', 'Giờ tự chạy', () => { sky.auto = !sky.auto })
     document.body.appendChild(d)
   }

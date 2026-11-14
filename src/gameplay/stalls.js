@@ -13,7 +13,7 @@ function closePanel() { if (panel) { panel.remove(); panel = null } }
 function openMenu(site) {
   closePanel()
   panel = document.createElement('div'); panel.id = 'gp-eat-menu'
-  panel.style.cssText = 'position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:21;background:rgba(20,16,12,.94);color:#f4efe2;border:2px solid #d9a441;border-radius:10px;padding:10px 12px;font:600 14px/1.35 "Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;gap:6px;min-width:230px;max-width:92vw'
+  panel.style.cssText = 'position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:19;background:rgba(20,16,12,.94);color:#f4efe2;border:2px solid #d9a441;border-radius:10px;padding:10px 12px;font:600 14px/1.35 "Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;gap:6px;min-width:min(230px,70vw);max-width:80vw'
   panel.addEventListener('pointerdown', (e) => e.stopPropagation())
   const h = document.createElement('div'); h.style.cssText = 'color:#ffd96a;font-weight:800'; h.textContent = site.label; panel.appendChild(h)
   for (const id of MENU[site.kind] || []) {
@@ -24,7 +24,7 @@ function openMenu(site) {
     b.addEventListener('click', () => { if (eat(id, { atStall: true })) closePanel() })
     panel.appendChild(b)
   }
-  const x = document.createElement('button'); x.type = 'button'; x.textContent = 'Thôi'; x.style.cssText = 'background:transparent;color:#cbbf9f;border:1px solid #6b5f45;border-radius:8px;padding:5px;font:inherit;cursor:pointer'
+  const x = document.createElement('button'); x.type = 'button'; x.textContent = 'Thôi'; x.style.cssText = 'background:transparent;color:#cbbf9f;border:1px solid #6b5f45;border-radius:8px;padding:5px;font:inherit;cursor:pointer;min-height:44px;min-width:44px'
   x.addEventListener('click', closePanel); panel.appendChild(x)
   document.body.appendChild(panel)
 }
@@ -44,5 +44,7 @@ export function update() {
     marks.set(s.id, w.addMarker({ id: 'eat:' + s.id, gx: s.gx, gy: s.gy, r: 1.5, label: LABEL[s.kind] + ' (' + (MENU[s.kind] || []).map((d) => fmt(B.DISHES[d].price)).join(', ') + ')', onInteract: () => openMenu(s) }))
   }
 }
+import { bus } from '../core/bus.js'
+bus.on('phone:open', () => closePanel())
 export function start() { clearInterval(timer); timer = setInterval(update, 600) }
 export function clear() { for (const rm of marks.values()) rm(); marks.clear(); closePanel() }

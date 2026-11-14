@@ -1,0 +1,4945 @@
+{
+ "time": "2026-11-14T10:57:29.506Z",
+ "sections": [
+  {
+   "name": "1. Bản build: 1 file độc lập, chạy offline",
+   "checks": [
+    {
+     "name": "dist/hanoi-pixel.html tồn tại",
+     "ok": true,
+     "detail": "1.13 MB (1188973 byte)"
+    },
+    {
+     "name": "dung lượng < 3 MB",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "dist/ chỉ có 1 file",
+     "ok": true,
+     "detail": "hanoi-pixel.html"
+    },
+    {
+     "name": "không có <script src=...>",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "không có <link href=...> tải ngoài",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "không có <img/audio/source src> tới file hay mạng",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "CSS không url(http...)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "mã không nhúng đường dẫn http(s) lạ",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "mở bằng file:// khi chặn mạng vẫn chạy (world:ready)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "0 request ra ngoài (http/https/ws)",
+     "ok": true,
+     "detail": "1 request nội bộ; chặn 0; ngoài: "
+    },
+    {
+     "name": "0 lỗi console",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "__stats.errors rỗng sau 6 giây",
+     "ok": true,
+     "detail": ""
+    }
+   ]
+  },
+  {
+   "name": "2. Chơi thử PC 1280x720",
+   "checks": [
+    {
+     "name": "[pc] vào game: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] vào game: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] vào game: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": "button \"☀\" 36x34; button \"☁\" 36x34; button \"🌧\" 36x34; button \"⛈\" 36x34; button \"⚡\" 36x34; button \"🕒\" 36x34; button \"⏯\" 36x34"
+    },
+    {
+     "name": "[pc] bật điện thoại bằng nút nổi",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] điện thoại - màn chủ: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] điện thoại - màn chủ: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] điện thoại - màn chủ: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] màn chủ có 5 app",
+     "ok": true,
+     "detail": "5 app"
+    },
+    {
+     "name": "[pc] phím P mở điện thoại",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] phím P đóng điện thoại",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] bảng Việc Vặt có việc Phở",
+     "ok": true,
+     "detail": "Quán phở · phố cổ"
+    },
+    {
+     "name": "[pc] app Việc Vặt - bảng việc: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Việc Vặt - bảng việc: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Việc Vặt - bảng việc: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Việc Vặt - chi tiết: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Việc Vặt - chi tiết: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Việc Vặt - chi tiết: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] nhận việc Phở",
+     "ok": true,
+     "detail": "Phụ quán phở"
+    },
+    {
+     "name": "[pc] sau khi nhận việc (điện thoại còn mở): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] sau khi nhận việc (điện thoại còn mở): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] sau khi nhận việc (điện thoại còn mở): nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thẻ ĐANG LÀM: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thẻ ĐANG LÀM: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thẻ ĐANG LÀM: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] Dẫn đường bật GPS và đóng điện thoại",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] đang đi GPS (chip việc + HUD + nút nổi): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] đang đi GPS (chip việc + HUD + nút nổi): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] đang đi GPS (chip việc + HUD + nút nổi): nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": "button \"☀\" 36x34; button \"☁\" 36x34; button \"🌧\" 36x34; button \"⛈\" 36x34; button \"⚡\" 36x34; button \"🕒\" 36x34; button \"⏯\" 36x34"
+    },
+    {
+     "name": "[pc] GPS có đích và đường",
+     "ok": true,
+     "detail": "pathLen=151"
+    },
+    {
+     "name": "[pc] phím D thì nhân vật đi",
+     "ok": true,
+     "detail": "đi 2.44 ô"
+    },
+    {
+     "name": "[pc] pathTo tới quán phở có đường",
+     "ok": true,
+     "detail": "153 điểm"
+    },
+    {
+     "name": "[pc] tới nơi: gps:arrived -> job arrived",
+     "ok": true,
+     "detail": "{\"stage\":\"goto\"}"
+    },
+    {
+     "name": "[pc] marker việc được ưu tiên hơn POI khám phá",
+     "ok": true,
+     "detail": "{\"id\":\"job:j3\",\"label\":\"Làm việc: Phụ quán phở\",\"marker\":true}"
+    },
+    {
+     "name": "[pc] tới nơi (nhắc E/chạm + chip + quán): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] tới nơi (nhắc E/chạm + chip + quán): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] tới nơi (nhắc E/chạm + chip + quán): nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": "button \"E / chạm — Làm việc: Phụ\" 253x36; button \"☀\" 36x34; button \"☁\" 36x34; button \"🌧\" 36x34; button \"⛈\" 36x34; button \"⚡\" 36x34; button \"🕒\" 36x34; button \"⏯\" 36x34"
+    },
+    {
+     "name": "[pc] bấm E/chạm marker mở mini-game phở",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game - màn giới thiệu: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game - màn giới thiệu: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game - màn giới thiệu: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game vào chơi",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game đang chơi: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game đang chơi: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game đang chơi: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] đã chơi thật (thời gian mini-game chạy)",
+     "ok": true,
+     "detail": "t=3.8 {\"served\":2}"
+    },
+    {
+     "name": "[pc] chip việc ẩn khi mini-game mở",
+     "ok": true,
+     "detail": "none"
+    },
+    {
+     "name": "[pc] nhận tiền công sau mini-game",
+     "ok": true,
+     "detail": "+113000đ, jobsDone 0->1"
+    },
+    {
+     "name": "[pc] mini-game đã đóng, nhân vật mở khóa",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] ngay sau khi nhận tiền (toast): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] ngay sau khi nhận tiền (toast): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] ngay sau khi nhận tiền (toast): nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": "button \"E / chạm — Ăn phở (50.00\" 212x36; button \"☀\" 36x34; button \"☁\" 36x34; button \"🌧\" 36x34; button \"⛈\" 36x34; button \"⚡\" 36x34; button \"🕒\" 36x34; button \"⏯\" 36x34"
+    },
+    {
+     "name": "[pc] mini-game - kết quả: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game - kết quả: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game - kết quả: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] nút Xong đóng mini-game",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] đứng cạnh sạp phở có marker \"Ăn phở\"",
+     "ok": true,
+     "detail": "{\"id\":\"eat:pho_48_91\",\"label\":\"Ăn phở (50.000đ)\",\"marker\":true}"
+    },
+    {
+     "name": "[pc] mở thực đơn ăn (#gp-eat-menu)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thực đơn ăn phở: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thực đơn ăn phở: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thực đơn ăn phở: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": "button \"E / chạm — Ăn phở (50.00\" 212x36; button \"☀\" 36x34; button \"☁\" 36x34; button \"🌧\" 36x34; button \"⛈\" 36x34; button \"⚡\" 36x34; button \"🕒\" 36x34; button \"⏯\" 36x34"
+    },
+    {
+     "name": "[pc] thực đơn ăn + điện thoại mở cùng lúc: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thực đơn ăn + điện thoại mở cùng lúc: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thực đơn ăn + điện thoại mở cùng lúc: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] ăn phở hồi thể lực",
+     "ok": true,
+     "detail": "thể lực 30->70, tiền 363000->313000"
+    },
+    {
+     "name": "[pc] thực đơn tự đóng sau khi ăn",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] sau khi ăn phở: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] sau khi ăn phở: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] sau khi ăn phở: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": "button \"E / chạm — Ăn phở (50.00\" 212x36; button \"☀\" 36x34; button \"☁\" 36x34; button \"🌧\" 36x34; button \"⛈\" 36x34; button \"⚡\" 36x34; button \"🕒\" 36x34; button \"⏯\" 36x34"
+    },
+    {
+     "name": "[pc] mini-game mở khi vừa mở thực đơn ăn: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game mở khi vừa mở thực đơn ăn: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mini-game mở khi vừa mở thực đơn ăn: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] thực đơn ăn tự đóng khi mini-game mở",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Shop - nhuộm tóc: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Shop - nhuộm tóc: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Shop - nhuộm tóc: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] mua + mặc màu tóc mới: State.outfit đổi",
+     "ok": true,
+     "detail": "hair 0->2, tiền 613000->463000"
+    },
+    {
+     "name": "[pc] hàng đã sở hữu cập nhật",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] Shop sau khi mua: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] Shop sau khi mua: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] Shop sau khi mua: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] sprite người chơi trong game đổi thật (so ảnh quanh nhân vật)",
+     "ok": true,
+     "detail": "524 điểm ảnh khác"
+    },
+    {
+     "name": "[pc] app Sổ Nợ: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Sổ Nợ: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app Sổ Nợ: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] đóng kỳ đầu Sổ Nợ",
+     "ok": true,
+     "detail": "đã trả 0->120000, tiền 663000->543000"
+    },
+    {
+     "name": "[pc] Sổ Nợ sau khi đóng kỳ: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] Sổ Nợ sau khi đóng kỳ: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] Sổ Nợ sau khi đóng kỳ: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app ride: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app ride: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app ride: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app gram: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app gram: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] app gram: nút chạm >= 44px (PC: chỉ tham khảo)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] lưu rồi tải lại: tiền, tóc, đồ sở hữu, nợ, số việc còn nguyên",
+     "ok": true,
+     "detail": "tiền 543000->543000, tóc 2->2, nợ 120000->120000, việc 1->1"
+    },
+    {
+     "name": "[pc] __stats.errors rỗng sau reload",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] 0 request ra ngoài trong cả kịch bản",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] 0 lỗi console/pageerror trong cả kịch bản",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[pc] __stats.errors rỗng cuối kịch bản",
+     "ok": true,
+     "detail": ""
+    }
+   ]
+  },
+  {
+   "name": "2. Chơi thử điện thoại dọc 390x844 (cảm ứng)",
+   "checks": [
+    {
+     "name": "[mobile] vào game: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] vào game: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] vào game: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] bật điện thoại bằng nút nổi",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] điện thoại - màn chủ: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] điện thoại - màn chủ: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] điện thoại - màn chủ: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] màn chủ có 5 app",
+     "ok": true,
+     "detail": "5 app"
+    },
+    {
+     "name": "[mobile] phím P mở điện thoại (bàn phím rời gắn vào điện thoại)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] bảng Việc Vặt có việc Phở",
+     "ok": true,
+     "detail": "Quán phở · khu vui chơi"
+    },
+    {
+     "name": "[mobile] app Việc Vặt - bảng việc: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Việc Vặt - bảng việc: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Việc Vặt - bảng việc: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Việc Vặt - chi tiết: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Việc Vặt - chi tiết: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Việc Vặt - chi tiết: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] nhận việc Phở",
+     "ok": true,
+     "detail": "Phụ quán phở"
+    },
+    {
+     "name": "[mobile] sau khi nhận việc (điện thoại còn mở): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] sau khi nhận việc (điện thoại còn mở): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] sau khi nhận việc (điện thoại còn mở): nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thẻ ĐANG LÀM: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thẻ ĐANG LÀM: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thẻ ĐANG LÀM: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] Dẫn đường bật GPS và đóng điện thoại",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] đang đi GPS (chip việc + HUD + nút nổi): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] đang đi GPS (chip việc + HUD + nút nổi): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] đang đi GPS (chip việc + HUD + nút nổi): nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] GPS có đích và đường",
+     "ok": true,
+     "detail": "pathLen=21"
+    },
+    {
+     "name": "[mobile] chạm đất thì nhân vật đi",
+     "ok": true,
+     "detail": "đi 1.19 ô"
+    },
+    {
+     "name": "[mobile] pathTo tới quán phở có đường",
+     "ok": true,
+     "detail": "21 điểm"
+    },
+    {
+     "name": "[mobile] tới nơi: gps:arrived -> job arrived",
+     "ok": true,
+     "detail": "{\"stage\":\"goto\"}"
+    },
+    {
+     "name": "[mobile] marker việc được ưu tiên hơn POI khám phá",
+     "ok": true,
+     "detail": "{\"id\":\"job:j1\",\"label\":\"Làm việc: Phụ quán phở\",\"marker\":true}"
+    },
+    {
+     "name": "[mobile] tới nơi (nhắc E/chạm + chip + quán): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] tới nơi (nhắc E/chạm + chip + quán): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] tới nơi (nhắc E/chạm + chip + quán): nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] bấm E/chạm marker mở mini-game phở",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game - màn giới thiệu: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game - màn giới thiệu: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game - màn giới thiệu: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game vào chơi",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game đang chơi: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game đang chơi: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game đang chơi: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] đã chơi thật (thời gian mini-game chạy)",
+     "ok": true,
+     "detail": "t=4.2 {\"served\":2}"
+    },
+    {
+     "name": "[mobile] chip việc ẩn khi mini-game mở",
+     "ok": true,
+     "detail": "none"
+    },
+    {
+     "name": "[mobile] nhận tiền công sau mini-game",
+     "ok": true,
+     "detail": "+113000đ, jobsDone 0->1"
+    },
+    {
+     "name": "[mobile] mini-game đã đóng, nhân vật mở khóa",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] ngay sau khi nhận tiền (toast): lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] ngay sau khi nhận tiền (toast): không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] ngay sau khi nhận tiền (toast): nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game - kết quả: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game - kết quả: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game - kết quả: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] nút Xong đóng mini-game",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] đứng cạnh sạp phở có marker \"Ăn phở\"",
+     "ok": true,
+     "detail": "{\"id\":\"eat:pho_47_28\",\"label\":\"Ăn phở (50.000đ)\",\"marker\":true}"
+    },
+    {
+     "name": "[mobile] mở thực đơn ăn (#gp-eat-menu)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thực đơn ăn phở: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thực đơn ăn phở: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thực đơn ăn phở: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thực đơn ăn + điện thoại mở cùng lúc: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thực đơn ăn + điện thoại mở cùng lúc: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thực đơn ăn + điện thoại mở cùng lúc: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] ăn phở hồi thể lực",
+     "ok": true,
+     "detail": "thể lực 30->70, tiền 363000->313000"
+    },
+    {
+     "name": "[mobile] thực đơn tự đóng sau khi ăn",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] sau khi ăn phở: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] sau khi ăn phở: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] sau khi ăn phở: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game mở khi vừa mở thực đơn ăn: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game mở khi vừa mở thực đơn ăn: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mini-game mở khi vừa mở thực đơn ăn: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] thực đơn ăn tự đóng khi mini-game mở",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Shop - nhuộm tóc: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Shop - nhuộm tóc: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Shop - nhuộm tóc: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] mua + mặc màu tóc mới: State.outfit đổi",
+     "ok": true,
+     "detail": "hair 0->2, tiền 613000->463000"
+    },
+    {
+     "name": "[mobile] hàng đã sở hữu cập nhật",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] Shop sau khi mua: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] Shop sau khi mua: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] Shop sau khi mua: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] sprite người chơi trong game đổi thật (so ảnh quanh nhân vật)",
+     "ok": true,
+     "detail": "1300 điểm ảnh khác"
+    },
+    {
+     "name": "[mobile] app Sổ Nợ: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Sổ Nợ: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app Sổ Nợ: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] đóng kỳ đầu Sổ Nợ",
+     "ok": true,
+     "detail": "đã trả 0->120000, tiền 663000->543000"
+    },
+    {
+     "name": "[mobile] Sổ Nợ sau khi đóng kỳ: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] Sổ Nợ sau khi đóng kỳ: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] Sổ Nợ sau khi đóng kỳ: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app ride: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app ride: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app ride: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app gram: lớp DOM không đè nhau",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app gram: không tràn khung",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] app gram: nút chạm >= 44px",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] lưu rồi tải lại: tiền, tóc, đồ sở hữu, nợ, số việc còn nguyên",
+     "ok": true,
+     "detail": "tiền 543000->543000, tóc 2->2, nợ 120000->120000, việc 1->1"
+    },
+    {
+     "name": "[mobile] __stats.errors rỗng sau reload",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] 0 request ra ngoài trong cả kịch bản",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] 0 lỗi console/pageerror trong cả kịch bản",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "[mobile] __stats.errors rỗng cuối kịch bản",
+     "ok": true,
+     "detail": ""
+    }
+   ]
+  },
+  {
+   "name": "3. Hồi quy thế giới (PC 1280x720)",
+   "checks": [
+    {
+     "name": "BFS từ spawn: cụm cô lập lớn chỉ là đảo Tháp Rùa",
+     "ok": true,
+     "detail": "cụm lớn: [{\"cells\":32,\"gx\":[49,52],\"gy\":[52,55]}], tháp (POI bờ đông) {\"gx\":60.5,\"gy\":53.5}; quán không tới được: không"
+    },
+    {
+     "name": "túi đi được 1 ô bị bao kín trên đất liền (chỉ ghi nhận, không phải lỗi chơi được)",
+     "ok": true,
+     "detail": "3 túi: (63,8) (12,48) (7,91)"
+    },
+    {
+     "name": "BFS độc lập khớp BFS của __worldAPI",
+     "ok": true,
+     "detail": "26861 vs 26861"
+    },
+    {
+     "name": "mọi POI tới được (trừ khu Tháp Rùa)",
+     "ok": true,
+     "detail": "[]"
+    },
+    {
+     "name": "pathTo tới các quán mẫu đều có đường",
+     "ok": true,
+     "detail": "12 có đường, hỏng: không"
+    },
+    {
+     "name": "có đủ 14 làn xe",
+     "ok": true,
+     "detail": "14 làn"
+    },
+    {
+     "name": "14 làn đều có xe và xe chạy (10 giây game)",
+     "ok": true,
+     "detail": "0:6 1:7 2:7 3:8 4:7 5:8 6:6 7:6 8:6 9:6 10:8 11:7 12:7 13:8"
+    },
+    {
+     "name": "ms/khung (trung vị) < 4ms (mục tiêu của vai QA)",
+     "ok": true,
+     "detail": "xấu nhất 2.3ms; (trung bình cao hơn vì Chromium headless dùng canvas phần mềm, cứ ~13 khung lại xả lệnh vẽ ~40ms — xem pacing rAF thật bên dưới); ngày nắng: tb 4.35 / p95 42.7; đêm mưa: tb 6.15 / p95 19.2; đêm giông: tb 6.35 / p95 18.4"
+    },
+    {
+     "name": "ms/khung trung bình < 16.7ms (đủ 60 khung/giây)",
+     "ok": true,
+     "detail": "xấu nhất 6.35ms"
+    },
+    {
+     "name": "nhịp khung hình thật (rAF, đêm giông, 300 khung): p95 <= 20ms, tối đa 3 khung > 33ms (1%)",
+     "ok": true,
+     "detail": "{\"p50\":16.7,\"p95\":16.8,\"max\":16.8,\"over33\":0}"
+    },
+    {
+     "name": "__stats.errors rỗng sau 60 giây game thủ công (ngày/đêm mưa/giông)",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "__stats.errors rỗng sau 60 giây chơi thật (đêm + mưa + WASD + điện thoại + việc + mini-game)",
+     "ok": true,
+     "detail": " (fps headless báo 60, hour/mưa true)"
+    },
+    {
+     "name": "0 lỗi console trong phần thế giới",
+     "ok": true,
+     "detail": ""
+    },
+    {
+     "name": "0 request ra ngoài trong phần thế giới",
+     "ok": true,
+     "detail": ""
+    }
+   ]
+  }
+ ],
+ "bugs": [],
+ "audits": [
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 447,
+     "h": 77
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [
+    {
+     "name": "button \"☀\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"☁\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🌧\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⛈\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⚡\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🕒\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⏯\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    }
+   ],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "vào game",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 447,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "điện thoại - màn chủ",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 447,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Việc Vặt - bảng việc",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 447,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Việc Vặt - chi tiết",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 447,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "sau khi nhận việc (điện thoại còn mở)",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 447,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "thẻ ĐANG LÀM",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "#gp-job-chip",
+     "z": 19,
+     "x": 8,
+     "y": 509,
+     "w": 322,
+     "h": 115
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [
+    {
+     "name": "button \"☀\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"☁\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🌧\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⛈\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⚡\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🕒\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⏯\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    }
+   ],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "đang đi GPS (chip việc + HUD + nút nổi)",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "button \"E / chạm — Làm việc: Phụ\"",
+     "z": 5,
+     "x": 514,
+     "y": 656,
+     "w": 253,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "#gp-job-chip",
+     "z": 19,
+     "x": 8,
+     "y": 526,
+     "w": 301,
+     "h": 98
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Tới nơi! Bấm E / chạ\"",
+     "z": 0,
+     "x": 430,
+     "y": 104,
+     "w": 420,
+     "h": 59
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [
+    {
+     "name": "button \"E / chạm — Làm việc: Phụ\"",
+     "w": 253,
+     "h": 36,
+     "disabled": false
+    },
+    {
+     "name": "button \"☀\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"☁\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🌧\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⛈\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⚡\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🕒\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⏯\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    }
+   ],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "tới nơi (nhắc E/chạm + chip + quán)",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Tới nơi! Bấm E / chạ\"",
+     "z": 0,
+     "x": 430,
+     "y": 104,
+     "w": 420,
+     "h": 59
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 187,
+     "y": 30,
+     "w": 907,
+     "h": 660
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game - màn giới thiệu",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 187,
+     "y": 30,
+     "w": 907,
+     "h": 660
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game đang chơi",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Xong việc \"Phụ quán \"",
+     "z": 0,
+     "x": 445,
+     "y": 104,
+     "w": 390,
+     "h": 38
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "w": 212,
+     "h": 36,
+     "disabled": false
+    },
+    {
+     "name": "button \"☀\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"☁\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🌧\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⛈\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⚡\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🕒\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⏯\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    }
+   ],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "ngay sau khi nhận tiền (toast)",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 187,
+     "y": 30,
+     "w": 907,
+     "h": 660
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game - kết quả",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "#gp-eat-menu",
+     "z": 19,
+     "x": 509,
+     "y": 493,
+     "w": 262,
+     "h": 143
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "w": 212,
+     "h": 36,
+     "disabled": false
+    },
+    {
+     "name": "button \"☀\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"☁\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🌧\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⛈\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⚡\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🕒\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⏯\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    }
+   ],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "thực đơn ăn phở",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "thực đơn ăn + điện thoại mở cùng lúc",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Ăn tô phở bò: +40 th\"",
+     "z": 0,
+     "x": 482,
+     "y": 104,
+     "w": 315,
+     "h": 38
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "w": 212,
+     "h": 36,
+     "disabled": false
+    },
+    {
+     "name": "button \"☀\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"☁\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🌧\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⛈\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⚡\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"🕒\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    },
+    {
+     "name": "button \"⏯\"",
+     "w": 36,
+     "h": 34,
+     "disabled": false
+    }
+   ],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "sau khi ăn phở",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 1160,
+     "y": 660,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 1212,
+     "y": 648,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Ăn tô phở bò: +40 th\"",
+     "z": 0,
+     "x": 482,
+     "y": 104,
+     "w": 315,
+     "h": 38
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 187,
+     "y": 30,
+     "w": 907,
+     "h": 660
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game mở khi vừa mở thực đơn ăn",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Shop - nhuộm tóc",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "Shop sau khi mua",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Sổ Nợ",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "Sổ Nợ sau khi đóng kỳ",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app ride",
+   "prof": "pc"
+  },
+  {
+   "vw": 1280,
+   "vh": 720,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hud",
+     "z": 4,
+     "x": 8,
+     "y": 8,
+     "w": 467,
+     "h": 77
+    },
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 892,
+     "y": 108,
+     "w": 372,
+     "h": 596
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 534,
+     "y": 656,
+     "w": 212,
+     "h": 36
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 996,
+     "y": 8,
+     "w": 276,
+     "h": 34
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 912,
+     "y": 58,
+     "w": 81,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 997,
+     "y": 58,
+     "w": 107,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 1108,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 1192,
+     "y": 58,
+     "w": 80,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app gram",
+   "prof": "pc"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "vào game",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "điện thoại - màn chủ",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Việc Vặt - bảng việc",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Việc Vặt - chi tiết",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "sau khi nhận việc (điện thoại còn mở)",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "thẻ ĐANG LÀM",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "#gp-job-chip",
+     "z": 19,
+     "x": 8,
+     "y": 633,
+     "w": 264,
+     "h": 115
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "đang đi GPS (chip việc + HUD + nút nổi)",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "button \"E / chạm — Làm việc: Phụ\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "#gp-job-chip",
+     "z": 19,
+     "x": 8,
+     "y": 633,
+     "w": 264,
+     "h": 115
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Tới nơi! Bấm E / chạ\"",
+     "z": 0,
+     "x": 16,
+     "y": 104,
+     "w": 359,
+     "h": 59
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "tới nơi (nhắc E/chạm + chip + quán)",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Tới nơi! Bấm E / chạ\"",
+     "z": 0,
+     "x": 16,
+     "y": 104,
+     "w": 359,
+     "h": 59
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 8,
+     "y": 225,
+     "w": 374,
+     "h": 394
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game - màn giới thiệu",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 8,
+     "y": 225,
+     "w": 374,
+     "h": 394
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game đang chơi",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Xong việc \"Phụ quán \"",
+     "z": 0,
+     "x": 16,
+     "y": 104,
+     "w": 359,
+     "h": 59
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "ngay sau khi nhận tiền (toast)",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 8,
+     "y": 225,
+     "w": 374,
+     "h": 394
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game - kết quả",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "#gp-eat-menu",
+     "z": 19,
+     "x": 66,
+     "y": 603,
+     "w": 258,
+     "h": 157
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "thực đơn ăn phở",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "thực đơn ăn + điện thoại mở cùng lúc",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Ăn tô phở bò: +40 th\"",
+     "z": 0,
+     "x": 37,
+     "y": 104,
+     "w": 315,
+     "h": 38
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "sau khi ăn phở",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": false,
+   "minigame": true,
+   "layers": [
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hx-btn-music",
+     "z": 0,
+     "x": 334,
+     "y": 720,
+     "w": 44,
+     "h": 44
+    },
+    {
+     "name": "hx-btn-phone",
+     "z": 0,
+     "x": 322,
+     "y": 772,
+     "w": 56,
+     "h": 56
+    },
+    {
+     "name": "ui-toast0 \"Ăn tô phở bò: +40 th\"",
+     "z": 0,
+     "x": 37,
+     "y": 104,
+     "w": 315,
+     "h": 38
+    },
+    {
+     "name": "minigame-card",
+     "z": 0,
+     "x": 8,
+     "y": 225,
+     "w": 374,
+     "h": 394
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "mini-game mở khi vừa mở thực đơn ăn",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Shop - nhuộm tóc",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "Shop sau khi mua",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app Sổ Nợ",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "Sổ Nợ sau khi đóng kỳ",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app ride",
+   "prof": "mobile"
+  },
+  {
+   "vw": 390,
+   "vh": 844,
+   "phoneOpen": true,
+   "minigame": false,
+   "layers": [
+    {
+     "name": "#hx-phone",
+     "z": 12,
+     "x": 0,
+     "y": 102,
+     "w": 390,
+     "h": 742
+    },
+    {
+     "name": "button \"E / chạm — Ăn phở (50.00\"",
+     "z": 5,
+     "x": 98,
+     "y": 762,
+     "w": 195,
+     "h": 54
+    },
+    {
+     "name": "div \"☀☁🌧⛈⚡🕒⏯\"",
+     "z": 6,
+     "x": 50,
+     "y": 8,
+     "w": 332,
+     "h": 44
+    },
+    {
+     "name": "hud-chip0",
+     "z": 0,
+     "x": 90,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip1",
+     "z": 0,
+     "x": 159,
+     "y": 58,
+     "w": 85,
+     "h": 32
+    },
+    {
+     "name": "hud-chip2",
+     "z": 0,
+     "x": 247,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    },
+    {
+     "name": "hud-chip3",
+     "z": 0,
+     "x": 316,
+     "y": 58,
+     "w": 66,
+     "h": 32
+    }
+   ],
+   "overlaps": [],
+   "overflow": [],
+   "small": [],
+   "textOverflow": [],
+   "docOverflow": false,
+   "toastOnPhone": [],
+   "label": "app gram",
+   "prof": "mobile"
+  }
+ ]
+}

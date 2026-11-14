@@ -18,11 +18,12 @@ export default {
         h('div', { class: 'hx-row sp' }, h('div', { class: 'hx-title', text: d.name }), done ? h('span', { class: 'hx-tag a', text: 'Đã tất toán' }) : late ? h('span', { class: 'hx-tag a', text: 'Trễ hạn' }) : due ? h('span', { class: 'hx-tag a', text: 'Đến hạn' }) : null),
         h('div', { class: 'hx-bar' }, h('i', { style: `width:${pct}%` })),
         h('div', { class: 'hx-row sp' }, h('span', { class: 'hx-sm', text: `Đã trả ${vnd(d.paid)} / ${vnd(d.total)}` }), h('span', { class: 'hx-sm', text: pct + '%' })),
-        h('div', { class: 'hx-sm', text: done ? 'Hết nợ, nhẹ cả người.' : `Còn ${vnd(left)} · mỗi kỳ ${vnd(d.per)} · kỳ tới ngày ${d.nextDay ?? '—'}` }),
+        h('div', { class: 'hx-sm', text: done ? 'Hết nợ, nhẹ cả người.' : `Còn ${vnd(left)} · mỗi kỳ ${vnd(d.per)}
+Kỳ tới: ngày ${d.nextDay ?? '—'}${d.nextDay != null ? (d.nextDay > today ? ` · còn ${d.nextDay - today} ngày` : d.nextDay === today ? ' · hôm nay' : ` · trễ ${today - d.nextDay} ngày`) : ''}` }),
         done ? null : h('div', { class: 'hx-btns' }, h('button', { class: 'hx-btn pri', 'data-act': 'pay', disabled: early, onclick: () => {
           if (G().debts.pay(d.id)) { ctx.sfx('click'); ctx.say(`Đã đóng kỳ ${vnd(per)} cho ${d.name}`, 'good') } else { ctx.sfx('error'); ctx.say('Không đủ tiền đóng kỳ này', 'bad') }
           ctx.rerender(true)
-        } }, icon('wallet', 24), early ? `Chưa tới kỳ · ngày ${d.nextDay - 1}` : `Đóng kỳ · ${vnd(per)}`))))
+        } }, icon('wallet', 24), early ? 'Chưa tới kỳ đóng' : `Đóng kỳ · ${vnd(per)}`))))
     }
     return root
   },

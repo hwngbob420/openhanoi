@@ -80,7 +80,8 @@ body.hx-open #hx-dock{display:none}
 .hx-nav button{flex:1;height:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--dim);font-size:16px}
 .hx-nav button:active{background:#1d2440;color:var(--ink)}
 .hx-nav button[disabled]{opacity:.35}
-.hx-notify{position:absolute;left:8px;right:8px;top:50px;z-index:3;background:#ffd23a;color:#1a1306;border:2px solid #080a11;border-radius:6px;padding:6px 10px;font-size:16px;box-shadow:0 3px 0 #080a11;pointer-events:none;animation:hxin .2s}
+.hx-notify.good{background:#62d894}.hx-notify.bad{background:#ff6f61}
+.hx-notify{position:absolute;left:8px;right:8px;top:48px;z-index:3;text-align:center;background:#ffd23a;color:#1a1306;border:2px solid #080a11;border-radius:6px;padding:6px 10px;font-size:16px;box-shadow:0 3px 0 #080a11;pointer-events:none;animation:hxin .2s}
 @keyframes hxin{from{transform:translateY(-8px);opacity:0}}
 
 /* ---- màn hình chủ ---- */
@@ -123,6 +124,7 @@ body.hx-open #hx-dock{display:none}
 .hx-empty{text-align:center;color:var(--dim);padding:28px 10px}
 .hx-empty .hx-ic{opacity:.5;margin-bottom:6px}
 .hx-kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin-top:8px}.hx-kv span:nth-child(odd){color:var(--dim)}.hx-kv span:nth-child(even){text-align:right}
+.hx-sm{white-space:pre-line}
 .hx-desc{margin:6px 0 0;color:#d9d3c3;font-size:16px}
 
 /* shop */
@@ -150,7 +152,6 @@ body.hx-open #hx-dock{display:none}
 .hx-toast{background:rgba(20,24,36,.94);color:var(--ink);border:2px solid var(--acc);border-radius:6px;padding:6px 12px;font-size:16px;text-align:center;box-shadow:0 3px 0 #080a11;animation:hxin .18s}
 .hx-toast.bad{border-color:var(--bad)}.hx-toast.good{border-color:var(--good)}
 
-body.hx-open #hx-toasts{top:auto;bottom:72px}
 body.hx-open #gp-job-chip{display:none!important}
 @media (max-width:700px){
  #hx-phone{left:0;right:0;bottom:0;top:102px;width:auto;height:auto;min-height:0;border-radius:18px 18px 0 0;padding:5px 5px 0}

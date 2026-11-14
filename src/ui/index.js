@@ -16,6 +16,7 @@ export function init() {
   const toasts = h('div', { id: 'hx-toasts' })
   const toast = (msg, kind) => {
     if (!msg) return
+    if (phone && phone.isOpen) return phone.notify(msg, kind)   // điện thoại mở: banner nhỏ ngay trong khung, không che nút
     const t = h('div', { class: 'hx-toast' + (kind ? ' ' + kind : ''), text: String(msg) }); toasts.append(t)
     while (toasts.children.length > 3) toasts.firstChild.remove()
     setTimeout(() => t.remove(), 2800)
