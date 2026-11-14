@@ -1,0 +1,20 @@
+/* Pixelbolt: atlas coordinates are pixels at the exported scale. */
+.pf-pho_steam {
+  display: inline-block;
+  width: 16px; height: 24px;
+  background-image: url("pho_steam.png");
+  background-repeat: no-repeat; image-rendering: pixelated;
+}
+.pf-pho_steam-steam { background-position: -0px -0px; animation: pf-pho_steam-steam 900ms steps(1, end) infinite; }
+@keyframes pf-pho_steam-steam {
+  0% { background-position: -0px -0px; }
+  16.66666667% { background-position: -16px -0px; }
+  33.33333333% { background-position: -32px -0px; }
+  50% { background-position: -48px -0px; }
+  66.66666667% { background-position: -64px -0px; }
+  83.33333333% { background-position: -80px -0px; }
+  100% { background-position: -0px -0px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-pho_steam-steam { animation: none; }
+}

@@ -8,6 +8,7 @@ const World = (() => {
   const stats = { errors: [], fps: 0, objs: 0, vehicles: 0 }
   let MAN = null; const IMG = {};
   function rngOf(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+  const hooks = { frame: [], overlay: [], newday: null }                                    // api.js gắn vào: mỗi khung hình / lớp phủ cuối / qua 0h
   const R = rngOf(20241113), rnd = () => R(), pick = (a) => a[Math.floor(R() * a.length)], rr = (a, b) => a + R() * (b - a)
   const inR = (v, r) => v >= r[0] && v <= r[1], inAny = (v, L) => L.some((r) => inR(v, r))
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
@@ -217,8 +218,17 @@ const World = (() => {
 
   // ───────── đồ vật ─────────
   const PROP_R = { p_pho: 0.55, p_banhmi: 0.5, p_fruit: 0.6, p_kiosk: 0.55, p_cafe_red: 0.45, p_cafe_green: 0.45, p_stools: 0.0, p_bench_x: 0.4, p_bench_y: 0.4, p_planter: 0.4, p_cyclo: 0.45, p_bin: 0.22, p_lamp: 0.16, p_pole: 0.16, p_flagpole: 0.12, p_umb_red: 0.55, p_umb_yellow: 0.55, p_umb_teal: 0.55, p_umb_orange: 0.55 }
+  // ───────── điểm dịch vụ (sites) cho gameplay / GPS: lấy từ vị trí thật của sạp phở, bánh mì, xích lô, bàn cà phê tàu, ki-ốt ─────────
+  const sites = [], SITE_LABEL = { pho: 'Quán phở', tc: 'Quán cà phê', banhmi: 'Xe bánh mì', xichlo: 'Xích lô', rail: 'Điểm xem tàu', hair: 'Ki-ốt cắt tóc' }
+  const siteKindOf = (n) => n === 'p_pho' ? 'pho' : n === 'p_banhmi' ? 'banhmi' : n === 'p_cyclo' ? 'xichlo' : n === 'p_kiosk' ? 'hair' : /^p_tc_(set|counter)/.test(n) ? 'tc' : null
+  const areaOf = (gx, gy) => inR(gy, RAILC) ? 'phố tàu' : inR(gy, CORRY[PED]) ? 'phố đi bộ' : (gx >= PLAY.x0 && gx <= PLAY.x1 + 1 && gy >= PLAY.y0 && gy <= PLAY.y1 + 1) ? 'khu vui chơi' : 'phố cổ'
+  function addSite(k, gx, gy, label) {
+    let id = `${k}_${Math.floor(gx)}_${Math.floor(gy)}`; for (let i = 2; sites.some((q) => q.id === id); i++) id = `${k}_${Math.floor(gx)}_${Math.floor(gy)}_${i}`
+    sites.push({ id, kind: k, gx, gy, label: `${label || SITE_LABEL[k]} · ${areaOf(gx, gy)}` })
+  }
   function prop(name, gx, gy, o = {}) {
     if (!MAN[name]) return null
+    const sk = siteKindOf(name); if (sk) addSite(sk, gx, gy)
     const s = sprite(name, gx, gy, o)
     if (name === 'p_lamp') lamps.push({ gx, gy })
     const r = o.r ?? PROP_R[name] ?? (name.startsWith('t_') ? 0.28 : 0.3)
@@ -374,6 +384,7 @@ const World = (() => {
       // chuỗi đèn lồng giăng ngang phố
       for (const lx of [x + 1.0, x + 3.6]) lanterns.push({ x: lx, y0: RAILC[0] + 0.1, y1: RAILC[1] + 0.9 })
     }
+    crossings.forEach((c, i) => addSite('rail', c.x0 + 1.5, RS + 0.5, `Chắn tàu số ${i + 1}`))
     pois.push({ id: 'traincafe', label: 'Phố cà phê đường tàu', gx: BLOCKX[1][0] + 4, gy: RAIL_Y + 0.5, r: 3 })
   }
   function drawLanterns(ox, oy, w, h) {
@@ -462,7 +473,7 @@ const World = (() => {
         prop(`p_ngo_${ax}_${NGO_STREET[pn++ % NGO_STREET.length]}`, px, py, { r: 0.06 })
         nightLights.push({ gx: x + 0.5, gy: y + 0.5, z: 56, r: 40, a: 0.55 })
         const [fx, fy] = e === 'E' ? [1, 0] : e === 'W' ? [-1, 0] : e === 'S' ? [0, 1] : [0, -1]
-        for (let k = 1; k <= SW; k++) used.add(kk(x + fx * k, y + fy * k))          // vỉa hè trước cửa ngõ để trống: không đặt cột điện, đèn, cây, sạp
+        for (let k = 1; k <= SW; k++) for (let l = -1; l <= 1; l++) used.add(kk(x + fx * k + Math.abs(fy) * l, y + fy * k + Math.abs(fx) * l))          // vỉa hè trước cửa ngõ (rộng 3 ô) để trống: không đặt cột điện, đèn, cây, sạp che lối vào
       }
       const T = a.tiles
       if (!a.main && T.length > 2 && rnd() < 0.6) {                // biển NGÁCH 9/3 ở chỗ ngách tách khỏi ngõ lớn
@@ -665,7 +676,7 @@ const World = (() => {
   const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t) }
   const nightAt = (h) => h < 5 ? 1 : h < 7 ? 1 - ss(5, 7, h) : h < 18 ? 0 : h < 20.5 ? ss(18, 20.5, h) : 1
   function stepSky(dt) {
-    if (sky.auto) sky.hour = (sky.hour + sky.speed * dt) % 24
+    if (sky.auto) { const h0 = sky.hour; sky.hour = (h0 + sky.speed * dt) % 24; if (sky.hour < h0 && hooks.newday) hooks.newday() }
     const tg = WXD[sky.weather], k = Math.min(1, dt * 0.5)
     sky.cloud += (tg[0] - sky.cloud) * k; sky.rain += (tg[1] - sky.rain) * k; sky.storm += (tg[2] - sky.storm) * k
     if (sky.autoWx) { sky.wxTimer -= dt; if (sky.wxTimer <= 0) { sky.wxTimer = 70 + Math.random() * 80; const r = Math.random(); sky.weather = r < 0.45 ? 'sunny' : r < 0.7 ? 'cloudy' : r < 0.92 ? 'rain' : 'storm' } }
@@ -963,6 +974,7 @@ const World = (() => {
   function frame(now) {
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; T += dt
     stepSky(dt); stepTraffic(dt); stepTrain(dt); stepNpc(dt); Game.update(dt)
+    for (const f of hooks.frame) { try { f(dt) } catch (e) { stats.errors.push('hook: ' + (e.stack || e)) } }
     const z = cam.zoom, w = Math.ceil(innerWidth / z), h = Math.ceil(innerHeight / z)
     if (w < 8 || h < 8) return                                 // cửa sổ chưa có kích thước (đang xoay màn hình / tab nền): bỏ qua khung này
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h }
@@ -1044,6 +1056,7 @@ const World = (() => {
     drawLanterns(ox, oy, w, h)
     drawSignals(ox, oy)
     postFx(dt, w, h, ox, oy, glows, night, litDraw)
+    for (const f of hooks.overlay) { try { f(ctx, ox, oy, w, h, T) } catch (e) { stats.errors.push('overlay: ' + (e.stack || e)) } }       // lớp phủ cuối: GPS, marker (không bị bộ lọc ngày/đêm làm tối)
     stats.fps = Math.round(1 / Math.max(0.001, dt))
     const hh = Math.floor(sky.hour), mm = Math.floor((sky.hour - hh) * 60)
     hud.textContent = `Hà Nội ${N}x${N}   ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${WXNAME[sky.weather]}   fps ${stats.fps}   xe ${stats.vehicles}   người ${NPC.length}\n${train.state === 'run' ? 'tàu hỏa đang chạy' : 'tàu hỏa còn ' + Math.ceil(train.t) + 's'}   [R thời tiết · T đổi giờ · Y giờ tự chạy · H ẩn]\n` + Game.hudLine()
@@ -1141,7 +1154,10 @@ const World = (() => {
     last = performance.now()
     ;(function loop(now) { try { frame(now) } catch (e) { stats.errors.push(String(e.stack || e)); hud.textContent = 'lỗi: ' + e.message; return } requestAnimationFrame(loop) })(last)
   }
-  return { load, generate, start, cam, stats, N, proj }
+  // chặn tĩnh (không tính thanh chắn tàu đang hạ) dùng cho tìm đường
+  const staticBlocked = (tx, ty) => tx < 0 || ty < 0 || tx >= N || ty >= N || blk[ty][tx] || (kind[ty][tx] === 'water' && !bridgeT.has(tx + ',' + ty))
+  const gameApi = { sites, pois, hooks, sky, train, crossings, kind, colliders, staticBlocked, areaOf, groundZ, RS, RN, RAIL_Y, TW, TH }
+  return { load, generate, start, cam, stats, N, proj, ...gameApi }
 })()
 window.World = World
 export { World }

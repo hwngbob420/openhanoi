@@ -1,4 +1,6 @@
 'use strict';
+import { bus } from '../core/bus.js';
+import { State } from '../core/state.js';
 // Player, collision, follow camera and point-of-interest (POI) hook for the open world.
 // Loaded BEFORE the inline world script in index.html. The world calls Game.init once after
 // generation, then Game.update(dt) and Game.pushDrawable(list) every frame.
@@ -15,6 +17,7 @@ const Game = (() => {
     pois: [],
     near: null,
   };
+  let locked = false, custom = false;   // locked: khóa di chuyển (mini-game); custom: đang dùng sprite từ __characters
   let world = null, block = null, colliders = [], stuck = 0, sprites = null, toastTimer = 0;
   const keys = new Set();
   let promptEl = null, toastEl = null;
@@ -59,7 +62,16 @@ const Game = (() => {
     for (const dir of ['up', 'down', 'left', 'right']) sprites[dir] = [0, 1, 2, 3].map((f) => makePerson(dir === 'left' ? 'left' : dir, f));
     // 'left' is drawn as the mirror of the 'right' pose
     for (const f of [0, 1, 2, 3]) { const r = makePerson('right', f), m = document.createElement('canvas'); m.width = 16; m.height = 28; const mx = m.getContext('2d'); mx.translate(16, 0); mx.scale(-1, 1); mx.drawImage(r, 0, 0); sprites.left[f] = m; }
-    loadArt();
+    if (!useCharacterSprites()) loadArt();
+  }
+  // Nhân vật do khối characters vẽ (theo trang phục hiện tại). Trả về true nếu đã áp dụng.
+  function useCharacterSprites() {
+    try {
+      const C = window.__characters; if (!C || typeof C.getSprites !== 'function') return false;
+      const sp = C.getSprites(State.outfit);
+      if (!sp || !['up', 'down', 'left', 'right'].every((d) => sp[d] && sp[d].length >= 4)) return false;
+      sprites = sp; custom = true; return true;
+    } catch (e) { console.error('[player] getSprites', e); return false; }
   }
   // Hand-drawn character (assets/src/player.px.js, built with pxl). Replaces the placeholder once all 12 frames load.
   function loadArt() {
@@ -67,7 +79,7 @@ const Game = (() => {
     for (const dir of ['down', 'up', 'right']) for (let f = 0; f < 4; f++) {
       const im = new Image(); im.onload = () => {
         got[dir + f] = im;
-        if (++n < 12) return;
+        if (++n < 12 || custom) return;
         for (let g = 0; g < 4; g++) {
           sprites.down[g] = got['down' + g]; sprites.up[g] = got['up' + g]; sprites.right[g] = got['right' + g];
           const m = document.createElement('canvas'); m.width = 16; m.height = 28; const mx = m.getContext('2d');
@@ -117,7 +129,7 @@ const Game = (() => {
     document.body.append(promptEl, toastEl);
   }
   function toast(msg, ms = 2600) { toastEl.textContent = msg; toastEl.style.display = ''; toastTimer = ms / 1000; }
-  function interact() { if (S.mode !== 'play' || !S.near) return; const p = S.near; if (p.onInteract) p.onInteract(p); else toast(p.label); }
+  function interact() { if (S.mode !== 'play' || !S.near || locked) return; const p = S.near; bus.emit('poi:interact', { poi: p }); if (p.onInteract) p.onInteract(p); else toast(p.label); }
 
   // ───── per-frame ─────
   function facingFromScreen(sx, sy) { return Math.abs(sx) >= Math.abs(sy) ? (sx > 0 ? 'right' : 'left') : (sy > 0 ? 'down' : 'up'); }
@@ -126,11 +138,12 @@ const Game = (() => {
     if (!world || S.mode !== 'play') return;
     const p = S.player;
     let ix = 0, iy = 0;
-    if (keys.has('w') || keys.has('arrowup')) iy -= 1; if (keys.has('s') || keys.has('arrowdown')) iy += 1;
-    if (keys.has('a') || keys.has('arrowleft')) ix -= 1; if (keys.has('d') || keys.has('arrowright')) ix += 1;
+    if (locked) S.target = null;
+    if (!locked) { if (keys.has('w') || keys.has('arrowup')) iy -= 1; if (keys.has('s') || keys.has('arrowdown')) iy += 1;
+    if (keys.has('a') || keys.has('arrowleft')) ix -= 1; if (keys.has('d') || keys.has('arrowright')) ix += 1; }
     let vx = 0, vy = 0;
     if (ix || iy) { const l = Math.hypot(ix, iy); ix /= l; iy /= l; vx = (ix + iy) / Math.SQRT2; vy = (iy - ix) / Math.SQRT2; S.target = null; p.dir = Math.abs(ix) >= Math.abs(iy) && ix ? (ix > 0 ? 'right' : 'left') : (iy > 0 ? 'down' : 'up'); }
-    else if (S.target) {
+    else if (S.target && !locked) {
       const dx = S.target.gx - p.gx, dy = S.target.gy - p.gy, d = Math.hypot(dx, dy);
       if (d < 0.1) S.target = null; else { vx = dx / d; vy = dy / d; const [sx, sy] = world.proj(dx, dy); p.dir = facingFromScreen(sx, sy * 2); }
     }
@@ -147,17 +160,23 @@ const Game = (() => {
     world.cam.x += (sx - world.cam.x) * k; world.cam.y += (sy - 10 - world.cam.y) * k;
     // nearest POI in range
     let near = null, nd = 1e9;
-    for (const q of S.pois) { const d = Math.hypot(q.gx - p.gx, q.gy - p.gy); if (d <= q.r && d < nd) { near = q; nd = d; } }
-    if (near !== S.near) { S.near = near; promptEl.style.display = near ? '' : 'none'; if (near) promptEl.textContent = 'E / chạm — ' + near.label; }
+    if (!locked) for (const q of S.pois) {      // marker (việc vặt) luôn thắng POI khám phá khi cùng tầm; cùng loại thì lấy cái gần nhất
+      const d = Math.hypot(q.gx - p.gx, q.gy - p.gy); if (d > q.r) continue;
+      if (!near || (q.marker && !near.marker) || (!!q.marker === !!near.marker && d < nd)) { near = q; nd = d; }
+    }
+    if (near !== S.near) { S.near = near; promptEl.style.display = near ? '' : 'none'; }
+    if (near && promptEl.dataset.l !== near.label) { promptEl.dataset.l = near.label; promptEl.textContent = 'E / chạm — ' + near.label; }
   }
   function pushDrawable(list) {
     if (!sprites) return;
     const p = S.player, fr = p.moving ? Math.floor(p.t * 8) % 4 : 0;
     list.push({ t: 'pl', c: sprites[p.dir][fr], ox: 8, oy: 26 - (fr & 1) + (world.groundZ ? world.groundZ(p.gx, p.gy) : 0), gx: p.gx, gy: p.gy, key: p.gx + p.gy, bb: [p.gx - 0.25, p.gx + 0.25, p.gy - 0.25, p.gy + 0.25] });
   }
+  const uiBusy = () => { try { return !!(window.__ui && window.__ui.isPhoneOpen && window.__ui.isPhoneOpen()) } catch { return false } };
   function pointer(e, kind) {
-    if (!world || !S.view) return;
+    if (!world || !S.view || locked) return;
     if (kind === 'up') { return; }
+    if (uiBusy()) return;                          // chạm lúc điện thoại đang mở: không đi
     const z = world.cam.zoom, { ox, oy } = S.view, sx = e.clientX / z - ox, sy = e.clientY / z - oy;
     const [tw, th] = world.tile(), a = sx / (tw / 2), b = sy / (th / 2);
     if (kind === 'down' || (kind === 'move' && e.buttons)) S.target = { gx: (a + b) / 2, gy: (b - a) / 2 };
@@ -167,11 +186,17 @@ const Game = (() => {
     world = w; makeDom(); buildSprites(); buildCollision();
     const [gx, gy] = findSpawn(...(world.spawn || [22.5, 21.5])); S.player.gx = gx; S.player.gy = gy;
     const [sx, sy] = world.proj(gx, gy); world.cam.x = sx; world.cam.y = sy - 10;
+    bus.on('outfit:changed', () => { useCharacterSprites(); });
+    bus.on('world:ready', () => { useCharacterSprites(); });   // characters có thể nạp sau world
+    bus.on('phone:open', () => { S.target = null; keys.clear(); });
+    bus.on('minigame:start', () => { S.target = null; keys.clear(); });
   }
   function setMode(m) { S.mode = m; S.target = null; if (m === 'free') { promptEl.style.display = 'none'; S.near = null; } toast(m === 'play' ? 'Chế độ chơi' : 'Camera tự do (F để quay lại)', 1400); }
 
   addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target, typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    if (typing) return;                              // đang gõ trong giao diện: không điều khiển nhân vật
     const k = e.key.toLowerCase(); keys.add(k);
     if (!world) return;
     if (k === 'e' || k === ' ') { if (S.near) e.preventDefault(); interact(); }
@@ -187,7 +212,10 @@ const Game = (() => {
     hudLine() { return `player ${S.player.gx.toFixed(1)},${S.player.gy.toFixed(1)}  ${S.mode}${this.extraHud ? '  ' + this.extraHud : ''}\n[WASD/click move · E interact · F free cam · T time of day]`; },
     // test helpers
     walkableAt: (x, y) => walkable(x, y, RADIUS),
-    teleport: (x, y) => { S.player.gx = x; S.player.gy = y; S.target = null; },
+    teleport: (x, y) => { S.player.gx = x; S.player.gy = y; S.target = null; if (world) { const [sx, sy] = world.proj(x, y); world.cam.x = sx; world.cam.y = sy - 10; } },
+    unregisterPOI: (p) => { const i = S.pois.indexOf(p); if (i >= 0) S.pois.splice(i, 1); if (S.near === p) { S.near = null; promptEl.style.display = 'none'; promptEl.dataset.l = ''; } },
+    setLocked: (v) => { locked = !!v; if (locked) { S.target = null; keys.clear(); S.player.moving = false; S.near = null; promptEl.style.display = 'none'; } },
+    get locked() { return locked; },
   };
 })();
 window.__game = Game;

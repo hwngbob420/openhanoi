@@ -1,0 +1,53 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#7b8f6c;font:12px system-ui;color:#fff">
+<div id="o"></div>
+<script type="module">
+import * as C from '/src/assets/characters/index.js'
+import { bus } from '/src/core/bus.js'
+bus.on('outfit:changed', () => window.__ready = true)
+C.init()
+const q = new URLSearchParams(location.search), S = +q.get('s') || 4, mode = q.get('m') || 'grid'
+const o = document.getElementById('o')
+const wait = () => new Promise(r => { const t = setInterval(() => { if (window.__ready) { clearInterval(t); r() } }, 50) })
+await wait()
+const add = (src, host) => { const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; c.getContext('2d').drawImage(src, 0, 0); c.style.cssText = `width:${c.width * S}px;image-rendering:pixelated;margin:2px`; host.appendChild(c) }
+const row = (label) => { const d = document.createElement('div'); d.style.cssText = 'display:flex;align-items:flex-end;padding:4px 8px;border-bottom:1px solid #0003'; d.innerHTML = `<span style="width:120px">${label}</span>`; o.appendChild(d); return d }
+const O = C.OUTFIT_OPTIONS
+if (mode === 'grid') {
+  for (let h = 0; h < 4; h++) { const r = row('tóc ' + O.hair[h].name); for (const d of ['down', 'up', 'left', 'right']) add(C.getSprites({ hair: h, top: 0, pants: 0 })[d][0], r); }
+  const combos = [[0,1,0],[1,2,1],[2,3,2],[3,0,1],[0,2,2],[1,1,0],[2,0,0],[3,3,1]]
+  for (const [h,t,p] of combos) { const r = row(`${O.top[t].name} / ${O.pants[p].name}`); for (const d of ['down', 'up', 'left', 'right']) add(C.getSprites({ hair: h, top: t, pants: p })[d][0], r); add(C.renderPortrait({hair:h,top:t,pants:p},1), r) }
+} else if (mode === 'zoom') {
+  const r = row('zoom'); const s = C.getSprites({hair:0,top:0,pants:0}); for (const d of ['down','up','right','left']) add(s[d][0], r); add(s.right[1], r); add(s.right[3], r); add(s.down[1], r); add(s.down[3], r)
+} else if (mode === 'seat') {
+  const O2 = C.OUTFIT_OPTIONS
+  const combos = [[0,0,0],[1,1,1],[2,2,0],[3,3,2]]
+  for (const [h,t,p] of combos) { const r = row(`${O2.hair[h].name} / ${O2.top[t].name}`); const S2 = C.getSeatedSprites({hair:h,top:t,pants:p}); for (const d of ['px','nx','py','ny']) add(S2['mo_'+(h%6)+'_'+d], r) }
+  const r = row('xe cũ (có người)'); for (const d of ['px','nx','py','ny']) { const im = new Image(); im.src = window.__BUNDLE ? '' : '/assets/world/mo_0_'+d+'.png'; await im.decode(); add(im, r) }
+} else if (mode === 'scene') {
+  const ld = async (u) => { const im = new Image(); im.src = u; await im.decode(); return im }
+  const T = await ld('/assets/world/g_plaza_0.png'), T2 = await ld('/assets/world/g_walk_a1.png'), A = await ld('/assets/world/g_asphalt.png')
+  const M = {}; for (const d of ['px','nx','py','ny']) M[d] = await ld('/assets/world/mo_0_'+d+'.png')
+  const c = document.createElement('canvas'); c.width = 560; c.height = 300; const x = c.getContext('2d'); x.imageSmoothingEnabled = false
+  const ox = 280, oy = 20
+  const top = (gx, gy) => [ox + (gx - gy) * 36, oy + (gx + gy) * 18]
+  for (let gy = 0; gy < 6; gy++) for (let gx = 0; gx < 6; gx++) { const [X, Y] = top(gx, gy); x.drawImage(gy >= 4 ? A : ((gx + gy) % 2 ? T : T2), X - 36, Y) }
+  const who = (gx, gy, o, dir, f = 0) => { const [X, Y] = top(gx + .5, gy + .5); x.drawImage(C.getSprites(o)[dir][f], Math.round(X - 8), Math.round(Y + 18 - 26)) }
+  const fo = [{hair:0,top:0,pants:0},{hair:1,top:1,pants:0},{hair:2,top:2,pants:1},{hair:3,top:3,pants:2}]
+  fo.forEach((o, i) => who(i, 0, o, 'down', i % 4)); fo.forEach((o, i) => who(i, 1, o, 'right', i)); fo.forEach((o, i) => who(i, 2, o, 'up')); fo.forEach((o,i)=> who(i,3,o,'left', i))
+  // xe máy: cũ (có người cũ) và mới (người paper-doll)
+  const S2 = C.getSeatedSprites({hair:2,top:2,pants:1}), S3 = C.getSeatedSprites({hair:0,top:0,pants:0})
+  const man = JSON.parse(await (await fetch('/assets/world/manifest.json')).text()).sprites
+  const mo = (gx, gy, im, nm) => { const [X, Y] = top(gx, gy); const pv = man[nm].pivot; x.drawImage(im, Math.round(X - pv[0]), Math.round(Y - pv[1] + 18)) }
+  mo(4.0, 4.2, M.px, 'mo_0_px'); mo(5.0, 4.2, S2.mo_0_px, 'mo_0_px'); mo(4.0, 5.2, S3.mo_1_px, 'mo_1_px'); mo(5.2, 5.2, S3.mo_2_py, 'mo_2_py')
+  // nồi phở + khói
+  const [PX, PY] = top(1.5, 4.5); x.fillStyle = '#4a5160'; x.fillRect(PX - 8, PY + 12, 16, 8); x.fillStyle = '#c94a3a'; x.fillRect(PX - 8, PY + 12, 16, 2)
+  window.__characters.vfx.drawSteam(x, PX, PY + 12, 0.0, 1)
+  window.__characters.vfx.drawSteam(x, PX + 24, PY + 12, 0.5, 1)
+  c.style.cssText = `width:${c.width * S}px;image-rendering:pixelated`; o.appendChild(c)
+  if (q.get('rain')) window.__characters.vfx.drawRain(x, c.width, c.height, 0.0, 0.9)
+  if (q.get('strip')) { const r2 = row('khói phở 6 khung (x8)'); window.__characters.vfx.steam.frames.forEach((f) => { const cc = document.createElement('canvas'); cc.width = 16; cc.height = 24; const g = cc.getContext('2d'); g.fillStyle = '#2b3a4a'; g.fillRect(0,0,16,24); g.drawImage(f,0,0); add(cc, r2) }) }
+} else if (mode === 'walk') {
+  for (const t of [0,1,2,3]) for (const p of [0,2]) { const r = row(`${O.top[t].name}/${O.pants[p].name}`); const s = C.getSprites({ hair: t, top: t, pants: p }); for (const d of ['down','up','right','left']) for (let f = 0; f < 4; f++) add(s[d][f], r) }
+}
+document.title = 'ready'
+</script>

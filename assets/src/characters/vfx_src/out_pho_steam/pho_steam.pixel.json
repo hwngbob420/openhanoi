@@ -1,0 +1,675 @@
+{
+  "version": 1,
+  "name": "pho_steam",
+  "width": 16,
+  "height": 24,
+  "palette": {
+    "w": "#fffaf0e6",
+    "Q": "#f2ecdeb8",
+    "q": "#e4dcca80",
+    "S": "#bcb6a8a0"
+  },
+  "frames": [
+    {
+      "name": "s0",
+      "duration": 150,
+      "ops": [
+        {
+          "op": "ellipse",
+          "x": 9,
+          "y": 3,
+          "w": 4,
+          "h": 4,
+          "color": "q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 13,
+          "y": 6,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 2,
+          "y": 6,
+          "w": 5,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 9,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 8,
+          "y": 9,
+          "w": 6,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 9,
+          "y": 10,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 12,
+          "y": 12,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 12,
+          "w": 5,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 5,
+          "y": 14,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 15,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 7,
+          "y": 16,
+          "w": 4,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 17,
+          "color": "w"
+        },
+        {
+          "op": "ellipse",
+          "x": 7,
+          "y": 20,
+          "w": 3,
+          "h": 2,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 20,
+          "color": "w"
+        }
+      ]
+    },
+    {
+      "name": "s1",
+      "duration": 150,
+      "ops": [
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 3,
+          "w": 4,
+          "h": 4,
+          "color": "q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 6,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 6,
+          "y": 6,
+          "w": 5,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 11,
+          "y": 9,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 5,
+          "y": 9,
+          "w": 6,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 10,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 10,
+          "y": 12,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 12,
+          "w": 5,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 6,
+          "y": 14,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 9,
+          "y": 15,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 7,
+          "y": 16,
+          "w": 4,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 17,
+          "color": "w"
+        },
+        {
+          "op": "ellipse",
+          "x": 8,
+          "y": 20,
+          "w": 3,
+          "h": 2,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 20,
+          "color": "w"
+        }
+      ]
+    },
+    {
+      "name": "s2",
+      "duration": 150,
+      "ops": [
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 3,
+          "w": 4,
+          "h": 4,
+          "color": "q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 6,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 8,
+          "y": 6,
+          "w": 5,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 12,
+          "y": 9,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 3,
+          "y": 9,
+          "w": 6,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 5,
+          "y": 10,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 12,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 7,
+          "y": 12,
+          "w": 5,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 14,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 11,
+          "y": 15,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 6,
+          "y": 16,
+          "w": 4,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 17,
+          "color": "w"
+        },
+        {
+          "op": "ellipse",
+          "x": 7,
+          "y": 20,
+          "w": 3,
+          "h": 2,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 20,
+          "color": "w"
+        }
+      ]
+    },
+    {
+      "name": "s3",
+      "duration": 150,
+      "ops": [
+        {
+          "op": "ellipse",
+          "x": 8,
+          "y": 3,
+          "w": 4,
+          "h": 4,
+          "color": "q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 11,
+          "y": 6,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 5,
+          "y": 6,
+          "w": 5,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 9,
+          "y": 9,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 5,
+          "y": 9,
+          "w": 6,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 10,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 10,
+          "y": 12,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 12,
+          "w": 5,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 5,
+          "y": 14,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 15,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 7,
+          "y": 16,
+          "w": 4,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 9,
+          "y": 17,
+          "color": "w"
+        },
+        {
+          "op": "ellipse",
+          "x": 6,
+          "y": 20,
+          "w": 3,
+          "h": 2,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 20,
+          "color": "w"
+        }
+      ]
+    },
+    {
+      "name": "s4",
+      "duration": 150,
+      "ops": [
+        {
+          "op": "ellipse",
+          "x": 8,
+          "y": 3,
+          "w": 4,
+          "h": 4,
+          "color": "q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 12,
+          "y": 6,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 3,
+          "y": 6,
+          "w": 5,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 9,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 9,
+          "w": 6,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 5,
+          "y": 10,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 12,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 6,
+          "y": 12,
+          "w": 5,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 14,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 11,
+          "y": 15,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 6,
+          "y": 16,
+          "w": 4,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 17,
+          "color": "w"
+        },
+        {
+          "op": "ellipse",
+          "x": 6,
+          "y": 20,
+          "w": 3,
+          "h": 2,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 7,
+          "y": 20,
+          "color": "w"
+        }
+      ]
+    },
+    {
+      "name": "s5",
+      "duration": 150,
+      "ops": [
+        {
+          "op": "ellipse",
+          "x": 3,
+          "y": 3,
+          "w": 4,
+          "h": 4,
+          "color": "q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 6,
+          "y": 6,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 6,
+          "y": 6,
+          "w": 5,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 11,
+          "y": 9,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 9,
+          "w": 6,
+          "h": 5,
+          "color": "Q",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 5,
+          "y": 10,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 9,
+          "y": 12,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 7,
+          "y": 12,
+          "w": 5,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 9,
+          "y": 14,
+          "color": "w"
+        },
+        {
+          "op": "pixel",
+          "x": 11,
+          "y": 15,
+          "color": "S"
+        },
+        {
+          "op": "ellipse",
+          "x": 4,
+          "y": 16,
+          "w": 4,
+          "h": 4,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 6,
+          "y": 17,
+          "color": "w"
+        },
+        {
+          "op": "ellipse",
+          "x": 8,
+          "y": 20,
+          "w": 3,
+          "h": 2,
+          "color": "w",
+          "filled": true
+        },
+        {
+          "op": "pixel",
+          "x": 8,
+          "y": 20,
+          "color": "w"
+        }
+      ]
+    }
+  ],
+  "animations": {
+    "steam": {
+      "frames": [
+        "s0",
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5"
+      ],
+      "loop": true
+    }
+  }
+}
