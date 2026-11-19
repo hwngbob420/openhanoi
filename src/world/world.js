@@ -1,10 +1,12 @@
 // Thế giới mở Hà Nội 108x108 (isometric 2:1, ô 72x36). Toàn bộ hình ảnh lấy từ assets/world (dựng bằng claude-pxl).
 // Phần này: sinh bản đồ, mô phỏng xe/tàu/thanh chắn/đèn, vẽ. Nhân vật & va chạm người chơi ở js/player.js.
 'use strict'
+import { bus } from '../core/bus.js'
+import * as SL from './streetlife.js'
 const World = (() => {
   const N = 108, TW = 72, TH = 36
   const proj = (gx, gy) => [(gx - gy) * TW / 2, (gx + gy) * TH / 2]
-  const cam = { x: 0, y: 0, zoom: 2 }
+  const cam = { x: 0, y: 0, zoom: 2, zoomTarget: 2 }                                      // zoom: số thực đang trôi; zoomTarget: nấc nguyên 1..5
   const stats = { errors: [], fps: 0, objs: 0, vehicles: 0 }
   let MAN = null; const IMG = {};
   function rngOf(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
@@ -78,8 +80,8 @@ const World = (() => {
     for (let i = 0; i < w; i++) if (alleyT.has(kk(gx + i, gy - 1))) fl = Math.min(fl, 2)
     const nm = `h_${fam}_${F}_${fl}_${wall}${shop && !fam.startsWith('n') ? '_s' : ''}`
     if (!MAN[nm] || !cellsFree(gx, gy, w, d)) return false
-    mark(gx, gy, w, d); sprite(nm, gx, gy)
-    if (!fam.startsWith('n')) fronts.push({ fam, F, gx, gy, shop: !!shop })
+    mark(gx, gy, w, d); const s = sprite(nm, gx, gy)
+    if (!fam.startsWith('n')) { const fr = { fam, F, gx, gy, shop: !!shop && nm.endsWith('_s') }; fronts.push(fr); if (s) s.front = fr }   // 4B: nhà biết mặt tiền của mình (tầng trệt theo giờ quán)
     return true
   }
   const fronts = []
@@ -219,7 +221,7 @@ const World = (() => {
   // ───────── đồ vật ─────────
   const PROP_R = { p_pho: 0.55, p_banhmi: 0.5, p_fruit: 0.6, p_kiosk: 0.55, p_cafe_red: 0.45, p_cafe_green: 0.45, p_stools: 0.0, p_bench_x: 0.4, p_bench_y: 0.4, p_planter: 0.4, p_cyclo: 0.45, p_bin: 0.22, p_lamp: 0.16, p_pole: 0.16, p_flagpole: 0.12, p_umb_red: 0.55, p_umb_yellow: 0.55, p_umb_teal: 0.55, p_umb_orange: 0.55 }
   // ───────── điểm dịch vụ (sites) cho gameplay / GPS: lấy từ vị trí thật của sạp phở, bánh mì, xích lô, bàn cà phê tàu, ki-ốt ─────────
-  const sites = [], SITE_LABEL = { pho: 'Quán phở', tc: 'Quán cà phê', banhmi: 'Xe bánh mì', xichlo: 'Xích lô', rail: 'Điểm xem tàu', hair: 'Ki-ốt cắt tóc' }
+  const sites = [], SITE_LABEL = { pho: 'Quán phở', tc: 'Quán trà chanh', banhmi: 'Xe bánh mì', xichlo: 'Xích lô', rail: 'Điểm xem tàu', hair: 'Ki-ốt cắt tóc' }
   const siteKindOf = (n) => n === 'p_pho' ? 'pho' : n === 'p_banhmi' ? 'banhmi' : n === 'p_cyclo' ? 'xichlo' : n === 'p_kiosk' ? 'hair' : /^p_tc_(set|counter)/.test(n) ? 'tc' : null
   const areaOf = (gx, gy) => inR(gy, RAILC) ? 'phố tàu' : inR(gy, CORRY[PED]) ? 'phố đi bộ' : (gx >= PLAY.x0 && gx <= PLAY.x1 + 1 && gy >= PLAY.y0 && gy <= PLAY.y1 + 1) ? 'khu vui chơi' : 'phố cổ'
   function addSite(k, gx, gy, label) {
@@ -232,9 +234,15 @@ const World = (() => {
     const s = sprite(name, gx, gy, o)
     if (name === 'p_lamp') lamps.push({ gx, gy })
     const r = o.r ?? PROP_R[name] ?? (name.startsWith('t_') ? 0.28 : 0.3)
-    if (r > 0) colliders.push({ x: gx, y: gy, r })
+    if (SOFT.test(name)) { if (r > 0) softProps.push({ x: gx, y: gy, r }) }       // vật nhỏ: đi xuyên được (người chơi, Auto-Walk, NPC cùng luật)
+    else if (r > 0) colliders.push({ x: gx, y: gy, r })
     return s
   }
+  // Đợt 4 — vật NHỎ đi xuyên được: sạp hàng, ghế/bàn nhựa, ô dù, cột điện, cột đèn, cây, ghế đá, bồn hoa/chậu cây, biển tên phố/biển ngõ,
+  // thùng rác, tủ nước, xe đỗ nhỏ (xe máy, xích lô), cột cờ, dây điện/dây phơi. VẪN CỨNG (không qua đây hoặc đẩy collider riêng):
+  // nhà/tường (blk), nước, hàng rào đường ray, barie khi hạ, nhà chờ xe buýt, cổng Ô Quan Chưởng, cổng chào, cổng cầu, đền/tháp (mark).
+  const SOFT = /^(t_|mop_|p_(pho|banhmi|fruit|kiosk|cafe_|stools|umb_|tc_set_|tc_counter_|tc_plants|tc_cooler|tc_flag|bench_|planter|pots_|bin|lamp|pole|flagpole|plate_|ngo_|cyclo|wires_|laundry_))/
+  const softProps = []                                                        // vị trí vật nhỏ (chỉ để chọn chỗ ĐỨNG cạnh sạp, không chặn đường)
   const tileUse = (x, y) => { const k = x + ',' + y; if (used.has(k)) return false; used.add(k); return true }
 
   function streets() {
@@ -259,14 +267,15 @@ const World = (() => {
     plate('y', 1, CORRX[1][1] - 1, LAKE.y0 + 1); plate('y', 1, CORRX[1][1] - 1, LAKE.y1 - 1)            // Lê Thái Tổ (tây hồ)
     plate('x', 0, LAKE.x0 + 2, CORRY[2][0] + 1); plate('x', 0, LAKE.x1 - 2, CORRY[2][0] + 1)             // Hàng Khay (nam hồ)
     plate('x', 6, LAKE.x0 + 3, CORRY[PED][1]); plate('x', 6, LAKE.x1 - 3, CORRY[PED][0])                   // phố đi bộ
-    let k = 0; const names = [2, 3, 4, 7]
-    for (const cx of CORRX) for (const cy of CORRY_T) { plate(k % 2 ? 'x' : 'y', names[k++ % 4], cx[0] + 1, cy[0] + 1) }
+    // biển ngã tư chọn tên theo vị trí: bắc hồ (phía phố cổ) = Hàng Đào / Hàng Bạc; nam hồ = Tràng Tiền / Lý Thường Kiệt (không đổi vị trí, không gọi rnd)
+    let k = 0; const NORTH = [3, 4], SOUTH = [2, 7]
+    for (const cx of CORRX) for (const cy of CORRY_T) { const L = cy[1] < LAKE.y0 ? NORTH : SOUTH; plate(k % 2 ? 'x' : 'y', L[k++ % 2], cx[0] + 1, cy[0] + 1) }
     for (const ax of ARCHX) {
       const nm = ax === 47 ? 'lm_arch_shop' : ax === 38 ? 'lm_arch_walk' : 'lm_arch_lake', gy = CORRY[PED][0]
       mark(ax, gy, 1, 7, false); sprite(nm, ax, gy)
       colliders.push({ x: ax + 0.5, y: gy + 10 / 36, r: 0.3 }, { x: ax + 0.5, y: gy + 7 - 10 / 36, r: 0.3 })
-      for (const cy of [0.28, 6.72]) nightLights.push({ gx: ax + 0.5, gy: gy + cy, z: 60, r: 30, a: 0.5 })
-      nightLights.push({ gx: ax + 0.5, gy: gy + 3.5, z: 85, r: 70, a: 0.35 })
+      for (const cy of [0.28, 6.72]) nightLights.push({ gx: ax + 0.5, gy: gy + cy, z: 60, r: 30, a: 0.5, kind: 'lakePost', grp: 'deco' })
+      nightLights.push({ gx: ax + 0.5, gy: gy + 3.5, z: 85, r: 70, a: 0.35, kind: 'lantern', grp: 'deco' })
     }
   }
 
@@ -280,12 +289,13 @@ const World = (() => {
       if (kind[ty]?.[tx] !== 'walk' || used.has(cxk) || !tileUse(tx, ty)) continue
       used.add(cxk)
       const r = rnd(), cx = tx + 0.5, cy = ty + 0.5
+      f.px = cx; f.py = cy; f.axis = axis                                   // 4B: chỗ vỉa hè trước cửa (đèn hắt ra, khách ngồi)
       if (f.shop) {
-        if (r < 0.28) prop(pick(['p_cafe_red', 'p_cafe_green']), cx, cy)
-        else if (r < 0.42) prop('p_pho', cx, cy)
-        else if (r < 0.52) prop('p_banhmi', cx, cy)
-        else if (r < 0.62) prop('p_stools', cx, cy)
-        else if (r < 0.72) prop('p_fruit', cx, cy)
+        if (r < 0.28) prop(f.prop = pick(['p_cafe_red', 'p_cafe_green']), cx, cy)
+        else if (r < 0.42) prop(f.prop = 'p_pho', cx, cy)
+        else if (r < 0.52) prop(f.prop = 'p_banhmi', cx, cy)
+        else if (r < 0.62) prop(f.prop = 'p_stools', cx, cy)
+        else if (r < 0.72) prop(f.prop = 'p_fruit', cx, cy)
       } else if (r < 0.45) {
         for (let k = 0; k < 2; k++) { const i = Math.floor(rnd() * 6); const o = (k - 0.5) * 0.7; prop(`mop_${i}_${axis}`, axis === 'y' ? cx : cx + o, axis === 'y' ? cy + o : cy, { r: 0.2 }) }
       } else if (r < 0.55) prop('p_planter', cx, cy)
@@ -327,7 +337,7 @@ const World = (() => {
     for (const [lx, ly] of [[14.4, 5.2], [11.6, 9.4], [15.4, 9.8], [11.6, 4.6]]) prop('t_small_2', X0 + lx, Y0 + ly, { r: 0.3 })     // cây trên đảo Ngọc
     prop('p_flagpole', X0 + 23, Y0 + 9); prop('p_bench_y', X0 + 23.6, Y0 + 14.5); prop('p_bench_y', X0 + 23.6, Y0 + 16.8); prop('p_cyclo', X0 + 23.2, Y0 + 19.5)
     pois.push({ id: 'bridge', label: 'Cầu Thê Húc', gx: X0 + 19, gy: Y0 + 8, r: 2.1 }, { id: 'temple', label: 'Đền Ngọc Sơn (đảo Ngọc)', gx: X0 + 15.5, gy: Y0 + 7.5, r: 2.4 },
-      { id: 'pen', label: 'Tháp Bút - Đài Nghiên', gx: X0 + 21.5, gy: Y0 + 5.5, r: 2.4 }, { id: 'tower', label: 'Tháp Rùa (ngắm từ bờ đông)', gx: X0 + 22.5, gy: Y0 + 15.5, r: 2.4 })
+      { id: 'pen', label: 'Tháp Bút – Đài Nghiên', gx: X0 + 21.5, gy: Y0 + 5.5, r: 2.4 }, { id: 'tower', label: 'Tháp Rùa (ngắm từ bờ đông)', gx: X0 + 22.5, gy: Y0 + 15.5, r: 2.4 })
   }
 
   function genGate() {                                         // Ô Quan Chưởng nằm giữa phố đi bộ: hai bên đều là chợ đêm / ẩm thực
@@ -347,7 +357,7 @@ const World = (() => {
       if ([0, 1, 2].some((d) => inAny(x + d, CORRX)) || (x >= 22 && x <= 25) || (x >= 44 && x <= 56) || ARCHX.some((q) => Math.abs(x + 1 - q) <= 1)) continue
       for (const row of [y0 + 1, y0 + 5]) {
         const nm = names[(k++ * 7 + x) % names.length]
-        prop(nm, x + 1.0, row + 0.5); nightLights.push({ gx: x + 1.0, gy: row + 0.5, z: 48, r: 46, a: 0.62 })
+        prop(nm, x + 1.0, row + 0.5); nightLights.push({ gx: x + 1.0, gy: row + 0.5, z: 48, r: 46, a: 0.62, stall: nm })
         if (rnd() < 0.5) prop('p_stools', x + 1.0 + (row === y0 + 1 ? 0.05 : -0.05), row + (row === y0 + 1 ? 1.1 : -0.1), { r: 0 })
       }
     }
@@ -369,12 +379,12 @@ const World = (() => {
       }
     }
     const free = (x, y) => !used.has(Math.floor(x) + ',' + Math.floor(y))
-    const put = (name, x, y, r, nl) => { if (!free(x, y)) return false; used.add(Math.floor(x) + ',' + Math.floor(y)); prop(name, x, y, { r }); if (nl) nightLights.push({ gx: x, gy: y, z: nl[0], r: nl[1], a: nl[2] }); return true }
+    const put = (name, x, y, r, nl) => { if (!free(x, y)) return false; used.add(Math.floor(x) + ',' + Math.floor(y)); prop(name, x, y, { r }); if (nl) nightLights.push({ gx: x, gy: y, z: nl[0], r: nl[1], a: nl[2], stall: name }); return true }
     let seg = 0
     for (const [x0, x1] of BLOCKX) for (let x = x0 + 1; x + 5 <= x1; x += 8, seg++) {
       const yN = RS + 0.5, yS = RN + 0.5                                    // hàng sát hàng rào (bắc: 45, nam: 49)
       // phía bắc: quầy cafe sát nhà ở nửa đầu hàng 44, bàn ghế sát hàng rào ở nửa sau hàng 45 -> luôn có lối đi chéo qua đoạn quán
-      if (free(x + 1.0, RAILC[0] + 0.5)) { used.add(Math.floor(x + 1.0) + ',' + RAILC[0]); prop('p_tc_counter_' + CAFE[seg % 4], x + 1.0, RAILC[0] + 0.55, { r: 0, bb: [x + 0.3, x + 1.7, RAILC[0] + 0.2, RAILC[0] + 0.9] }); colliders.push({ x: x + 0.7, y: RAILC[0] + 0.55, r: 0.4 }, { x: x + 1.3, y: RAILC[0] + 0.55, r: 0.4 }); nightLights.push({ gx: x + 1.0, gy: RAILC[0] + 0.55, z: 40, r: 44, a: 0.62 }) }
+      if (free(x + 1.0, RAILC[0] + 0.5)) { used.add(Math.floor(x + 1.0) + ',' + RAILC[0]); prop('p_tc_counter_' + CAFE[seg % 4], x + 1.0, RAILC[0] + 0.55, { r: 0, bb: [x + 0.3, x + 1.7, RAILC[0] + 0.2, RAILC[0] + 0.9] }); softProps.push({ x: x + 0.7, y: RAILC[0] + 0.55, r: 0.4 }, { x: x + 1.3, y: RAILC[0] + 0.55, r: 0.4 }); nightLights.push({ gx: x + 1.0, gy: RAILC[0] + 0.55, z: 40, r: 44, a: 0.62, stall: 'p_tc_counter' }) }
       put('p_tc_plants', x + 1.95, RAILC[0] + 0.5, 0.35)
       for (const dx of [3.45, 4.7]) put('p_tc_set_' + SET[(seg + Math.floor(dx * 3)) % 5], x + dx, yN, 0.55, [44, 34, 0.5])
       prop('p_tc_flag', x + 0.1, RAILC[0] + 0.5, { r: 0.1 })
@@ -410,8 +420,8 @@ const World = (() => {
     for (let y = Y0 + 3; y <= Y0 + 10; y++) for (let x = X0 + 3; x <= X0 + 8; x++) occ[y][x] = true
     const sx = X0 - 17, sy = Y0 - 15
     const col1 = [['p_umb_red', 19.3], ['p_pho', 21.9], ['p_umb_yellow', 24.5]], col2 = [['p_banhmi', 19.3], ['p_umb_teal', 21.9], ['p_fruit', 24.5]]
-    for (const [n, y] of col1) { prop(n, 21.0 + sx, y + sy); nightLights.push({ gx: 21.0 + sx, gy: y + sy, z: 48, r: 44, a: 0.6 }) }
-    for (const [n, y] of col2) { prop(n, 25.0 + sx, y + sy); nightLights.push({ gx: 25.0 + sx, gy: y + sy, z: 48, r: 44, a: 0.6 }) }
+    for (const [n, y] of col1) { prop(n, 21.0 + sx, y + sy); nightLights.push({ gx: 21.0 + sx, gy: y + sy, z: 48, r: 44, a: 0.6, stall: n }) }
+    for (const [n, y] of col2) { prop(n, 25.0 + sx, y + sy); nightLights.push({ gx: 25.0 + sx, gy: y + sy, z: 48, r: 44, a: 0.6, stall: n }) }
     prop('p_stools', 23.5 + sx, 20.4 + sy); prop('p_stools', 23.6 + sx, 23.4 + sy); prop('p_lamp', 22.3 + sx, 18.3 + sy); prop('p_lamp', 24.8 + sx, 25.3 + sy); prop('p_umb_orange', 23.5 + sx, 18.4 + sy, { r: 0.4 })
     pois.push({ id: 'market', label: 'Chợ phố cổ', gx: 23.5 + sx, gy: 22 + sy, r: 2.4 })
   }
@@ -422,12 +432,12 @@ const World = (() => {
     for (let y = y0 + 4; y <= y1 - 4; y++) for (let x = x0 + 3; x <= x1 - 3; x++) kind[y][x] = 'market'
     const names = ['p_umb_red', 'p_pho', 'p_umb_yellow', 'p_banhmi', 'p_umb_teal', 'p_fruit', 'p_cafe_red', 'p_umb_orange', 'p_cafe_green', 'p_kiosk']
     let k = 0
-    for (let x = x0 + 2; x < x1 - 1; x += 3) for (const row of [y0 + 2, y1 - 2]) { prop(names[(k++ * 3 + x) % names.length], x + 1.0, row + 0.5); nightLights.push({ gx: x + 1.0, gy: row + 0.5, z: 48, r: 46, a: 0.6 }) }
+    for (let x = x0 + 2; x < x1 - 1; x += 3) for (const row of [y0 + 2, y1 - 2]) { const nm = names[(k++ * 3 + x) % names.length]; prop(nm, x + 1.0, row + 0.5); nightLights.push({ gx: x + 1.0, gy: row + 0.5, z: 48, r: 46, a: 0.6, stall: nm }) }
     for (const x of [x0 + 12, x0 + 13]) for (const y of [y0 + 4, y1 - 4]) prop('p_planter', x + 0.5, y + 0.5)
     for (let x = x0 + 2; x <= x1 - 2; x += 4) for (const y of [y0 + 1, y1 - 1]) prop('p_lamp', x + 0.5, y + 0.5)
     for (const [x, y] of [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]]) prop('t_bang_1', x + 0.5, y + 0.55)
     prop('p_flagpole', x0 + 12.5, y0 + 6.5); prop('p_bench_x', x0 + 10.5, y0 + 7.5); prop('p_bench_x', x0 + 14.5, y0 + 7.5)
-    pois.push({ id: 'play', label: 'Khu vui chơi - mua sắm (sắp mở)', gx: (x0 + x1) / 2 + 0.5, gy: (y0 + y1) / 2 + 0.5, r: 5 })
+    pois.push({ id: 'play', label: 'Khu vui chơi – mua sắm (sắp mở)', gx: (x0 + x1) / 2 + 0.5, gy: (y0 + y1) / 2 + 0.5, r: 5 })
   }
 
   function genPark() {                                          // công viên: hai lối dạo cắt nhau, quảng trường giữa, cây rải đều
@@ -471,7 +481,7 @@ const World = (() => {
         done.add(kk(...m)); const [x, y] = m, e = edgeOf(x, y), ax = e === 'E' || e === 'W' ? 'y' : 'x'
         const px = e === 'E' ? x + 0.86 : x + 0.14, py = e === 'S' ? y + 0.86 : y + 0.14
         prop(`p_ngo_${ax}_${NGO_STREET[pn++ % NGO_STREET.length]}`, px, py, { r: 0.06 })
-        nightLights.push({ gx: x + 0.5, gy: y + 0.5, z: 56, r: 40, a: 0.55 })
+        nightLights.push({ gx: x + 0.5, gy: y + 0.5, z: 56, r: 40, a: 0.55, grp: 'alley' })
         const [fx, fy] = e === 'E' ? [1, 0] : e === 'W' ? [-1, 0] : e === 'S' ? [0, 1] : [0, -1]
         for (let k = 1; k <= SW; k++) for (let l = -1; l <= 1; l++) used.add(kk(x + fx * k + Math.abs(fy) * l, y + fy * k + Math.abs(fx) * l))          // vỉa hè trước cửa ngõ (rộng 3 ô) để trống: không đặt cột điện, đèn, cây, sạp che lối vào
       }
@@ -489,7 +499,7 @@ const World = (() => {
         const sg = rnd() < 0.5 ? 1 : -1, ox = ax === 'x' ? 0 : sg * 0.42, oy = ax === 'x' ? sg * 0.42 : 0
         if (i % 2 === 0 && rnd() < 0.55) prop('p_pots_' + ri(0, 3), cx + ox, cy + oy, { r: 0, bb: [cx + ox - 0.12, cx + ox + 0.12, cy + oy - 0.12, cy + oy + 0.12] })
         else if (i % 5 === 3 && rnd() < 0.55) { const m = ri(0, 5), s2 = 0.42 * -sg; prop(`mop_${m}_${ax}`, ax === 'x' ? cx : cx + s2, ax === 'x' ? cy + s2 : cy, { r: 0, bb: ax === 'x' ? [cx - 0.35, cx + 0.35, cy + s2 - 0.1, cy + s2 + 0.1] : [cx + s2 - 0.1, cx + s2 + 0.1, cy - 0.35, cy + 0.35] }) }
-        if (i % 5 === 0) nightLights.push({ gx: cx, gy: cy, z: 50, r: 30, a: 0.5 })
+        if (i % 5 === 0) nightLights.push({ gx: cx, gy: cy, z: 50, r: 30, a: 0.5, grp: 'alley' })
       })
       const Y = a.yard
       if (Y.length === 4 || Y.length === 3) {
@@ -499,14 +509,56 @@ const World = (() => {
         const q0 = out(a0, b0, 0.22), q1 = out(a1, b1, 0.22), q2 = out(a2, b2, 0.22)
         const f2 = out(a2, b2, 0.3), f0 = out(a0, b0, 0.3), f1 = out(a1, b1, 0.3)
         prop('p_shrine', f2[0], f2[1], { r: 0.12 }); prop('t_small_' + ri(1, 3), f0[0], f0[1], { r: 0.1 }); prop('p_pots_' + ri(0, 3), f1[0], f1[1], { r: 0 })
-        for (const t of Y) nightLights.push({ gx: t[0] + 0.5, gy: t[1] + 0.5, z: 52, r: 44, a: 0.6 })
+        for (const t of Y) nightLights.push({ gx: t[0] + 0.5, gy: t[1] + 0.5, z: 52, r: 44, a: 0.6, grp: 'yard' })
       } else if (a.ended === 'dead' && a.last) {
         const [ex, ey] = a.last, [dx, dy] = a.dir
-        prop('p_shrine', ex + 0.5 + dx * 0.34, ey + 0.5 + dy * 0.34, { r: 0.07 }); nightLights.push({ gx: ex + 0.5, gy: ey + 0.5, z: 30, r: 34, a: 0.6 })
+        prop('p_shrine', ex + 0.5 + dx * 0.34, ey + 0.5 + dy * 0.34, { r: 0.07 }); nightLights.push({ gx: ex + 0.5, gy: ey + 0.5, z: 30, r: 34, a: 0.6, kind: 'shrine', grp: 'home' })
       }
     }
     const win = alleys.filter((a) => a.style === 'wind' && a.tiles.length >= 8).sort((p, q) => q.tiles.length - p.tiles.length)[0]
     if (win) { const [x, y] = win.tiles[Math.floor(win.tiles.length / 2)]; pois.push({ id: 'ngo', label: 'Ngõ ngoằn nghèo', gx: x + 0.5, gy: y + 0.5, r: 2.2 }) }
+  }
+
+  // ───────── nhà người chơi: một phòng trọ có cửa nhìn ra ngõ (chọn cố định, KHÔNG dùng rnd để bố cục bản đồ giữ nguyên) ─────────
+  let home = null
+  function homeSignCanvas() {                                  // đèn cửa vàng ấm + biển số nhà xanh nhỏ, vẽ cho mặt tường hướng nam (L); mặt đông (R) lật ngang
+    const c = document.createElement('canvas'); c.width = 12; c.height = 17; const x = c.getContext('2d')
+    const P = (X, Y, col) => { x.fillStyle = col; x.fillRect(X, Y, 1, 1) }
+    // đèn: chao tối, kính vàng, tay đỡ
+    for (const [X, Y] of [[1, 0], [2, 0], [3, 0], [0, 1], [4, 1], [0, 2], [4, 2], [0, 3], [4, 3], [1, 4], [2, 4], [3, 4]]) P(X, Y, '#2a1c14')
+    for (const [X, Y] of [[1, 1], [2, 1], [3, 1], [1, 2], [2, 2], [3, 2], [1, 3], [2, 3], [3, 3]]) P(X, Y, '#ffcf5a')
+    P(1, 1, '#fff4c4'); P(2, 1, '#fff4c4'); P(1, 2, '#fff4c4')
+    P(2, 5, '#2a1c14'); P(3, 6, '#2a1c14')
+    // biển số nhà: hình bình hành theo mặt tường (đi 2 px sang phải thì xuống 1 px), viền tối, nền xanh, số trắng
+    for (let i = 0; i < 7; i++) {
+      const X = 4 + i, y0 = 8 + (i >> 1)
+      P(X, y0, '#1a2440'); P(X, y0 + 5, '#1a2440')
+      for (let k = 1; k <= 4; k++) P(X, y0 + k, i === 0 || i === 6 ? '#1a2440' : '#2f62b4')
+    }
+    for (const [i, k] of [[2, 2], [2, 3], [4, 2], [4, 3], [5, 3]]) P(4 + i, 8 + (i >> 1) + k, '#f2f4f8')
+    return c
+  }
+  function genHome() {
+    const mouth = new Set(mouthTiles.map(([x, y]) => kk(x, y))), idx = new Map()
+    for (const a of alleys) a.tiles.forEach(([x, y], i) => { const k = kk(x, y); if (!idx.has(k)) idx.set(k, i) })
+    let best = null, bd = 1e9
+    for (const f of fronts) {
+      const half = Math.floor(f.F / 2), [tx, ty] = f.fam === 'R' ? [f.gx + 3, f.gy + half] : [f.gx + half, f.gy + 3], k = kk(tx, ty)
+      if (!alleyT.has(k) || yardT.has(k) || mouth.has(k) || (idx.get(k) ?? 0) < 2) continue
+      const d = Math.hypot(tx + 0.5 - SPAWN[0], ty + 0.5 - SPAWN[1]); if (d < bd) { bd = d; best = { f, tx, ty } }
+    }
+    if (!best) return
+    const { f, tx, ty } = best, R = f.fam === 'R'
+    const along = R ? f.gy + f.F / 2 : f.gx + f.F / 2                          // giữa mặt tiền = cửa
+    const face = R ? f.gx + 3 : f.gy + 3
+    const sg = R ? [face, along - 0.36] : [along + 0.36, face]                // đèn + biển cạnh cửa, trên tường
+    const base = homeSignCanvas(), img = R ? (() => { const m = document.createElement('canvas'); m.width = base.width; m.height = base.height; const mx = m.getContext('2d'); mx.translate(base.width, 0); mx.scale(-1, 1); mx.drawImage(base, 0, 0); return m })() : base
+    const [sx, sy] = proj(sg[0], sg[1]), Z = 24                               // mép trên hình ~ngang đầu cửa (cửa cao ~19 px)
+    const bb = R ? [face + 0.01, face + 0.06, sg[1] - 0.12, sg[1] + 0.12] : [sg[0] - 0.12, sg[0] + 0.12, face + 0.01, face + 0.06]
+    statics.push({ name: 'home_sign', img, dx: Math.round(sx - img.width / 2), dy: Math.round(sy - Z), w: img.width, h: img.height, bb, flat: false, sh: null })
+    nightLights.push({ gx: R ? face + 0.08 : sg[0] - 0.1, gy: R ? sg[1] + 0.1 : face + 0.08, z: Z - 2, r: 22, a: 0.75, kind: 'warm', grp: 'home' })
+    home = { door: { gx: R ? face + 0.1 : along, gy: R ? along : face + 0.1 }, tile: [tx, ty], fam: f.fam }
+    sites.push({ id: 'home', kind: 'home', gx: tx + 0.5, gy: ty + 0.5, label: 'Phòng trọ của bạn', door: { ...home.door } })
   }
 
   function genBlocks() {
@@ -530,6 +582,59 @@ const World = (() => {
       for (const [fam, F] of [['R', 2], ['R', 1], ['L', 2], ['L', 1]]) if (bk(x, y) === bk(x + (fam === 'R' ? 2 : F - 1), y + (fam === 'R' ? F - 1 : 2)) && house(fam, F, wfloors(MIX.mid), pick(WALLS), false, x, y)) { ok = true; break }
       if (!ok) { mark(x, y, 1, 1); prop('t_bush_1', x + 0.5, y + 0.55, { r: 0.2 }) }
     }
+  }
+
+  // ───────── 4B: loại quán ở mặt tiền + giờ mở cửa thật (docs/STREET_LIFE.md §3, §5.2) ─────────
+  // Không gọi rnd() ở đây (giữ nguyên bản đồ + id site): loại quán và "tính cách" mở/đóng lấy từ hash vị trí.
+  const SHOP_OPEN = { pho: 'pho', banhmi: 'banhmi', tea: 'trachanh', biahoi: 'biahoi', trada: 'trada', taphoa: 'taphoa', clothes: 'quanao', cafe: 'caphe', combinh: 'combinh', cstore: 'cstore' }
+  const SHOP_LIGHT = { pho: 'pho', banhmi: 'banhmi', tea: 'tea', biahoi: 'biahoi', trada: 'cafe', taphoa: 'taphoa', clothes: 'clothes', cafe: 'cafe', combinh: 'pho', cstore: 'cstore' }
+  const SITE_OPEN = { pho: 'pho', banhmi: 'banhmi', tc: 'caphe', hair: 'kiosk' }               // xích lô, điểm xem tàu, nhà: luôn "mở"
+  function assignShops() {
+    for (const f of fronts) {
+      if (f.px === undefined) { if (f.fam === 'R') { f.px = f.gx + 3.5; f.py = f.gy + f.F / 2; f.axis = 'y' } else { f.px = f.gx + f.F / 2; f.py = f.gy + 3.5; f.axis = 'x' } }
+      if (!f.shop) continue
+      const u = hash01(f.gx * 31 + 7, f.gy * 17 + 3, 11), p = f.prop || ''
+      f.sk = p === 'p_pho' ? 'pho' : p === 'p_banhmi' ? 'banhmi' : p.startsWith('p_cafe') ? 'tea' : p === 'p_stools' ? (u < 0.5 ? 'biahoi' : 'trada') : p === 'p_fruit' ? 'taphoa'
+        : u < 0.36 ? 'clothes' : u < 0.6 ? 'taphoa' : u < 0.74 ? 'cafe' : u < 0.86 ? 'combinh' : 'biahoi'
+      f.seed = hash01(f.gx * 13 + 1, f.gy * 29 + 5, 21)
+    }
+    for (const s of sites) {
+      s.ped = inR(Math.floor(s.gy), CORRY[PED])                                   // sạp phố đi bộ: chợ đêm T6–CN
+      const f = fronts.find((q) => q.px !== undefined && Math.abs(q.px - s.gx) < 0.05 && Math.abs(q.py - s.gy) < 0.05 && q.shop)
+      if (f && (s.kind === 'pho' || s.kind === 'banhmi')) s.front = f                  // xe phở/bánh mì trước cửa hàng: mở cùng giờ với cửa hàng
+      s.seed = hash01(Math.round(s.gx * 10), Math.round(s.gy * 10), 77)
+    }
+    pinSites()
+  }
+  function shopOpen(f, h = sky.hour, wd = cal.wd) {
+    const key = Math.floor(h * 120) + wd * 4000; if (f._ok === key) return f._ov            // đệm theo nấc 30 giây game
+    f._ok = key
+    return (f._ov = f.pin ? SL.inHours(h, f.pin.open, f.pin.close) : f.seed < SL.openProb(SHOP_OPEN[f.sk] || 'taphoa', h, wd))
+  }
+  function siteOpenAt(s, h = sky.hour, wd = cal.wd) {
+    if (!s) return false
+    if (s.pin) return SL.inHours(h, s.pin.open, s.pin.close)
+    const k = SITE_OPEN[s.kind]; if (!k) return true
+    if (s.ped && (wd === 5 || wd === 6 || wd === 0) && h >= 18) return true          // chợ đêm phố đi bộ 18h–24h (§2)
+    if (s.front) return shopOpen(s.front, h, wd)
+    return s.seed < SL.openProb(k, h, wd)
+  }
+  // quán ghim (§3.3): giờ nào cũng ≥2 chỗ ăn. Chọn quán CÓ SẴN, xa nhau; không thêm site mới.
+  const PINS = []
+  function pinSites() {
+    const food = (k) => sites.filter((s) => s.kind === k && !s.ped && !s.pin)
+    const nearest = (L, x, y) => L.sort((a, b) => Math.hypot(a.gx - x, a.gy - y) - Math.hypot(b.gx - x, b.gy - y))[0]
+    const pin = (s, id, open, close, label) => {
+      if (!s) return
+      s.pin = { id, open, close }; s.pinned = id; s.hours = `${SL.fmtH(open)}–${SL.fmtH(close)}`
+      s.label = `${label}${open === close ? '' : ` (${s.hours})`} · ${areaOf(s.gx, s.gy)}`          // "Cửa hàng tiện lợi 24h · phố cổ", "Phở đêm (18:00–03:00) · phố cổ"
+      if (s.front) { s.front.pin = { open, close }; if (id === 'circle_k') s.front.sk = 'cstore' }
+      PINS.push(s)
+    }
+    pin(nearest(sites.filter((s) => s.kind === 'banhmi' && s.front && !s.ped), SPAWN[0], SPAWN[1]), 'circle_k', 0, 0, 'Cửa hàng tiện lợi 24h')   // bán bánh mì, đồ ăn nóng [21]
+    pin(nearest(food('pho'), 20, 52), 'pho_dem', 18, 3, 'Phở đêm')                       // kiểu Phở Huy, Phùng Hưng [15]
+    pin(nearest(food('pho'), 22, 18), 'pho_ganh', 3, 10, 'Phở gánh')           // kiểu phở gánh Hàng Chiếu [15]
+    pin(nearest(food('banhmi'), 92, 62), 'banh_mi_khuya', 20, 4, 'Bánh mì khuya')         // xe bánh mì khuya [QS]
   }
 
   // ───────── mặt đất → tên ô ─────────
@@ -575,44 +680,154 @@ const World = (() => {
   const ph = { t: 0, i: 0 }; const PH_DUR = [9, 2, 9, 2]
   const crossings = ROADX.map((r) => ({ x0: r[0], down: false, flash: 0 }))
   const train = { state: 'wait', t: 6, dir: 1, head: 0, speed: 5.2, cars: [], len: 0 }
+  // 4B — nhịp xe theo giờ + thứ (docs/STREET_LIFE.md §1.2, §5.1): mỗi làn có một "kho" xe cố định (không đổi độ dài mảng),
+  // xe nào `on` mới chạy/vẽ. Số xe bật = sức chứa × mật độ giờ đó. Giờ cao điểm ngày thường các trục chính bò chậm, dồn hàng.
+  // Không đỗ trên ray/vạch qua đường/giữa ngã tư (vùng "giữ trống"). Phố đi bộ (T6 19h → CN 24h): đoạn quanh hồ có rào, xe quay đầu.
+  const MOBILE = typeof innerWidth !== 'undefined' && innerWidth < 700
+  const POOL = MOBILE ? 9 : 13, POOL_MAIN = MOBILE ? 16 : 28
+  const tr = { D: SL.densityAt(15.5, 5), hornCD: 4, ws: false, lastH: null, lastDay: null }
   function newVeh(lane, pos) {
-    const t = rnd(), v = { lane, pos, v: 0, lat: 0, dwell: 0, visited: new Set() }
-    if (t < 0.68) { v.type = 'moto'; v.len = 0.83; v.vmax = rr(2.3, 3.3); v.sp = `mo_${Math.floor(rnd() * 6)}_`; v.lat = rr(-0.28, 0.28) }
-    else if (t < 0.9) { v.type = 'car'; v.len = 1.72; v.vmax = rr(2.1, 2.8); v.sp = `car_${Math.floor(rnd() * 5)}_`; v.lat = rr(-0.1, 0.1) }
-    else { v.type = 'bus'; v.len = 3.39; v.vmax = rr(1.7, 2.1); v.sp = `bus_${pick(['a', 'b', 'c'])}_`; v.lat = rr(-0.05, 0.05) }
+    const D = tr.D, t = rnd(), v = { lane, pos, v: 0, lat: 0, dwell: 0, visited: new Set(), on: true, brk: false, stopT: 0 }
+    const pBus = lane.busOK ? 0.13 * D.bus : 0, pCar = clamp(D.car / (D.moto * 2.4 + D.car + 1e-6), 0.1, 0.42)
+    if (t < pBus) { v.type = 'bus'; v.len = 3.39; v.vmax = rr(1.7, 2.1); v.sp = `bus_${pick(['a', 'b', 'c'])}_`; v.lat = rr(-0.05, 0.05) }
+    else if (t < pBus + pCar) { v.type = 'car'; v.len = 1.72; v.vmax = rr(2.1, 2.8); v.sp = `car_${Math.floor(rnd() * 5)}_`; v.lat = rr(-0.1, 0.1) }
+    else { v.type = 'moto'; v.len = 0.83; v.vmax = rr(2.3, 3.3); v.sp = `mo_${Math.floor(rnd() * 6)}_`; v.lat = rr(-0.28, 0.28) }
     v.name = v.sp + SUF(lane.axis, lane.dir); return v
   }
   function genTraffic() {
     for (const r of ROADY) { LANES.push({ axis: 'x', dir: 1, c: r[0] + 2.5, vs: [], stops: [] }); LANES.push({ axis: 'x', dir: -1, c: r[0] + 0.5, vs: [], stops: [] }) }
     for (const r of ROADX) { LANES.push({ axis: 'y', dir: 1, c: r[0] + 0.5, vs: [], stops: [] }); LANES.push({ axis: 'y', dir: -1, c: r[0] + 2.5, vs: [], stops: [] }) }
-    for (const L of LANES) {
+    const onRoad = (L, R) => inR(Math.floor(L.c), R)
+    LANES.forEach((L, i) => {
+      L.idx = i; L.pair = i ^ 1
+      L.main = L.axis === 'x' ? onRoad(L, BUSY) : onRoad(L, ROADX[1]) || onRoad(L, ROADX[2])          // Hàng Khay, Lê Thái Tổ, Đinh Tiên Hoàng
+      L.busOK = L.axis === 'x' ? onRoad(L, BUSY) || onRoad(L, ROADY[ROADY.length - 1]) : onRoad(L, ROADX[0]) || onRoad(L, ROADX[3])
+      L.cl = null                                                                                  // đoạn cấm xe khi phố đi bộ: [a,b] theo trục làn
+      if (L.axis === 'x' && onRoad(L, BUSY)) L.cl = [CORRX[1][0], CORRX[2][1] + 1]                 // Hàng Khay (cả hai chiều)
+      if (L.axis === 'y' && onRoad(L, ROADX[2])) L.cl = [CORRY[PED][0], CORRY[2][1] + 1]           // Đinh Tiên Hoàng (cả hai chiều)
+      if (L.axis === 'y' && onRoad(L, ROADX[1]) && L.dir < 0) L.cl = [CORRY[PED][0], CORRY[2][1] + 1]   // Lê Thái Tổ: chỉ nửa đường phía hồ [3]
+      L.detour = !L.cl && (L.axis === 'x' ? onRoad(L, ROADY[0]) : onRoad(L, ROADX[1]))              // xe dồn sang phố bao quanh (×1.3)
+      L.zones = (L.axis === 'x' ? CORRX : CORRY).map((c) => [c[0], c[1] + 1])                      // ngã tư + vạch qua đường
+      if (L.axis === 'y') L.zones.push([RS, RN + 1])                                                // đường ray: không bao giờ dừng trên ray
+      L.pool = L.main ? POOL_MAIN : POOL; L.tgt = 1; L.spawnT = 0
       const corr = L.axis === 'x' ? CORRX : CORRY_T
       for (const c of corr) L.stops.push({ pos: L.dir > 0 ? c[0] - 0.1 : c[1] + 1.1, closed: () => (L.axis === 'x' ? ph.i !== 0 : ph.i !== 2) })
       if (L.axis === 'y') {
         const k = ROADX.findIndex((r) => inR(Math.floor(L.c), r))
         L.stops.push({ pos: L.dir > 0 ? RS - 0.1 : RN + 1.1, closed: () => crossings[k].down })
       }
-      const n = 6 + Math.floor(rnd() * 3), span = N + 10
-      for (let i = 0; i < n; i++) { const p = -5 + (i + rnd() * 0.6) * span / n; L.vs.push(newVeh(L, L.dir > 0 ? p : N - p + 0)) }
+      const span = N + 10
+      for (let k = 0; k < L.pool; k++) { const p = -5 + (k + rnd() * 0.6) * span / L.pool; L.vs.push(newVeh(L, L.dir > 0 ? p : N - p + 0)) }
+    })
+  }
+  const inClosed = (L, p) => tr.ws && L.cl && p > L.cl[0] - 0.2 && p < L.cl[1] + 0.2
+  function laneTarget(L) {
+    const D = tr.D, base = 0.72 * D.moto + 0.28 * D.car
+    let f = L.main ? 1 : 0.72
+    if (tr.ws) f *= L.cl ? 0.9 : L.detour ? 1.3 : 1.1
+    if (L.main) f *= 1 + 0.35 * D.rush
+    return clamp(Math.round(L.pool * clamp(base, 0, 1) * f), 1, L.pool)
+  }
+  // rải lại xe theo mật độ mới (khi nhảy giờ / đổi ngày): không đặt vào vùng giữ trống hay đoạn cấm
+  function resettleTraffic() {
+    tr.D = SL.densityAt(sky.hour, cal.wd); tr.ws = tr.D.ws
+    for (const L of LANES) {
+      L.tgt = laneTarget(L); const n = L.tgt, span = N + 6
+      L.vs.forEach((v, k) => {
+        if (k >= n) { v.on = false; v.pos = L.dir > 0 ? -9 : N + 9; v.v = 0; return }
+        let p = -3 + (k + 0.15 + rnd() * 0.5) * span / n
+        for (const z of L.zones) if (p > z[0] - 1.2 && p < z[1] + 1.2) p = L.dir > 0 ? z[0] - 1.3 : z[1] + 1.3
+        if (inClosed(L, p)) p = L.dir > 0 ? L.cl[0] - 1.5 - rnd() * 6 : L.cl[1] + 1.5 + rnd() * 6
+        Object.assign(v, newVeh(L, p)); v.v = v.vmax * 0.6
+      })
     }
+  }
+  function uturn(L, v) {                                                     // tới rào phố đi bộ: quay đầu sang làn ngược chiều (hoặc rẽ đi mất)
+    const P = LANES[L.pair]
+    if (P.axis === L.axis && !inClosed(P, v.pos)) {
+      const clear = P.vs.every((u) => !u.on || Math.abs(u.pos - v.pos) > 1.6 + (u.len + v.len) / 2)
+      if (!clear) return false
+      const u = P.vs.find((q) => !q.on)
+      if (u) { Object.assign(u, newVeh(P, v.pos)); Object.assign(u, { type: v.type, len: v.len, vmax: v.vmax, sp: v.sp, lat: v.lat, name: v.sp + SUF(P.axis, P.dir), v: 0.3 }) }
+    }
+    v.on = false; v.pos = L.dir > 0 ? -9 : N + 9; v.v = 0; return true
   }
   function stepTraffic(dt) {
     ph.t += dt; if (ph.t > PH_DUR[ph.i]) { ph.t = 0; ph.i = (ph.i + 1) % 4 }
-    const peds = pedList()
+    tr.D = SL.densityAt(sky.hour, cal.wd); tr.ws = tr.D.ws
+    const peds = pedList().filter((P) => roadLike.has(kind[clamp(Math.floor(P.gy), 0, N - 1)][clamp(Math.floor(P.gx), 0, N - 1)])), slow = 1 - 0.64 * tr.D.rush   // chỉ người đang ở lòng đường
+    const P0 = typeof Game !== 'undefined' && Game.state && Game.state.player
+    tr.hornCD -= dt
     for (const L of LANES) {
-      L.vs.sort((a, b) => (b.pos - a.pos) * L.dir)
-      for (let i = 0; i < L.vs.length; i++) {
-        const v = L.vs[i], lead = L.vs[i - 1]
-        let tv = v.vmax
+      L.tgt = laneTarget(L)
+      const act = L.vs.filter((v) => v.on)
+      act.sort((a, b) => (b.pos - a.pos) * L.dir)
+      let nOn = act.length
+      for (let i = 0; i < act.length; i++) {
+        const v = act[i], lead = act[i - 1]
+        if (!v.on) continue
+        let tv = v.vmax * (L.main ? slow : 1)
         if (v.dwell > 0) { v.dwell -= dt; tv = 0 }
-        if (lead) { const gap = (lead.pos - v.pos) * L.dir - (lead.len + v.len) / 2; if (gap < 0.3) tv = 0; else if (gap < 1.6) tv = Math.min(tv, (gap - 0.3) * 2.2) }
+        if (lead && lead.on) { const g0 = v.type === 'moto' && lead.type === 'moto' ? 0.1 : 0.3, gap = (lead.pos - v.pos) * L.dir - (lead.len + v.len) / 2; if (gap < g0) tv = 0; else if (gap < 1.4 + g0) tv = Math.min(tv, (gap - g0) * 2.2) }   // xe máy dồn sát nhau khi tắc
         const front = v.pos + L.dir * v.len / 2
         for (const s of L.stops) { const d = (s.pos - front) * L.dir; if (d > -0.05 && d < 7 && s.closed()) { if (d < 0.12) tv = 0; else tv = Math.min(tv, d * 1.8) } }
-        for (const P of peds) { const along = (L.axis === 'x' ? P.gx : P.gy), lat = (L.axis === 'x' ? P.gy : P.gx), d = (along - front) * L.dir; if (d > -0.3 && d < 1.7 && Math.abs(lat - (L.c + v.lat)) < 0.8 && roadLike.has(kind[clamp(Math.floor(P.gy), 0, N - 1)][clamp(Math.floor(P.gx), 0, N - 1)])) { tv = 0; break } }
+        // vùng giữ trống: chưa chắc qua hết thì dừng trước vạch, không đứng giữa ngã tư / trên ray
+        if (lead && lead.on) for (const z of L.zones) {                       // chỗ trống phía sau vùng = vị trí xe trước sau ~0,8 s
+          const entry = L.dir > 0 ? z[0] : z[1], exit = L.dir > 0 ? z[1] : z[0], d = (entry - front) * L.dir
+          if (d > -0.05 && d < 1.8) { const room = (lead.pos + L.dir * lead.v * 0.8 - L.dir * lead.len / 2 - exit) * L.dir; if (room < v.len + 0.35) tv = Math.min(tv, d < 0.12 ? 0 : (d - 0.1) * 2) }
+        }
+        let atBar = false
+        if (tr.ws && L.cl) { const e = L.dir > 0 ? L.cl[0] : L.cl[1], d = (e - front) * L.dir; if (d > -0.3 && d < 7) { atBar = d < 0.7; tv = Math.min(tv, d < 0.15 ? 0 : d * 1.6) } }
+        for (const P of peds) { if (P.off) continue; const along = (L.axis === 'x' ? P.gx : P.gy), lat = (L.axis === 'x' ? P.gy : P.gx), d = (along - front) * L.dir; if (d > -0.3 && d < 1.7 && Math.abs(lat - (L.c + v.lat)) < 0.8 && roadLike.has(kind[clamp(Math.floor(P.gy), 0, N - 1)][clamp(Math.floor(P.gx), 0, N - 1)])) { tv = 0; break } }
         if (v.type === 'bus' && L.axis === 'x' && L.dir < 0 && L.c === BUSY[0] + 0.5) for (const bx of BUSSTOPS) if (!v.visited.has(bx) && Math.abs(v.pos - bx) < 0.3) { v.visited.add(bx); v.dwell = 3.5 }
+        v.brk = tv < v.v - 0.08 || v.v < 0.15
         v.v += clamp(tv - v.v, -dt * 6.5, dt * 2.2); v.pos += L.dir * v.v * dt
-        if (L.dir > 0 && v.pos > N + 5) { Object.assign(v, newVeh(L, -5 - rnd() * 4)) }
-        else if (L.dir < 0 && v.pos < -5) { Object.assign(v, newVeh(L, N + 5 + rnd() * 4)) }
+        v.stopT = v.v < 0.2 ? v.stopT + dt : 0
+        if (atBar && v.v < 0.25 && v.stopT > 0.6) { if (uturn(L, v)) nOn--; continue }
+        if (L.main && tr.D.rush > 0.4 && v.stopT > 2.5 && tr.hornCD <= 0 && P0) {                 // còi thưa trong giờ tắc, chỉ khi ở gần người chơi
+          const gx = L.axis === 'x' ? v.pos : L.c + v.lat, gy = L.axis === 'x' ? L.c + v.lat : v.pos
+          if (Math.hypot(gx - P0.gx, gy - P0.gy) < 12) { bus.emit('sfx', { name: 'horn', gx, gy }); tr.hornCD = 5 + Math.random() * 7 }
+        }
+        const out = L.dir > 0 ? v.pos > N + 5 : v.pos < -5
+        if (out) {
+          if (nOn > L.tgt) { v.on = false; v.pos = L.dir > 0 ? -9 : N + 9; v.v = 0; nOn-- }
+          else Object.assign(v, newVeh(L, L.dir > 0 ? -5 - rnd() * 4 : N + 5 + rnd() * 4))
+        }
+      }
+      // thiếu xe so với mật độ: cho một xe mới vào từ mép bản đồ (cách quãng, không chồng lên xe đang vào)
+      nOn = L.vs.reduce((s, v) => s + (v.on ? 1 : 0), 0)
+      if (nOn < L.tgt && (L.spawnT -= dt) <= 0) {
+        const e = L.dir > 0 ? -5 : N + 5
+        if (L.vs.every((v) => !v.on || Math.abs(v.pos - e) > 2.4)) { const v = L.vs.find((q) => !q.on); if (v) { Object.assign(v, newVeh(L, e)); v.v = v.vmax * 0.8 } }
+        L.spawnT = 0.25 + rnd() * 0.5
+      }
+    }
+  }
+  // rào phố đi bộ (chỉ vẽ, không va chạm): thanh sọc đỏ trắng ngang lòng đường ở đầu mỗi đoạn cấm
+  const barCache = {}
+  function barrierCanvas(ax, len) {
+    const k = ax + len; if (barCache[k]) return barCache[k]
+    const W_ = Math.ceil(len * 36) + 4, H_ = Math.ceil(len * 18) + 14, c = document.createElement('canvas'); c.width = W_; c.height = H_
+    const g = c.getContext('2d'), P = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1) }
+    const at = (t) => ax === 'x' ? [2 + t * 36, 11 + t * 18] : [W_ - 3 - t * 36, 11 + t * 18]       // chân rào trên mặt đất theo trục cắt ngang đường
+    const n = Math.ceil(len * 36)
+    for (let i = 0; i <= n; i++) { const t = i / 36, [x, y] = at(t), X = Math.round(x), Y = Math.round(y), red = Math.floor(i / 5) % 2 === 0; P(X, Y - 9, '#3a1a14'); P(X, Y - 8, red ? '#e0302a' : '#f4f0e6'); P(X, Y - 7, red ? '#b02420' : '#d8d2c4'); P(X, Y - 6, '#3a1a14') }
+    for (let q = 0; q <= 3; q++) { const [x, y] = at(len * q / 3), X = Math.round(x), Y = Math.round(y); for (let k2 = -10; k2 <= 0; k2++) P(X, Y + k2, '#2a2a30'); P(X - 1, Y, '#2a2a30'); P(X + 1, Y, '#2a2a30'); if (q === 0 || q === 3) { P(X, Y - 11, '#ff5040'); P(X, Y - 12, '#ff8a70') } }
+    c.x0 = at(0); return (barCache[k] = c)
+  }
+  const closures = []                                                         // vị trí rào (để vẽ + đèn đỏ nhấp nháy)
+  function buildClosures() {
+    const seen = new Set()
+    for (const L of LANES) {
+      if (!L.cl) continue
+      const both = !!LANES[L.pair].cl, road = (L.axis === 'x' ? ROADY_ALL : ROADX).find((r) => inR(Math.floor(L.c), r))
+      const lo = both ? road[0] : Math.floor(L.c), len = both ? 3 : 1
+      for (const e of [L.cl[0] - 0.35, L.cl[1] + 0.35]) {
+        const key = L.axis + ':' + e + ':' + lo; if (seen.has(key)) continue; seen.add(key)
+        const ax = L.axis === 'x' ? 'y' : 'x', c = barrierCanvas(ax, len)
+        const gx = L.axis === 'x' ? e : lo, gy = L.axis === 'x' ? lo : e, [sx, sy] = proj(gx, gy)
+        const bb = ax === 'x' ? [gx, gx + len, gy - 0.05, gy + 0.05] : [gx - 0.05, gx + 0.05, gy, gy + len]
+        closures.push({ img: c, dx: Math.round(sx - c.x0[0]), dy: Math.round(sy - c.x0[1]), w: c.width, h: c.height, bb, gx, gy, len, ax })
       }
     }
   }
@@ -639,7 +854,7 @@ const World = (() => {
     }
     // người đứng trên đường ray khi tàu tới: đưa về vỉa hè
     const P = typeof Game !== 'undefined' && Game.state && Game.state.player
-    if (P && train.state === 'run' && P.gy > RAIL_Y - 1.4 && P.gy < RAIL_Y + 1.4 && P.gx > xmin - 0.6 && P.gx < xmax + 0.6) { P.gx = clamp(P.gx, 0.5, N - 0.5); P.gy = RAILC[0] + 0.5; Game.toast('Tàu đang tới! Bạn được đưa vào vỉa hè an toàn.') }
+    if (P && train.state === 'run' && P.gy > RAIL_Y - 1.4 && P.gy < RAIL_Y + 1.4 && P.gx > xmin - 0.6 && P.gx < xmax + 0.6) { P.gx = clamp(P.gx, 0.5, N - 0.5); P.gy = RAILC[0] + 0.5; Game.toast('Tàu đang tới! Bạn được đưa lên vỉa hè cho an toàn.') }
   }
   function trainDrawables() {
     const out = []; let off = 0
@@ -666,15 +881,24 @@ const World = (() => {
   const groundZ = (gx, gy) => bridgeZ.get(Math.floor(gx) + ',' + Math.floor(gy)) || 0
 
   // ───────── giờ trong ngày, thời tiết ─────────
-  const sky = { hour: 15.5, auto: false, speed: 0.06, weather: 'sunny', cloud: 0, rain: 0, storm: 0, wxTimer: 80, autoWx: true, flash: 0, nextFlash: 7, fury: false, nextStrike: 3, shake: 0, bolts: [], pulses: [] }
+  const sky = { hour: 15.5, auto: false, speed: 0.024, weather: 'sunny', cloud: 0, rain: 0, storm: 0, wxTimer: 80, autoWx: true, flash: 0, nextFlash: 7, fury: false, nextStrike: 3, shake: 0, bolts: [], pulses: [] }
   const WXD = { sunny: [0, 0, 0], cloudy: [1, 0, 0], rain: [1, 1, 0], storm: [1, 1, 1] }
   const WXNAME = { sunny: 'nắng', cloudy: 'nhiều mây', rain: 'mưa', storm: 'mưa giông' }
-  const GRADE = [[0, '#3a4880'], [5, '#4a5590'], [6.5, '#eab9a0'], [8, '#fff0dc'], [11, '#ffffff'], [15.5, '#fff2da'], [17.5, '#ffcd98'], [19, '#c68ea4'], [20.5, '#58639c'], [24, '#3a4880']]
+  // 4B: lịch + mặt trời. Ngày 1 = Thứ Sáu; giờ mặt trời Hà Nội theo ngày trong năm (ngày 1 = 18/11: mọc ~6:08, lặn ~17:18).
+  const cal = { day: 1, wd: 5, sun: SL.sunTimes(1) }
+  let GRADE = []
+  function buildGrade() {                                     // màu nhân toàn cảnh theo mốc mặt trời (§4.6) — đêm giữ gần mức sáng cũ (#3a4880) cho dễ nhìn
+    const R = cal.sun.rise, S = cal.sun.set
+    GRADE = [[0, '#34417a'], [R - 0.95, '#323f78'], [R - 0.35, '#4a5590'], [R + 0.3, '#eab9a0'], [R + 1.7, '#fff0dc'], [11, '#ffffff'], [S - 2.2, '#fff2da'],
+      [S - 0.6, '#ffcd98'], [S - 0.05, '#dc9888'], [S + 0.2, '#8e7ca8'], [S + 0.5, '#5a64a0'], [S + 1.0, '#46538e'], [22, '#3c4a84'], [24, '#34417a']]
+  }
+  function setDay(n) { n = Math.max(1, Math.floor(n) || 1); cal.day = n; cal.wd = SL.weekdayOf(n); cal.sun = SL.sunTimes(n); buildGrade() }
+  setDay(1)
   const hex2 = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
   const mixc = (a, b, t) => { const A = hex2(a), B = hex2(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('') }
   function gradeAt(h) { for (let i = 1; i < GRADE.length; i++) if (h <= GRADE[i][0]) { const [h0, c0] = GRADE[i - 1], [h1, c1] = GRADE[i]; return mixc(c0, c1, (h - h0) / (h1 - h0)) } return GRADE[GRADE.length - 1][1] }
   const ss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t) }
-  const nightAt = (h) => h < 5 ? 1 : h < 7 ? 1 - ss(5, 7, h) : h < 18 ? 0 : h < 20.5 ? ss(18, 20.5, h) : 1
+  const nightAt = (h) => h < 12 ? 1 - ss(cal.sun.rise - 0.75, cal.sun.rise + 0.25, h) : ss(cal.sun.set - 0.35, cal.sun.set + 0.6, h)   // §4.6: tối theo giờ lặn/mọc
   function stepSky(dt) {
     if (sky.auto) { const h0 = sky.hour; sky.hour = (h0 + sky.speed * dt) % 24; if (sky.hour < h0 && hooks.newday) hooks.newday() }
     const tg = WXD[sky.weather], k = Math.min(1, dt * 0.5)
@@ -685,13 +909,18 @@ const World = (() => {
     else if (sky.storm > 0.6) { sky.nextFlash -= dt; if (sky.nextFlash <= 0) { sky.flash = 1; sky.nextFlash = 5 + Math.random() * 8; thunder(0.9, 1.4) } }
     for (let i = sky.bolts.length - 1; i >= 0; i--) { const b = sky.bolts[i]; b.t += dt; for (const pu of b.pulses) if (!pu.done && b.t >= pu[0]) { pu.done = true; sky.flash = Math.max(sky.flash, pu[1]) } if (b.t > b.life) sky.bolts.splice(i, 1) }
   }
-  // sấm: tiếng nổ + ầm ì trễ theo khoảng cách (WebAudio, chỉ bật sau khi người chơi chạm/nhấn phím)
+  // sấm: nếu khối audio có tiếng 'thunder' thì nhờ audio phát (một AudioContext chung, qua bộ nén tổng);
+  // chưa có thì dùng cách cũ: tiếng nổ + ầm ì trễ theo khoảng cách (WebAudio riêng, chỉ bật sau khi người chơi chạm/nhấn phím)
   let actx = null, noiseBuf = null
+  const audioHasThunder = () => { try { return !!window.__audio?.has?.('thunder') } catch (e) { return false } }
   function audioInit() {
+    if (window.__audio) return                                 // có khối audio: KHÔNG mở AudioContext thứ hai (dự phòng chỉ khi thật sự thiếu __audio)
     if (actx) { if (actx.state === 'suspended') actx.resume(); return }
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); const n = actx.sampleRate * 3, b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0); let l = 0; for (let i = 0; i < n; i++) { l = l * 0.98 + (Math.random() * 2 - 1) * 0.02; d[i] = l * 6 } noiseBuf = b } catch (e) { actx = null }
   }
   function thunder(dist, vol) {                                // sấm rền: tiếng nổ đục rồi lăn dài, nhiều đợt, trễ theo khoảng cách
+    if (audioHasThunder()) { bus.emit('sfx', { name: 'thunder', dist, vol }); return }   // dist 0..1, vol 1.5 = sấm gần; audio tự trễ theo dist
+    if (window.__audio) return
     if (!actx || actx.state !== 'running' || !noiseBuf) return
     const t0 = actx.currentTime + 0.05 + dist * 1.3
     const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true
@@ -750,7 +979,7 @@ const World = (() => {
     lo.pop(); up.pop(); return lo.concat(up)
   }
   function sunState() {
-    const h = sky.hour, d = clamp((h - 6) / 12, 0, 1), a = (135 - 180 * d) * Math.PI / 180, e = Math.sin(Math.PI * d), night = nightAt(h)
+    const h = sky.hour, d = clamp((h - cal.sun.rise) / (cal.sun.set - cal.sun.rise), 0, 1), a = (135 - 180 * d) * Math.PI / 180, e = Math.sin(Math.PI * d), night = nightAt(h)
     const dim = (1 - sky.cloud * 0.55) * (1 - sky.rain * 0.4)
     const alpha = 0.36 * Math.sqrt(Math.max(0, e)) * dim + 0.1 * night * (1 - sky.cloud * 0.5)
     const k = e > 0.05 ? 0.3 + (1 - e) * 1.5 : 1.2
@@ -802,9 +1031,10 @@ const World = (() => {
   // ───────── cửa sổ sáng đèn về đêm ─────────
   // mỗi ô cửa kính là một "ô cửa"; cả một tầng (một hộ) bật/tắt cùng nhau, giờ bật theo lịch, mỗi toà nhà một tính cách
   const G1 = mixc('#1e4a5a', '#1c1822', 0.35), G2 = mixc('#52949a', mixc('#1e4a5a', '#1c1822', 0.35), 0.45), G3 = mixc('#8cbfba', mixc('#1e4a5a', '#1c1822', 0.35), 0.3)
-  const WIN_AMBER = ['#ffcf84', '#f2b45c', '#e89a46'], WIN_TV = '#9cc2ea', WIN_SHOP = '#ffe9b0', WIN_CURTAIN = '#9a5a2a'
-  const LIT_CURVE = [[16.5, 0], [18, 0.14], [19.5, 0.55], [21, 0.74], [22.5, 0.52], [24, 0.3], [25, 0.17], [27, 0.1], [29, 0.05], [30.5, 0.09], [31.5, 0]]
-  function litFrac(h) { h = h < 6 ? h + 24 : h; for (let i = 1; i < LIT_CURVE.length; i++) if (h <= LIT_CURVE[i][0]) { const [h0, f0] = LIT_CURVE[i - 1], [h1, f1] = LIT_CURVE[i]; return f0 + (f1 - f0) * (h - h0) / (h1 - h0) } return 0 }
+  const WIN_AMBER = ['#ffcf84', '#f2b45c', '#e89a46'], WIN_TUBE = '#e4eef8', WIN_TV = ['#6fa8ff', '#b4d2ff'], WIN_CURTAIN = '#9a5a2a'
+  // 4B: màu ô kính tầng trệt theo loại quán (§4.4) — phở tuýp trắng xanh, tiện lợi trắng lạnh, quần áo vàng ấm...
+  const SHOPWIN = { pho: '#e8fff6', banhmi: '#fff0cc', tea: '#ffd68a', biahoi: '#f0fff0', trada: '#ffd8a0', taphoa: '#fff0d8', clothes: '#ffe3b8', cafe: '#ffd8a0', combinh: '#eaf8f2', cstore: '#f7fbff' }
+  const litFrac = (h) => SL.windowFrac(h, cal.sun.set, cal.sun.rise)     // §4.5: tỉ lệ cửa sổ sáng, tắt dần về khuya
   const hash01 = (a, b = 0, c = 0) => { let x = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263) + Math.imul(c | 0, 2147483647) + 1274126177) | 0; x = Math.imul(x ^ (x >>> 13), 1274126177); x ^= x >>> 16; return (x >>> 0) / 4294967296 }
   const winCache = new WeakMap()
   function decodeWins(img, corner) {
@@ -838,18 +1068,20 @@ const World = (() => {
     winCache.set(img, wins); return wins
   }
   function instWins(o, hour) {
-    const bucket = Math.floor(hour * 4)
+    const bucket = Math.floor(hour * 4) + cal.day * 100
     if (o._lw && o._lb === bucket) return o._lw
     const corner = (o.bb[1] - o.bb[3]) * 36 - o.dx, W = decodeWins(o.img, corner)
     const seed = ((Math.round(o.bb[0]) * 73856093) ^ (Math.round(o.bb[2]) * 19349663)) | 0
-    const mood = hash01(seed, 7), fr = litFrac(hour) * (mood < 0.15 ? 0.15 : mood > 0.75 ? 1.45 : 1), shop = hour >= 17.5 && hour < 22.6
+    const mood = hash01(seed, 7), fr = litFrac(hour) * (mood < 0.15 ? 0.15 : mood > 0.75 ? 1.45 : 1), tv = SL.tvShare(hour)
+    const sh = o.front && o.front.shop && o.front.sk ? o.front : null, shopOn = sh ? shopOpen(sh, hour) : false
     const groups = new Map()
     W.forEach((w, i) => {
       const u = hash01(seed, w.fl, 1), ground = w.fl === 0
-      const on = ground ? shop && hash01(seed, 5, w.face) < 0.8 : u < fr && hash01(seed, i, 3) > 0.1
+      const on = ground && sh ? shopOn && hash01(seed, 5, w.face) < 0.9 : u < fr && hash01(seed, i, 3) > 0.1      // tầng trệt mặt phố là cửa hàng: theo giờ quán
       if (!on) return
-      const hc = hash01(seed, w.fl, 2), col = ground ? WIN_SHOP : hc < 0.07 ? WIN_TV : WIN_AMBER[hc < 0.42 ? 0 : hc < 0.78 ? 1 : 2]
-      let g = groups.get(col); if (!g) { g = { col, body: new Path2D(), top: new Path2D() }; groups.set(col, g) }
+      const hc = hash01(seed, w.fl, 2)
+      const col = ground && sh ? SHOPWIN[sh.sk] || '#ffe9b0' : hc < tv * 0.55 ? 'TV' : hash01(seed, w.fl, 4) < 0.4 ? WIN_TUBE : WIN_AMBER[hc < 0.42 ? 0 : hc < 0.78 ? 1 : 2]
+      let g = groups.get(col); if (!g) { g = { col, tv: col === 'TV', ph: hash01(seed, w.fl, 6), body: new Path2D(), top: new Path2D(), topCol: col === 'TV' ? '#3a5a90' : mixc(col, WIN_CURTAIN, sh && ground ? 0.2 : 0.55) }; groups.set(col, g) }
       for (const [y, x0, n] of w.runs) (y - w.ymin < 2 ? g.top : g.body).rect(x0, y, n, 1)
     })
     o._lw = [...groups.values()]; o._lb = bucket; return o._lw
@@ -859,7 +1091,7 @@ const World = (() => {
   const isLitHouse = (o) => o.name && (o.name[0] === 'h' || o.name[0] === 'm') && o.name[1] === '_'
   function paintWindows(o, ox, oy) {
     ex.globalCompositeOperation = 'source-over'; ex.setTransform(1, 0, 0, 1, o.dx + ox, o.dy + oy)
-    for (const g of instWins(o, sky.hour)) { ex.fillStyle = g.col; ex.fill(g.body); ex.fillStyle = mixc(g.col, WIN_CURTAIN, 0.55); ex.fill(g.top) }
+    for (const g of instWins(o, sky.hour)) { ex.fillStyle = g.tv ? WIN_TV[hash01(Math.floor(T / (0.3 + g.ph * 1.2)), g.ph * 1e6) < 0.5 ? 0 : 1] : g.col; ex.fill(g.body); ex.fillStyle = g.topCol; ex.fill(g.top) }      // ánh tivi xanh đổi sáng ngẫu nhiên 0,3–1,5 s
     ex.setTransform(1, 0, 0, 1, 0, 0)
   }
   function drawLitWindows(night) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = Math.min(0.96, night * 1.2); ctx.drawImage(emiC, 0, 0); ctx.globalAlpha = 1 }
@@ -924,21 +1156,45 @@ const World = (() => {
     if (!prev.has(key(tx, ty))) return null
     const out = []; for (let k = key(tx, ty); k !== -1; k = prev.get(k)) out.push([(k % N) + 0.5, Math.floor(k / N) + 0.5]); return out.reverse()
   }
-  function genNpc(count) {
+  // 4B: người đi bộ theo giờ (§1.2): kho NPC cố định (không xoá phần tử để id 'npc'+i ổn định), bật/tắt NGOÀI khung hình theo mật độ.
+  // Nhóm 'town' đi khắp phố cổ (pedOld), nhóm 'lake' quanh hồ + phố đi bộ (pedLake, tối phố đi bộ ×1.6).
+  const NPC_CAP = MOBILE ? { town: 50, lake: 26 } : { town: 96, lake: 48 }
+  let lakeTiles = []
+  function genNpc() {
     buildNpcGrid(); buildNpcSprites(); if (!NPC_SPR.length) return
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if ((kind[y][x] === 'zebra_x' || kind[y][x] === 'zebra_y') && npcOK[y][x]) { let nb = 0; for (const [dx, dy] of D4) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && npcOK[ny][nx]) nb++ } if (nb < 2) npcOK[y][x] = false }     // vạch qua đường cụt: bỏ
     const tiles = []; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (npcOK[y][x] && kind[y][x] !== 'grass' && kind[y][x] !== 'zebra_x' && kind[y][x] !== 'zebra_y') tiles.push([x, y])
     npcTiles = tiles
-    for (let i = 0; i < count; i++) { const [x, y] = tiles[Math.floor(Math.random() * tiles.length)]; NPC.push({ gx: x + 0.5, gy: y + 0.5, path: [], pi: 0, sp: 1.0 + Math.random() * 0.6, v: i % NPC_SPR.length, dir: 'down', t: Math.random() * 9, wait: Math.random() * 3, moving: false, rt: 0.12 + Math.random() * 0.55, pc: Math.floor(Math.random() * PONCHO.length), coat: false }) }
+    lakeTiles = tiles.filter(([x, y]) => x >= LAKE.x0 - 2 && x <= LAKE.x1 + 2 && y >= CORRY[PED][0] && y <= LAKE.y1 + 2)
+    const total = NPC_CAP.town + NPC_CAP.lake
+    for (let i = 0; i < total; i++) {
+      const grp = i < NPC_CAP.town ? 'town' : 'lake', L = grp === 'lake' ? lakeTiles : tiles, [x, y] = L[Math.floor(Math.random() * L.length)]
+      NPC.push({ gx: x + 0.5, gy: y + 0.5, path: [], pi: 0, sp: 1.0 + Math.random() * 0.6, v: i % NPC_SPR.length, dir: 'down', t: Math.random() * 9, wait: Math.random() * 3, moving: false, rt: 0.12 + Math.random() * 0.55, pc: Math.floor(Math.random() * PONCHO.length), coat: false, grp, off: true })
+    }
+  }
+  function onScreen(gx, gy, m = 40) { const v = typeof Game !== 'undefined' && Game.state && Game.state.view; if (!v) return false; const [sx, sy] = proj(gx, gy), X = sx + v.ox, Y = sy + v.oy; return X > -m && X < v.w + m && Y > -m - 30 && Y < v.h + m }
+  const npcTarget = () => { const D = tr.D; return { town: Math.round(NPC_CAP.town * clamp(D.pedOld, 0, 1)), lake: Math.round(NPC_CAP.lake * clamp(D.pedLake / 1.6 * 1.25, 0, 1)) } }
+  function npcBalance(force) {
+    const tg = npcTarget()
+    for (const grp of ['town', 'lake']) {
+      const L = NPC.filter((n) => n.grp === grp), on = L.filter((n) => !n.off), want = tg[grp]
+      if (on.length > want) { let k = on.length - want; for (const n of on) { if (k <= 0) break; if (force || (n.pi >= n.path.length && !onScreen(n.gx, n.gy))) { n.off = true; k-- } } }
+      else if (on.length < want) {
+        let k = Math.min(want - on.length, force ? 999 : 6); const TL = grp === 'lake' ? lakeTiles : npcTiles
+        for (const n of L) { if (k <= 0) break; if (!n.off) continue; for (let t = 0; t < 8; t++) { const [x, y] = TL[Math.floor(Math.random() * TL.length)]; if (force || !onScreen(x + 0.5, y + 0.5)) { Object.assign(n, { gx: x + 0.5, gy: y + 0.5, path: [], pi: 0, wait: Math.random() * 2, off: false, moving: false }); k--; break } } }
+      }
+    }
   }
   function stepNpc(dt) {
     for (const n of NPC) {
+      if (n.off) continue
       n.t += dt
       if (!n.coat && sky.rain > n.rt) n.coat = true; else if (n.coat && sky.rain < n.rt - 0.14) n.coat = false
       if (n.pi >= n.path.length) {
         n.moving = false; n.wait -= dt
         if (n.wait <= 0) {
-          const tx = clamp(Math.floor(n.gx) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1), ty = clamp(Math.floor(n.gy) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1)
+          let tx = clamp(Math.floor(n.gx) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1), ty = clamp(Math.floor(n.gy) + Math.floor((Math.random() - 0.5) * 30), 0, N - 1)
+          if (n.grp === 'lake' && lakeTiles.length) { const [lx, ly] = lakeTiles[Math.floor(Math.random() * lakeTiles.length)]; if (Math.abs(lx - n.gx) + Math.abs(ly - n.gy) < 32) { tx = lx; ty = ly } }
           const p = npcOK[ty][tx] && kind[ty][tx] !== 'zebra_x' && kind[ty][tx] !== 'zebra_y' ? findPath(Math.floor(n.gx), Math.floor(n.gy), tx, ty) : null
           if (p && p.length > 1) { n.path = p; n.pi = 1 } else { n.wait = 0.4; const kk = kind[Math.floor(n.gy)][Math.floor(n.gx)]; if (roadLike.has(kk) && npcTiles.length) { const [rx, ry] = npcTiles[Math.floor(Math.random() * npcTiles.length)]; n.gx = rx + 0.5; n.gy = ry + 0.5 } }
         }
@@ -949,19 +1205,119 @@ const World = (() => {
       const sx = dx - dy, sy = (dx + dy) / 2; n.dir = Math.abs(sx) >= Math.abs(sy * 2) ? (sx > 0 ? 'right' : 'left') : (sy > 0 ? 'down' : 'up'); n.moving = true
     }
   }
+  // ───────── 4B: cảnh đời phố theo giờ (dáng __npcPoses, vẽ theo điểm neo) ─────────
+  // sáng sớm: dưỡng sinh / vươn vai / thái cực bên hồ + chạy bộ quanh hồ; ngày: cụ ông trà đá, đánh cờ; tối: trà chanh ghế nhựa,
+  // bia hơi vỉa hè, cặp đôi ghế đá ven hồ. Chỉ để vẽ (không va chạm), không ảnh hưởng tìm đường.
+  const ACT = []
+  let poseOK = false
+  const poseCache = new Map()
+  const SILK = { sh: ['#f4f2ea', '#cfcabb', '#ffffff'], pa: ['#f4f2ea', '#cfcabb'], ha: ['#8a8a92', '#b0b0b8'] }      // đồ lụa trắng tập thái cực [13b]
+  function poseFrames(name, dir, look) {
+    const key = name + '|' + dir + '|' + (typeof look === 'number' ? look : look ? 'S' : '-'); let f = poseCache.get(key); if (f) return f
+    const P = window.__npcPoses; if (!poseOK || !P || !P.raw) return null
+    const raw = P.raw(name, dir); if (!raw || !raw.length) return null
+    const lk = typeof look === 'number' ? NPC_LOOK[look % NPC_LOOK.length] : look
+    f = raw.map((c) => lk ? recolor(c, lk) : c); poseCache.set(key, f); return f
+  }
+  const dirOf = (dx, dy) => { const sx = dx - dy, sy = (dx + dy) / 2; return Math.abs(sx) >= Math.abs(sy * 2) ? (sx > 0 ? 'right' : 'left') : (sy > 0 ? 'down' : 'up') }
+  const win = (h, a, b) => h >= a && h < b
+  const ramp = (h, K2) => { if (h <= K2[0][0]) return K2[0][1]; for (let i = 1; i < K2.length; i++) if (h <= K2[i][0]) { const [a, fa] = K2[i - 1], [b, fb] = K2[i]; return fa + (fb - fa) * (h - a) / (b - a) } return K2[K2.length - 1][1] }
+  function buildActors() {
+    let id = 0
+    const add = (o) => { o.id = 'act' + (id++); o.u = hash01(id, 17, 3); o.ph = hash01(id, 5, 1) * 8; ACT.push(o); return o }
+    const lakeAM = (h) => win(h, 4.6, 8.1) ? clamp(tr.D.pedLake * 1.15, 0, 1) : 0
+    // 1) dưỡng sinh / aerobic trước khu phố đi bộ bờ bắc hồ (giữa hai dãy ghế đá): 2 hàng × 3 + người hướng dẫn quay mặt lại
+    const y0 = CORRY[PED][0]
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) add({ pose: 'exercise', dir: 'down', gx: 48.0 + c * 1.05 + r * 0.25, gy: y0 + 2.3 + r * 1.0, look: (r * 3 + c * 2) % 10, act: lakeAM, kind: 'ped' })
+    add({ pose: 'exercise', dir: 'up', gx: 49.6, gy: y0 + 4.35, look: 6, act: lakeAM, kind: 'ped', lead: true })
+    // 2) vươn vai nghiêng lườn: nhóm 4 người cạnh đó
+    for (let c = 0; c < 4; c++) add({ pose: 'stretch', dir: 'down', gx: 52.3 + (c % 2) * 1.0, gy: y0 + 2.4 + Math.floor(c / 2) * 1.0, look: (c * 3 + 1) % 10, act: (h) => win(h, 5.0, 7.8) ? lakeAM(h) : 0, kind: 'ped' })
+    // 3) thái cực quyền đồ lụa trắng ở bờ đông (phía Đinh Tiên Hoàng)
+    for (let c = 0; c < 5; c++) add({ pose: 'exercise', dir: 'left', gx: LAKE.x0 + 22.9 + (c % 2) * 0.7, gy: LAKE.y0 + 18.4 + c * 0.75, look: SILK, act: (h) => win(h, 5.0, 7.4) ? lakeAM(h) : 0, kind: 'ped' })
+    // 4) chạy bộ quanh hồ (vòng đường dạo ngoài cùng): sáng 4:45–8:15, tối 17:45–21:30
+    const X0 = LAKE.x0 + 0.5, X1 = LAKE.x1 + 0.5, Y0 = LAKE.y0 + 0.5, Y1 = LAKE.y1 + 0.5, per = 2 * (X1 - X0 + Y1 - Y0)
+    for (let i = 0; i < 9; i++) add({ pose: 'jog', jog: true, s0: hash01(i, 77) * per, sp: 1.9 + hash01(i, 78) * 0.5, cw: i % 3 !== 0, look: (i * 7 + 3) % 10, kind: 'ped',
+      act: (h) => win(h, 4.75, 8.25) ? (i < 6 ? lakeAM(h) : 0) : win(h, 17.75, 21.5) ? (i >= 3 && i < 3 + (tr.ws ? 6 : 4) ? 0.85 : 0) : 0 })
+    ACT.ring = { X0, X1, Y0, Y1, per }
+    // 5) đôi tình nhân trên ghế đá ven hồ / phố đi bộ / công viên (18:30–23:00, đông nhất 20–22h)
+    const coupleP = (h) => ramp(h, [[18.3, 0], [19, 0.25], [20, 0.6], [22, 0.6], [23, 0.2], [23.2, 0]]) * (tr.ws ? 1.25 : 1)
+    statics.forEach((s, i) => {
+      if (s.name !== 'p_bench_x' && s.name !== 'p_bench_y') return
+      const gx = (s.bb[0] + s.bb[1]) / 2, gy = (s.bb[2] + s.bb[3]) / 2, bx = s.name === 'p_bench_x'
+      add({ pose: 'coupleSit', dir: bx ? 'down' : 'right', gx, gy, look: i % 10, kind: 'sitter', hourly: true, ox: bx ? -2 : 3, oy: bx ? 1 : 1,
+        bb: bx ? [gx - 0.25, gx + 0.25, gy + 0.29, gy + 0.33] : [gx + 0.29, gx + 0.33, gy - 0.25, gy + 0.25], act: coupleP })
+    })
+    // 6) quán vỉa hè trước cửa: trà đá ban ngày (cụ ông uống trà, đánh cờ), tối bia hơi / trà chanh ghế nhựa
+    for (const f of fronts) {
+      if (!f.shop || !f.prop) continue
+      const ax = f.axis, cx = f.px, cy = f.py, A = ax === 'x' ? [1, 0] : [0, 1]
+      const seat = (k, d) => [cx + A[0] * k * 0.34, cy + A[1] * k * 0.34, d]
+      const facing = (k) => dirOf(-A[0] * k, -A[1] * k)
+      if (f.prop === 'p_stools' && f.sk === 'trada') {
+        const chess = hash01(f.gx, f.gy, 41) < 0.35
+        if (chess) add({ pose: 'chess', dir: 'down', gx: cx, gy: cy + (ax === 'x' ? 0.05 : 0), look: (f.gx + f.gy) % 10, kind: 'sitter', act: (h) => (win(h, 8, 11) || win(h, 14, 18)) && shopOpen(f, h) ? 0.8 : 0 })
+        else for (const k of [-1, 1]) { const [gx, gy] = seat(k); add({ pose: 'elderTea', dir: facing(k), gx, gy, look: (f.gx * 3 + k + 10) % 10, kind: 'sitter', act: (h) => (win(h, 7.5, 11) || win(h, 14, 18.5)) && shopOpen(f, h) ? 0.75 : 0 }) }
+      } else if (f.prop === 'p_stools' || f.prop.startsWith('p_cafe')) {
+        const tea = f.prop.startsWith('p_cafe')
+        for (const k of tea ? [-1, 1, 2] : [-1, 1]) {
+          const kk2 = k === 2 ? 0 : k, [gx, gy] = k === 2 ? [cx + A[1] * 0.36, cy + A[0] * 0.36] : seat(kk2)
+          add({ pose: 'sitStool', dir: k === 2 ? dirOf(-A[1], -A[0]) : facing(kk2), gx, gy, look: (f.gy * 7 + k + 20) % 10, kind: 'sitter', hourly: true,
+            act: (h) => !shopOpen(f, h) ? 0 : tea ? ramp(h, [[9, 0.15], [15, 0.3], [17.5, 0.6], [19, 0.9], [22.5, 0.85], [23.5, 0.4]]) : ramp(h, [[10.5, 0], [11.5, 0.6], [13, 0.6], [14, 0.15], [17, 0.3], [18.5, 0.85], [22.5, 0.8], [23.6, 0.3]]) })
+        }
+      }
+    }
+    // 7) cà phê đường tàu: khách ngồi bàn ghế sát hàng rào khi quán mở
+    statics.forEach((s, i) => {
+      if (!/^p_tc_set_/.test(s.name || '')) return
+      const gx = (s.bb[0] + s.bb[1]) / 2, gy = (s.bb[2] + s.bb[3]) / 2, site = sites.find((q) => q.kind === 'tc' && Math.abs(q.gx - gx) < 0.4 && Math.abs(q.gy - gy) < 0.4)
+      for (const k of [-1, 1]) add({ pose: 'sitStool', dir: k < 0 ? 'right' : 'left', gx: gx + k * 0.36, gy, look: (i * 3 + k + 30) % 10, kind: 'sitter', hourly: true,
+        act: (h) => site && siteOpenAt(site, h) ? ramp(h, [[7, 0.3], [9, 0.6], [12, 0.4], [16, 0.5], [19, 0.8], [22, 0.6]]) : 0 })
+    })
+    // 8) đánh cờ ở quảng trường công viên (ngày)
+    add({ pose: 'chess', dir: 'down', gx: 74.4, gy: 49.6, look: 2, kind: 'sitter', act: (h) => win(h, 8, 11) || win(h, 14, 17.5) ? 0.9 : 0 })
+  }
+  function actorOn(a, h) {
+    const p = a.act(h); if (p <= 0) return false
+    const u = a.hourly ? hash01(Math.floor(h * 2) + cal.day * 48, a.id.length * 131 + Math.round(a.u * 1e6), 9) : a.u      // ghế đá/quán đổi khách mỗi 30 phút game
+    return u < p
+  }
+  function actorPos(a) {
+    if (!a.jog) return [a.gx, a.gy, a.dir]
+    const R = ACT.ring, per = R.per, w = R.X1 - R.X0, hgt = R.Y1 - R.Y0
+    let s = ((a.s0 + (a.cw ? 1 : -1) * a.sp * T) % per + per) % per, x, y, dx, dy
+    if (s < w) { x = R.X0 + s; y = R.Y0; dx = 1; dy = 0 } else if ((s -= w) < hgt) { x = R.X1; y = R.Y0 + s; dx = 0; dy = 1 } else if ((s -= hgt) < w) { x = R.X1 - s; y = R.Y1; dx = -1; dy = 0 } else { s -= w; x = R.X0; y = R.Y1 - s; dx = 0; dy = -1 }
+    if (!a.cw) { dx = -dx; dy = -dy }
+    return [x, y, dirOf(dx, dy)]
+  }
+  const actLive = []                                                            // cảnh đang hiện (cho getNpcs)
   function npcDrawables() {
     const out = []
     for (const n of NPC) {
+      if (n.off) continue
       const sp = (n.coat ? coatSet(n.v, n.pc) : NPC_SPR[n.v])[n.dir][n.moving ? Math.floor(n.t * 7) % 4 : 0], [sx, sy] = proj(n.gx, n.gy), bob = n.moving && (Math.floor(n.t * 7) & 1) ? 1 : 0
       out.push({ img: sp, dx: Math.round(sx - 8), dy: Math.round(sy - 26 + bob), w: 16, h: 28, bb: [n.gx - 0.22, n.gx + 0.22, n.gy - 0.22, n.gy + 0.22], gx: n.gx, gy: n.gy, sh: { t: 'blob', H: 26, r: 0.22 } })
     }
+    actLive.length = 0
+    if (!poseOK || DBG.noAct) return out
+    const h = sky.hour, rainy = sky.rain > 0.45
+    for (const a of ACT) {
+      if (rainy && a.kind === 'sitter' && !a.bb) continue                       // mưa to: khách vỉa hè vào trong
+      const [gx, gy, dir] = actorPos(a)
+      if (!onScreen(gx, gy, 60) || !actorOn(a, h)) continue
+      const P = window.__npcPoses[a.pose], fr = poseFrames(a.pose, dir, a.look); if (!P || !fr) continue
+      const k = Math.floor((T + a.ph) * P.fps) % fr.length, img = fr[k], [sx, sy] = proj(gx, gy)
+      const bob = a.jog && (k & 1) ? 1 : 0
+      out.push({ img, dx: Math.round(sx - P.anchor[0] + (a.ox || 0)), dy: Math.round(sy - P.anchor[1] + (a.oy || 0) + bob), w: img.width, h: img.height, bb: a.bb || [gx - 0.2, gx + 0.2, gy - 0.2, gy + 0.2], gx, gy, sh: { t: 'blob', H: 20, r: a.pose === 'chess' || a.pose === 'coupleSit' ? 0.36 : 0.22 } })
+      actLive.push({ id: a.id, gx, gy, dir, kind: a.kind, pose: a.pose, look: typeof a.look === 'number' ? a.look : 0 })
+    }
     return out
   }
-  const pedList = () => { const L = NPC.slice(); if (typeof Game !== 'undefined' && Game.state && Game.state.player) L.push(Game.state.player); return L }
+  const pedList = () => { const L = NPC.filter((n) => !n.off); if (typeof Game !== 'undefined' && Game.state && Game.state.player) L.push(Game.state.player); return L }
   const lamps = [], nightLights = []
 
   // ───────── vẽ ─────────
-  let cv, ctx, hud, last = 0, T = 0, tod = 0
+  let cv, ctx, hud, last = 0, T = 0, tod = 0, npcT = 0
+  const npcActive = () => NPC.reduce((s, n) => s + (n.off ? 0 : 1), 0)
   const TOD_TINT = ['#ffffff', '#f3c9a0', '#6a76b4']
   function clipMap(ox, oy, sh) {
     const A = [0, -sh], B = [36 * N + sh, 18 * N - sh / 2], C = [0, 36 * N], D = [-36 * N - sh, 18 * N - sh / 2]
@@ -971,9 +1327,33 @@ const World = (() => {
     const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1])); ctx.fillStyle = '#16171b'
     for (let i = 0; i <= n; i++) { const t = i / n; ctx.fillRect(Math.round(a[0] + (b[0] - a[0]) * t + ox), Math.round(a[1] + (b[1] - a[1]) * t + sag * 4 * t * (1 - t) + oy + off), 1, 1) }
   }
+  // ───────── zoom mượt: đích là nấc nguyên, cam.zoom trôi tới trong ~0,25 s (easeOutCubic), dừng đúng số nguyên → pixel sắc như cũ ─────────
+  const ZOOM_DUR = 0.25, zA = { from: 2, t: 1, wrote: 2, anchor: null }
+  function setZoomTarget(z, anchor) {                          // anchor {x,y} CSS px: giữ điểm dưới con trỏ (camera tự do); null = giữ tâm màn hình (đang theo nhân vật)
+    if (!Number.isFinite(z)) return cam.zoomTarget
+    z = clamp(Math.round(z), 1, 5); if (z === cam.zoomTarget) return z
+    cam.zoomTarget = z; zA.from = cam.zoom; zA.t = 0; zA.anchor = anchor || null; return z
+  }
+  function stepZoom(dt) {
+    if (cam.zoom !== zA.wrote) { const z = clamp(Math.round(cam.zoom) || 1, 1, 5); cam.zoom = cam.zoomTarget = zA.wrote = z; zA.t = 1; return }   // ai đó gán thẳng cam.zoom (test/mã cũ): nhận làm nấc mới
+    if (zA.t >= 1 && cam.zoom === cam.zoomTarget) return
+    zA.t = Math.min(1, zA.t + dt / ZOOM_DUR)
+    const e = 1 - Math.pow(1 - zA.t, 3), z0 = cam.zoom
+    let z = zA.from + (cam.zoomTarget - zA.from) * e
+    if (zA.t >= 1 || Math.abs(z - cam.zoomTarget) < 0.01) { z = cam.zoomTarget; zA.t = 1 }
+    if (zA.anchor) { const ax = zA.anchor.x - innerWidth / 2, ay = zA.anchor.y - innerHeight / 2; cam.x += ax * (1 / z0 - 1 / z); cam.y += ay * (1 / z0 - 1 / z) }
+    cam.zoom = zA.wrote = z
+  }
+  let frameNo = 0
   function frame(now) {
+    frameNo++
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; T += dt
-    stepSky(dt); stepTraffic(dt); stepTrain(dt); stepNpc(dt); Game.update(dt)
+    stepZoom(dt); stepSky(dt)
+    { const dh = Math.abs((((sky.hour - (tr.lastH ?? sky.hour)) % 24) + 36) % 24 - 12)                      // nhảy giờ / đổi ngày (setHour, ngủ, test): rải lại xe + người theo mật độ mới
+      if (tr.lastH === null || dh > 0.3 || tr.lastDay !== cal.day) { resettleTraffic(); tr.D = SL.densityAt(sky.hour, cal.wd); npcBalance(true) }
+      tr.lastH = sky.hour; tr.lastDay = cal.day }
+    stepTraffic(dt); stepTrain(dt); stepNpc(dt); Game.update(dt)
+    if ((npcT -= dt) <= 0) { npcT = 0.5; npcBalance(false) }
     for (const f of hooks.frame) { try { f(dt) } catch (e) { stats.errors.push('hook: ' + (e.stack || e)) } }
     const z = cam.zoom, w = Math.ceil(innerWidth / z), h = Math.ceil(innerHeight / z)
     if (w < 8 || h < 8) return                                 // cửa sổ chưa có kích thước (đang xoay màn hình / tab nền): bỏ qua khung này
@@ -1001,12 +1381,14 @@ const World = (() => {
       dyn.push(barrierD(`p_barrier_p_${st}`, c.x0 - 0.5, RS + 0.5), barrierD(`p_barrier_n_${st}`, c.x0 + 3.5, RN + 0.5))
       if (c.down) glows.push({ gx: c.x0 - 0.5, gy: RS + 0.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true }, { gx: c.x0 + 3.5, gy: RN + 0.5, z: 46, r: 26, c: '255,70,50', a: 0.8, always: true })
     }
+    vehLit = []
     for (const L of LANES) for (const v of L.vs) {
+      if (!v.on) continue
       const cx = L.axis === 'x' ? v.pos : L.c + v.lat, cy = L.axis === 'x' ? L.c + v.lat : v.pos
       if (cx < -3 || cx > N + 3 || cy < -3 || cy > N + 3) continue
-      const d = vehDrawable(v.name, cx, cy, 'veh'); if (d) dyn.push(d)
-      if (night > 0.05) { const f = L.dir * v.len / 2 + L.dir * 0.4; glows.push({ gx: L.axis === 'x' ? cx + f : cx, gy: L.axis === 'x' ? cy : cy + f, z: 6, r: v.type === 'moto' ? 20 : 32, c: '255,236,170', a: 0.7 }) }
+      const d = vehDrawable(v.name, cx, cy, 'veh'); if (d) { d.veh = v; d.lane = L; dyn.push(d); vehLit.push({ v, L, cx, cy }) }
     }
+    if (tr.ws) for (const b of closures) dyn.push({ ...b })
     if (train.state === 'run') for (const d of trainDrawables()) if (d) dyn.push(d)
     for (const d of npcDrawables()) dyn.push(d)
     const pl = []; Game.pushDrawable(pl); for (const p of pl) { p.sh = { t: 'blob', H: 26, r: 0.22 }; dyn.push(p) }
@@ -1031,7 +1413,7 @@ const World = (() => {
     }
     for (const k of targets) if (!fadeVal.has(k)) fadeVal.set(k, 0)
     for (const [k, v] of fadeVal) { const nv = v + ((targets.has(k) ? 1 : 0) - v) * Math.min(1, dt * 7); if (nv < 0.01 && !targets.has(k)) fadeVal.delete(k); else fadeVal.set(k, nv) }
-    const litDraw = []
+    const headOnNow = SL.headlightsOn(sky.hour, night, sky.rain)
     if (night > 0.05) { if (emiC.width !== w || emiC.height !== h) { emiC.width = w; emiC.height = h } else ex.clearRect(0, 0, w, h) }
     for (let i = 0; i < vis.length; i++) {
       const o = vis[i], edge = o.clip && (o.gx < 6 || o.gx > N - 6 || o.gy < 6 || o.gy > N - 6)
@@ -1040,7 +1422,7 @@ const World = (() => {
       if (f > 0.02) { ctx.globalAlpha = 1 - 0.8 * f; ctx.drawImage(o.img, o.dx + ox, o.dy + oy); ctx.globalAlpha = 1 }
       else {
         ctx.drawImage(o.img, o.dx + ox, o.dy + oy)
-        if (night > 0.05) { ex.globalCompositeOperation = 'destination-out'; ex.drawImage(o.img, o.dx + ox, o.dy + oy); if (isLitHouse(o)) paintWindows(o, ox, oy) }
+        if (night > 0.05) { ex.globalCompositeOperation = 'destination-out'; ex.drawImage(o.img, o.dx + ox, o.dy + oy); if (isLitHouse(o)) paintWindows(o, ox, oy); else if (o.veh) paintVehLamps(o, ox, oy, headOnNow) }
       }
       if (edge) ctx.restore()
     }
@@ -1055,11 +1437,11 @@ const World = (() => {
     }
     drawLanterns(ox, oy, w, h)
     drawSignals(ox, oy)
-    postFx(dt, w, h, ox, oy, glows, night, litDraw)
+    postFx(dt, w, h, ox, oy, glows, night)
     for (const f of hooks.overlay) { try { f(ctx, ox, oy, w, h, T) } catch (e) { stats.errors.push('overlay: ' + (e.stack || e)) } }       // lớp phủ cuối: GPS, marker (không bị bộ lọc ngày/đêm làm tối)
     stats.fps = Math.round(1 / Math.max(0.001, dt))
     const hh = Math.floor(sky.hour), mm = Math.floor((sky.hour - hh) * 60)
-    hud.textContent = `Hà Nội ${N}x${N}   ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${WXNAME[sky.weather]}   fps ${stats.fps}   xe ${stats.vehicles}   người ${NPC.length}\n${train.state === 'run' ? 'tàu hỏa đang chạy' : 'tàu hỏa còn ' + Math.ceil(train.t) + 's'}   [R thời tiết · T đổi giờ · Y giờ tự chạy · H ẩn]\n` + Game.hudLine()
+    hud.textContent = `Hà Nội ${N}x${N}   ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${WXNAME[sky.weather]}   fps ${stats.fps}   xe ${stats.vehicles}   người ${npcActive()} · ${SL.WEEKDAY_NAME[cal.wd]}${tr.ws ? ' · phố đi bộ' : ''}\n${train.state === 'run' ? 'tàu hỏa đang chạy' : 'tàu hỏa còn ' + Math.ceil(train.t) + 's'}   [R thời tiết · T đổi giờ · Y giờ tự chạy · H ẩn]\n` + Game.hudLine()
   }
   function drawSkirt(ox, oy) {                                // thành đất quanh mép map như một mô hình thu nhỏ
     const D = [-36 * N, 18 * N], C = [0, 36 * N], B = [36 * N, 18 * N], TK = 44
@@ -1072,12 +1454,175 @@ const World = (() => {
     const g = ctx.createLinearGradient(0, 36 * N + TK + oy, 0, 36 * N + TK + 90 + oy); g.addColorStop(0, 'rgba(0,0,0,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)')
     ctx.fillStyle = g; ctx.fillRect(0, 36 * N + TK + oy, ctx.canvas.width, 90)
   }
-  function glowAt(gx, gy, zh, r, rgb, a, ox, oy) {
-    const [sx, sy] = proj(gx, gy), X = sx + ox, Y = sy - zh + oy
-    const g = ctx.createRadialGradient(X, Y, 0, X, Y, r); g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`)
-    ctx.fillStyle = g; ctx.fillRect(X - r, Y - r, r * 2, r * 2)
+  // ───────── 4B: ánh sáng đêm ─────────
+  // Bản đồ sáng (lightmap) cùng độ phân giải canvas thế giới: tô màu trời (ambient) → cộng các vũng sáng vẽ sẵn ('lighter')
+  // → nhân lên cảnh ('multiply'): chỗ được chiếu giữ đúng màu vật, chỗ khác tối theo giờ. Sau đó cộng quầng nhỏ ở bóng đèn (bloom).
+  // Mọi đèn là sprite cache (streetlife.js): vũng đất dẹt 2:1, quầng bóng đèn tròn, quạt đèn pha 4 hướng; 4 dải màu + dither Bayer.
+  const lm = document.createElement('canvas'), lmx = lm.getContext('2d')
+  const LCAP = MOBILE ? 80 : 240, VCAP = MOBILE ? 24 : 64                 // giới hạn số đèn tĩnh / xe có đèn pha vẽ mỗi khung
+  const K = SL.LIGHT_KIND
+  const lsp = (k, r, flat = true) => SL.lightSprite(K[k].core, K[k].halo, r ?? K[k].r, flat)
+  const blit = (g, c, X, Y, a) => { if (a <= 0.01) return; g.globalAlpha = Math.min(1, a); g.drawImage(c, Math.round(X - c.ox), Math.round(Y - c.oy)) }
+  const LIGHTS = [], DBG = {}                                                 // DBG: công tắc đo hiệu năng (QA)
+  const STALL_KIND = (nm) => /^p_pho/.test(nm) ? 'pho' : /^p_banhmi/.test(nm) ? 'banhmi' : /^p_(cafe|tc_)/.test(nm) ? 'tea' : /^p_kiosk/.test(nm) ? 'taphoa' : 'stall'
+  function buildLights() {
+    const lakeArea = (x, y) => x >= LAKE.x0 - 1 && x <= LAKE.x1 + 1 && y >= CORRY[PED][0] && y <= LAKE.y1 + 1
+    const inPark = (x, y) => inR(Math.floor(x), BLOCKX[3]) && inR(Math.floor(y), BLOCKY[2])
+    const inPlay = (x, y) => x >= PLAY.x0 && x <= PLAY.x1 + 1 && y >= PLAY.y0 && y <= PLAY.y1 + 1
+    lamps.forEach((l, i) => {
+      const park = lakeArea(l.gx, l.gy) || inPark(l.gx, l.gy) || inPlay(l.gx, l.gy)
+      const kind = park || (l.gx < CORRX[1][0] && l.gy < CORRY[2][0]) ? 'lakePost' : 'led'   // ven hồ + phố cổ: vàng ấm; trục lớn: LED trắng (§4.1)
+      LIGHTS.push({ t: 'lamp', gx: l.gx, gy: l.gy, z: 64, kind, idx: i, park, ph: hash01(i, 3, 9), water: lakeArea(l.gx, l.gy) && l.gx > LAKE.x0 - 0.5 && l.gx < LAKE.x1 + 0.5 })
+    })
+    nightLights.forEach((l, i) => {
+      const o = { t: 'nl', gx: l.gx, gy: l.gy, z: l.z, r: l.r, a: l.a, grp: l.grp || (l.stall ? 'stall' : 'misc'), idx: i, ph: hash01(i, 5, 9) }
+      if (l.stall) { o.kind = STALL_KIND(l.stall); o.site = sites.find((s) => Math.abs(s.gx - l.gx) < 0.35 && Math.abs(s.gy - l.gy) < 0.35) || null }
+      else if (l.grp === 'alley' || l.grp === 'yard') { const u = hash01(Math.round(l.gx * 3), Math.round(l.gy * 3), 13); o.kind = u < 0.3 ? 'sodium' : u < 0.75 ? 'compact' : 'led'; o.r = Math.min(l.r, 36) }   // ngõ: ~30% bóng natri cam còn sót
+      else o.kind = l.kind || 'warm'
+      LIGHTS.push(o)
+    })
+    for (const f of fronts) if (f.shop && f.sk) LIGHTS.push({ t: 'shop', f, gx: f.px, gy: f.py, z: 0, kind: SHOP_LIGHT[f.sk], ph: f.seed })
+    const X0 = LAKE.x0, Y0 = LAKE.y0
+    LIGHTS.push({ t: 'tower', gx: X0 + 12.5, gy: Y0 + 15.5, z: 40, kind: 'towerAutumn' })
+    for (let k = 0; k <= 12; k++) for (const ry of [7.08, 8.92]) { const gx = X0 + 17 + k / 3; LIGHTS.push({ t: 'bridge', gx, gy: Y0 + ry, z: 13 + (bridgeZ.get(Math.floor(gx) + ',' + (Y0 + 7)) || 0), kind: 'bridge', south: ry > 8 }) }
+    for (const l of LIGHTS) { const [sx, sy] = proj(l.gx, l.gy); l.sx = sx; l.sy = sy }
   }
-  function postFx(dt, w, h, ox, oy, glows, night, litDraw) {
+  // lịch đèn đường "normal" (§4.2): bật lúc hoàng hôn + 10 phút; sau 23h tắt cột thứ 3 (công viên/ven hồ tắt một nửa); sau 2:30 còn một nửa; tắt trước bình minh 10 phút
+  function lampLevel(L, h) {
+    const S = cal.sun.set, R = cal.sun.rise, onAt = S + 1 / 6 + L.ph * 0.08, offAt = R - 1 / 6 - L.ph * 0.06
+    if (!(h >= onAt || h < offAt)) return 0
+    const fade = h >= onAt ? clamp((h - onAt) / 0.04, 0, 1) : clamp((offAt - h) / 0.04, 0, 1)
+    if (h >= 23 || h < 2.5) { if (L.park ? L.idx % 2 === 1 : L.idx % 3 === 2) return 0 }
+    else if (h < 12 && L.idx % 2 === 1) return 0
+    return fade
+  }
+  const decoLevel = (h) => { const end = (cal.wd === 5 || cal.wd === 6 || cal.wd === 0) ? 24 : 23; return h >= cal.sun.set + 1 / 6 && h < end ? 1 : 0 }   // trang trí: tới 23h (cuối tuần 24h)
+  function lightLevel(L, h) {
+    if (L.t === 'lamp') return lampLevel(L, h)
+    if (L.t === 'shop') return shopOpen(L.f, h) ? 1 : 0
+    if (L.t === 'tower' || L.t === 'bridge') return decoLevel(h)
+    if (L.grp === 'stall') {
+      if (L.site) return siteOpenAt(L.site, h) ? 1 : 0
+      if (inR(Math.floor(L.gy), CORRY[PED]) && (cal.wd === 5 || cal.wd === 6 || cal.wd === 0) && h >= 18) return 1      // chợ đêm phố đi bộ
+      const key = Math.floor(h * 120) + cal.wd * 4000; if (L._sk !== key) { L._sk = key; L._sv = hash01(Math.round(L.gx * 10), Math.round(L.gy * 10), 55) < SL.openProb('taphoa', h, cal.wd) ? 1 : 0 }
+      return L._sv                                                            // sạp ô dù, hoa quả: theo giờ tạp hoá
+    }
+    if (L.grp === 'alley' || L.grp === 'yard') return lampLevel(L, h)
+    if (L.grp === 'deco') return decoLevel(h)
+    return 1
+  }
+  // dữ liệu xe đang thấy (dựng trong frame) để vẽ quạt đèn pha + đèn hậu
+  let vehLit = []
+  function vehEnds(v, L, cx, cy) { const F = L.axis === 'x' ? [L.dir, 0] : [0, L.dir]; return { F, S: [-F[1], F[0]], nose: [cx + F[0] * v.len / 2, cy + F[1] * v.len / 2], rear: [cx - F[0] * v.len / 2, cy - F[1] * v.len / 2] } }
+  const VL = { moto: { lat: [0], len: 2.5, deg: 34, a: 0.42, hz: 15, tz: 13 }, car: { lat: [-0.24, 0.24], len: 3.6, deg: 46, a: 0.4, hz: 8, tz: 9 }, bus: { lat: [-0.32, 0.32], len: 4, deg: 50, a: 0.42, hz: 9, tz: 11 } }
+  // đèn của xe vào lớp phát sáng (bị vật đứng trước che đúng): đầu xe thấy được khi xe chạy về phía camera (+x/+y), còn lại thấy đèn hậu
+  const glassCache = new WeakMap()
+  function busGlass(img) {
+    let c = glassCache.get(img); if (c) return c
+    c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0)
+    const d = g.getImageData(0, 0, c.width, c.height), a = d.data
+    for (let i = 0; i < a.length; i += 4) { const r = a[i], gg = a[i + 1], b = a[i + 2]; if (a[i + 3] > 200 && r < 110 && gg >= 60 && b >= r + 18 && gg >= r) { const top = ((i / 4) % c.width) & 1; a[i] = 206; a[i + 1] = 228; a[i + 2] = 250; a[i + 3] = top ? 225 : 190 } else a[i + 3] = 0 }
+    g.putImageData(d, 0, 0); glassCache.set(img, c); return c
+  }
+  function paintVehLamps(o, ox, oy, headOn) {
+    const v = o.veh, L = o.lane, P = VL[v.type]; if (!P) return
+    const E = vehEnds(v, L, o.gx, o.gy)
+    ex.globalCompositeOperation = 'source-over'
+    if (v.type === 'bus') ex.drawImage(busGlass(o.img), o.dx + ox, o.dy + oy)
+    if (L.dir > 0) { if (!headOn) return; for (const la of P.lat) { const [sx, sy] = proj(E.nose[0] + E.S[0] * la, E.nose[1] + E.S[1] * la); ex.fillStyle = '#fffbe6'; ex.fillRect(Math.round(sx + ox) - 1, Math.round(sy + oy - P.hz), 2, 2) } }
+    else for (const la of P.lat.length > 1 ? P.lat : [0]) { const [sx, sy] = proj(E.rear[0] + E.S[0] * la * 0.9, E.rear[1] + E.S[1] * la * 0.9); ex.fillStyle = v.brk ? '#ff5a3c' : '#e8281c'; ex.fillRect(Math.round(sx + ox) - 1, Math.round(sy + oy - P.tz), 2, v.brk ? 2 : 1) }
+  }
+  const vis_ = (X, Y, w, h, m = 100) => X > -m && X < w + m && Y > -m && Y < h + m + 40
+  function drawLightmap(w, h, ox, oy, fade, headOn) {               // fade: đèn tĩnh (0 ban ngày, kể cả khi mưa); vf: đèn xe (bật khi mưa cả ban ngày)
+    const hr = sky.hour, wet = sky.rain > 0.4, vf = Math.max(fade, headOn ? 0.35 : 0)
+    lmx.globalCompositeOperation = 'lighter'
+    let n = 0
+    for (const L of LIGHTS) {
+      const X = L.sx + ox, Y = L.sy + oy; if (!vis_(X, Y, w, h)) continue
+      const lv = (L._lv = lightLevel(L, hr)) * fade; L._lf = frameNo; if (lv <= 0.01) continue
+      if (++n > LCAP) break
+      const k = K[L.kind] || K.warm
+      if (L.t === 'lamp') {
+        blit(lmx, SL.poolSprite(k.core, k.halo, k.r, k.a * 1.3, 1.5, 0.18), X, Y, lv)        // lõi + tán rộng nhạt (một sprite)
+        if (L.water) blit(lmx, SL.streakSprite(k.core, k.halo, 5, 34), X + 36 + Math.round(Math.sin(T * 2 + L.gy) * 1.2), Y + 18, 0.4 * lv)   // phản chiếu trên mặt hồ
+      } else if (L.t === 'shop') {
+        const big = L.kind === 'cstore'
+        blit(lmx, lsp(L.kind, big ? 64 : k.r), X, Y, k.a * lv)
+        if (big) blit(lmx, lsp('cstore', 30), X, Y - 6, 0.6 * lv)
+      } else if (L.t === 'tower') {
+        blit(lmx, lsp('towerAutumn', 46), X, Y, 0.75 * lv); blit(lmx, SL.streakSprite(k.core, k.halo, 9, 46), X + Math.round(Math.sin(T * 1.7) * 1.5), Y + 10, 0.45 * lv)
+      } else if (L.t === 'bridge') {
+        if (L.south && Math.round(L.gx * 3) % 2 === 0) blit(lmx, SL.streakSprite(k.core, k.halo, 3, 22), X + Math.round(Math.sin(T * 2.3 + L.gx) * 1), Y + 4, 0.5 * lv)
+      } else {
+        const dim = L.grp === 'alley' || L.grp === 'yard' ? 0.6 : 1                    // đèn ngõ: nhỏ, không loang lên mái nhà che phía trước
+        blit(lmx, lsp(L.kind, Math.round((L.r || k.r) * (dim < 1 ? 0.85 : 1.05))), X, Y, Math.min(0.75, (L.a || k.a) * 1.05) * lv * dim)
+      }
+    }
+    // lồng đèn phố tàu: vũng ấm nhỏ dưới mỗi chuỗi
+    for (const Ln of lanterns) { const [sx, sy] = proj(Ln.x, (Ln.y0 + Ln.y1) / 2); const X = sx + ox, Y = sy + oy; if (vis_(X, Y, w, h)) blit(lmx, lsp('lantern', 40), X, Y, 0.45 * decoLevel(hr) * fade) }
+    // xe: quạt đèn cốt chiếu xuống mặt đường + vũng đỏ đèn hậu (đèn phanh đỏ đậm hơn → dải đỏ ở chỗ tắc)
+    let nv = 0
+    for (const e of vehLit) {
+      const { v, L, cx, cy } = e, P = VL[v.type]; if (!P) continue
+      const E = vehEnds(v, L, cx, cy), [nx, ny] = proj(E.nose[0], E.nose[1]), X = nx + ox, Y = ny + oy
+      if (!vis_(X, Y, w, h, 160)) continue
+      if (++nv > VCAP) break
+      if (headOn) { const d = SUF(L.axis, L.dir), hk = v.type === 'moto' ? K.head : K.headLED; for (const la of P.lat) blit(lmx, SL.fanSprite(d, P.len, P.deg, la, hk.core, hk.halo, wet), X, Y, P.a * (wet ? 1.25 : 1) * vf) }
+      const [rx, ry] = proj(E.rear[0], E.rear[1])
+      if (headOn) blit(lmx, SL.lightSprite(K.brake.core, K.tail.core, v.brk ? 13 : 8, true), rx + ox, ry + oy, (v.brk ? 0.5 : 0.28) * Math.max(vf, 0.5))
+    }
+    for (const c of crossings) if (c.down) for (const [gx, gy] of [[c.x0 - 0.5, RS + 0.5], [c.x0 + 3.5, RN + 0.5]]) { const [sx, sy] = proj(gx, gy); blit(lmx, lsp('barrier', 30), sx + ox, sy + oy, (Math.floor(c.flash / 0.4) & 1 ? 0.6 : 0.25) * fade) }
+    if (tr.ws) for (const b of closures) { const [sx, sy] = proj(b.gx, b.gy); blit(lmx, lsp('barrier', 18), sx + ox, sy + oy, (Math.floor(T * 2) & 1 ? 0.45 : 0.15) * fade) }
+    lmx.globalAlpha = 1; lmx.globalCompositeOperation = 'source-over'
+    return n
+  }
+  // quầng nhỏ ở bóng đèn/biển hiệu sau khi nhân (bloom) — ít, alpha thấp, vẫn lượng tử
+  function drawBloom(w, h, ox, oy, fade, headOn) {
+    const hr = sky.hour, vf = Math.max(fade, headOn ? 0.35 : 0)
+    ctx.globalCompositeOperation = 'lighter'
+    let n = 0
+    for (const L of LIGHTS) {
+      const X = L.sx + ox, Y = L.sy + oy - (L.z || 0); if (!vis_(X, Y, w, h, 60)) continue
+      const lv = (L._lf === frameNo ? L._lv : lightLevel(L, hr)) * fade; if (lv <= 0.01) continue
+      if (++n > LCAP) break
+      const k = K[L.kind] || K.warm
+      if (L.t === 'lamp') blit(ctx, MOBILE ? lsp(L.kind, 6, false) : SL.bulbSprite(k.core, k.halo, 5, 0.9, 18, 0.34), X, Y, lv)
+      else if (L.t === 'shop') {
+        const f = L.f
+        if (L.kind === 'tea') {                                              // trà chanh: đèn dây bóng vàng dọc mặt tiền, nhấp nháy nhẹ
+          const n2 = 2 + f.F * 3
+          for (let i = 0; i <= n2; i++) { const t = i / n2, gx = f.fam === 'R' ? f.gx + 3.02 : f.gx + t * f.F, gy = f.fam === 'R' ? f.gy + t * f.F : f.gy + 3.02, [sx, sy] = proj(gx, gy), z = 30 + Math.round(3 * Math.sin(t * Math.PI)), tw = 0.75 + 0.25 * Math.sin(T * 3 + i * 1.7 + f.seed * 9)
+            const XX = Math.round(sx + ox), YY = Math.round(sy + oy - z); ctx.globalAlpha = lv * tw; ctx.fillStyle = '#ffd27a'; ctx.fillRect(XX, YY, 1, 1); blit(ctx, lsp('tea', 4, false), XX, YY, 0.45 * lv * tw) }
+        } else if (L.kind === 'cstore') {                                    // biển cửa hàng tiện lợi: dải đỏ / cam / tím sáng
+          for (let i = 0; i <= 14; i++) { const t = i / 14, gx = f.fam === 'R' ? f.gx + 3.02 : f.gx + t * f.F, gy = f.fam === 'R' ? f.gy + t * f.F : f.gy + 3.02, [sx, sy] = proj(gx, gy), XX = Math.round(sx + ox), YY = Math.round(sy + oy - 27); ctx.globalAlpha = lv; ctx.fillStyle = '#e5262d'; ctx.fillRect(XX, YY, 1, 1); ctx.fillStyle = '#f7931e'; ctx.fillRect(XX, YY + 1, 1, 1); ctx.fillStyle = '#6b2c91'; ctx.fillRect(XX, YY + 2, 1, 1) }
+          blit(ctx, lsp('cstore', 26, false), X, Y - 22, 0.22 * lv)
+        }
+      } else if (L.t === 'tower') { blit(ctx, SL.bulbSprite(k.core, k.halo, 12, 0.35, 34, 0.3), X, Y, lv) }
+      else if (L.t === 'bridge') { ctx.globalAlpha = lv; ctx.fillStyle = '#ff7a5a'; ctx.fillRect(Math.round(X), Math.round(Y), 1, 1); blit(ctx, lsp('bridge', 5, false), X, Y, 0.5 * lv) }
+      else if (L.kind === 'tea' && L.grp === 'stall') { for (let i = -3; i <= 3; i++) { const XX = Math.round(X + i * 4), YY = Math.round(Y - 4 + Math.abs(i) * 0.6); const tw = 0.7 + 0.3 * Math.sin(T * 3 + i + L.ph * 9); ctx.globalAlpha = lv * tw; ctx.fillStyle = '#ffd27a'; ctx.fillRect(XX, YY, 1, 1); blit(ctx, lsp('tea', 4, false), XX, YY, 0.4 * lv * tw) } }
+      else blit(ctx, lsp(L.kind, Math.max(6, Math.round((L.r || 30) * 0.28)), false), X, Y, 0.45 * lv)
+    }
+    for (const Ln of lanterns) { const mx = Ln.x; const [sx, sy] = proj(mx, (Ln.y0 + Ln.y1) / 2); if (!vis_(sx + ox, sy + oy, w, h, 120)) continue; const lv = decoLevel(hr) * fade; for (const t of [0.25, 0.5, 0.75]) { const [px, py] = proj(mx, Ln.y0 + (Ln.y1 - Ln.y0) * t); blit(ctx, lsp('lantern', 12, false), px + ox, py + oy - (74 - 18 * 4 * t * (1 - t)), 0.55 * lv) } }
+    if (headOn) {
+      let nv = 0
+      for (const e of vehLit) {                                             // quạt sáng mờ trong không khí (thấy được cả lúc chạng vạng)
+        const { v, L, cx, cy } = e, P = VL[v.type]; if (!P) continue
+        if (++nv > VCAP) break
+        const E = vehEnds(v, L, cx, cy), [nx, ny] = proj(E.nose[0], E.nose[1]), hk = v.type === 'moto' ? K.head : K.headLED
+        if (vis_(nx + ox, ny + oy, w, h, 160)) blit(ctx, SL.fanSprite(SUF(L.axis, L.dir), P.len, P.deg, 0, hk.core, hk.halo, sky.rain > 0.4), nx + ox, ny + oy, 0.13 * vf * (P.lat.length > 1 ? 1.4 : 1))
+      }
+      nv = 0
+      for (const e of vehLit) {
+        const { v, L, cx, cy } = e, P = VL[v.type]; if (!P) continue
+        if (++nv > VCAP) break
+        const E = vehEnds(v, L, cx, cy)
+        if (L.dir > 0) for (const la of P.lat) { const [sx, sy] = proj(E.nose[0] + E.S[0] * la, E.nose[1] + E.S[1] * la); blit(ctx, SL.lightSprite(K.head.core, K.head.halo, 6, false), sx + ox, sy + oy - P.hz, 0.5 * vf) }
+        else { const [sx, sy] = proj(E.rear[0], E.rear[1]); blit(ctx, SL.lightSprite(K.brake.core, K.tail.core, v.brk ? 7 : 4, false), sx + ox, sy + oy - P.tz, (v.brk ? 0.55 : 0.3) * vf) }
+      }
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'
+  }
+  function postFx(dt, w, h, ox, oy, glows, night) {
     const S = sunState(), clear = 1 - sky.cloud
     if (clear > 0.05 && S.e > 0.05) {                       // bóng mây trôi qua phố
       for (let k = 0; k < 5; k++) {
@@ -1088,22 +1633,25 @@ const World = (() => {
       }
     }
     let col = gradeAt(sky.hour); col = mixc(col, '#cdd5de', sky.cloud * 0.3); col = mixc(col, '#97a6bb', sky.rain * 0.35); col = mixc(col, '#6c7990', sky.storm * 0.35); if (sky.flash > 0.02) col = mixc(col, '#dfe8ff', Math.min(0.9, sky.flash * 0.85))
-    ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = col; ctx.fillRect(0, 0, w, h)
+    const fade = clamp((night - 0.04) * 1.6, 0, 1), headOn = SL.headlightsOn(sky.hour, night, sky.rain)
+    stats.lights = 0
+    if (fade <= 0 && !(headOn && night > 0.02)) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = col; ctx.fillRect(0, 0, w, h) }
+    else {
+      if (lm.width !== w || lm.height !== h) { lm.width = w; lm.height = h }
+      lmx.globalCompositeOperation = 'source-over'; lmx.globalAlpha = 1; lmx.fillStyle = col; lmx.fillRect(0, 0, w, h)
+      stats.lights = DBG.noLM ? 0 : drawLightmap(w, h, ox, oy, fade, headOn)
+      ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lm, 0, 0)
+    }
     if (clear > 0.1 && S.e > 0.1) {                         // nắng chói từ góc trên-trái
       ctx.globalCompositeOperation = 'screen'
       const g = ctx.createRadialGradient(w * 0.1, -h * 0.1, 0, w * 0.1, -h * 0.1, Math.max(w, h) * 0.9); g.addColorStop(0, `rgba(255,226,160,${0.2 * clear * S.e})`); g.addColorStop(1, 'rgba(255,226,160,0)')
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h)
     }
     if (night > 0.05) drawLitWindows(night)
+    if ((fade > 0 || headOn) && !DBG.noBloom) drawBloom(w, h, ox, oy, fade, headOn)
     ctx.globalCompositeOperation = 'lighter'
-    if (night > 0.04) for (const l of lamps) {
-      const [sx, sy] = proj(l.gx, l.gy); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -90 || sy + oy > h + 130) continue
-      glowAt(l.gx, l.gy, 64, 62, '255,205,125', 0.6 * night, ox, oy); glowAt(l.gx, l.gy, 0, 46, '255,205,125', 0.22 * night, ox, oy)
-    }
-    if (night > 0.05) for (const l of nightLights) { const [sx, sy] = proj(l.gx, l.gy); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -90 || sy + oy > h + 130) continue; glowAt(l.gx, l.gy, l.z, l.r, '255,176,92', l.a * Math.min(1, night * 1.2), ox, oy) }
-    if (night > 0.05) for (const L of lanterns) { const mx = L.x, my = (L.y0 + L.y1) / 2; const [sx, sy] = proj(mx, my); if (sx + ox < -90 || sx + ox > w + 90 || sy + oy < -120 || sy + oy > h + 120) continue; for (const t of [0.25, 0.5, 0.75]) glowAt(mx, L.y0 + (L.y1 - L.y0) * t, 74 - 18 * 4 * t * (1 - t), 20, '255,170,80', 0.55 * Math.min(1, night * 1.2), ox, oy) }
-    for (const g of glows) { const [sx, sy] = proj(g.gx, g.gy); if (sx + ox < -60 || sx + ox > w + 60 || sy + oy < -60 || sy + oy > h + 80) continue; glowAt(g.gx, g.gy, g.z, g.r, g.c, g.a * (g.always ? 1 : Math.min(1, night * 1.2)), ox, oy) }
-    ctx.globalCompositeOperation = 'source-over'
+    for (const g of glows) { const [sx, sy] = proj(g.gx, g.gy); if (!vis_(sx + ox, sy + oy, w, h, 60)) continue; blit(ctx, SL.lightSprite('#FF6A50', '#FF3020', g.r, false), sx + ox, sy + oy - g.z, g.a * 0.8) }   // đèn đỏ chắn tàu (cả ban ngày)
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'
     if (sky.rain > 0.02) drawRain(dt, w, h)
     if (sky.flash > 0.02) { ctx.fillStyle = `rgba(236,242,255,${0.4 * sky.flash})`; ctx.fillRect(0, 0, w, h) }
     const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.4, w / 2, h / 2, Math.max(w, h) * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.14 + 0.12 * night + 0.1 * sky.rain})`)
@@ -1129,34 +1677,58 @@ const World = (() => {
   }
   // ───────── khởi động ─────────
   function generate() {
-    genGround(); genGate(); genLake(); genPlay(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); genAlleyLife(); genTrainStreet(); streets(); streetLife(); genPedStreet(); genSigns(); nameTiles(); sortStatics(); genTraffic(); genNpc(90)
+    genGround(); genGate(); genLake(); genPlay(); genMarket(); genPark(); genTowers(); genBlocks(); fillGaps(); genAlleyLife(); genHome(); genTrainStreet(); streets(); streetLife(); genPedStreet(); genSigns(); nameTiles(); sortStatics(); genTraffic(); genNpc()
+    assignShops(); buildClosures(); buildLights(); buildActors()                                // 4B: loại quán + giờ mở, rào phố đi bộ, đèn, cảnh đời phố
   }
   function start(canvas, hudEl) {
     cv = canvas; ctx = cv.getContext('2d'); hud = hudEl
     const [cx, cy] = proj(...SPAWN); cam.x = cx; cam.y = cy
-    if (innerWidth < 700) { cam.zoom = 1; hud.style.display = 'none' }
+    if (innerWidth < 700) { cam.zoom = cam.zoomTarget = zA.wrote = zA.from = 1; hud.style.display = 'none' }
     Game.init({ W: { ground: kind }, N, proj, cam, tile: () => [TW, TH], isBlocked, colliders, groundZ, spawn: SPAWN })
     const found = new Set()
     const sync = () => { Game.extraHud = `khám phá ${found.size}/${pois.length}` }; sync()
-    pois.push({ id: 'rail', label: 'Phố Tàu hỏa', gx: 34.5, gy: RS - 0.6, r: 2.4 })
+    pois.push({ id: 'rail', label: 'Phố tàu hỏa', gx: 34.5, gy: RS - 0.6, r: 2.4 })
     for (const p of pois) Game.registerPOI({ ...p, onInteract: (q) => { found.add(q.id); sync(); Game.toast(found.size === pois.length ? `${q.label} — bạn đã khám phá đủ ${pois.length} địa danh!` : `${q.label} — đã khám phá ${found.size}/${pois.length}`) } })
     let drag = null
     cv.addEventListener('pointerdown', (e) => { if (Game.mode === 'play') { Game.pointer(e, 'down'); return } drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; cv.setPointerCapture(e.pointerId) })
     cv.addEventListener('pointermove', (e) => { if (Game.mode === 'play') { Game.pointer(e, 'move'); return } if (drag) { cam.x = drag.cx - (e.clientX - drag.x) / cam.zoom; cam.y = drag.cy - (e.clientY - drag.y) / cam.zoom } })
     cv.addEventListener('pointerup', () => { drag = null })
-    cv.addEventListener('wheel', (e) => { e.preventDefault(); cam.zoom = clamp(cam.zoom + (e.deltaY < 0 ? 1 : -1), 1, 5) }, { passive: false })
+    // bánh xe: CỘNG DỒN deltaY, đủ ~100 mới đổi 1 nấc. Chuột thường (mỗi khấc ≥50, thường 100/120) = đúng 1 nấc/khấc;
+    // trackpad (nhiều sự kiện nhỏ, có quán tính) cộng dồn; sau mỗi nấc thì khoá tới khi ngừng vuốt (nghỉ 160 ms, tối đa 0,6 s) → một lần vuốt = 1 nấc, không vọt.
+    let wAcc = 0, wLast = -1e9, wStep = -1e9, wGest = false
+    cv.addEventListener('wheel', (e) => {
+      e.preventDefault()
+      const now = performance.now(), dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? innerHeight : 1)
+      if (!dy) return
+      const gap = now - wLast; wLast = now
+      if (gap > 160) wGest = false                                                             // ngừng tay: lần cuộn mới
+      if (gap < 40 || Math.abs(dy) < 50) wGest = true                                          // dồn dập hoặc delta nhỏ = trackpad (giữ tới hết lần vuốt)
+      if (gap > 220 || Math.sign(dy) !== Math.sign(wAcc)) wAcc = 0                             // nghỉ lâu hoặc đổi chiều: tính lại từ đầu
+      if (now - wStep < (wGest ? 600 : 50)) { wAcc = 0; return }                               // vừa đổi nấc: chuột nghỉ 50 ms, trackpad tối đa 1 nấc / 0,6 s
+      wAcc = Math.abs(dy) >= 50 ? Math.sign(dy) * 100 : wAcc + dy
+      if (Math.abs(wAcc) < 100) return
+      const free = Game.mode !== 'play'
+      setZoomTarget(cam.zoomTarget + (wAcc < 0 ? 1 : -1), free ? { x: e.clientX, y: e.clientY } : null)
+      wAcc = 0; wStep = now
+    }, { passive: false })
     buildUI()
     addEventListener('pointerdown', audioInit)
     addEventListener('keydown', (e) => { audioInit(); const k = e.key.toLowerCase(); if (k === 'f') document.querySelector('button[title^="Sấm"]').dispatchEvent(new Event('pointerdown')); if (k === 't') jumpTime(); if (k === 'y') sky.auto = !sky.auto; if (k === 'r') { const o = ['sunny', 'cloudy', 'rain', 'storm']; setWeather(o[(o.indexOf(sky.weather) + 1) % 4]) } if (k === 'h') hud.style.display = hud.style.display === 'none' ? '' : 'none' })
     window.addEventListener('error', (e) => stats.errors.push(String(e.message)))
-    window.__world = { alleys, alleyT, occ, blk, pois, strike, thunder, litFrac, instWins, decodeWins, statSorted: () => statSorted, statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, sky, setWeather, setHour: (hr) => { sky.hour = hr }, NPC, lamps, npcOK: () => npcOK, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
+    window.__world = { alleys, alleyT, occ, blk, pois, strike, thunder, litFrac, instWins, decodeWins, statSorted: () => statSorted, statics, train, crossings, LANES, kind, ph, cam, stats, isBlocked, setTod: (v) => { tod = v }, sky, setWeather, setHour: (hr) => { sky.hour = hr }, NPC, lamps, LIGHTS, ACT, actLive, poseOK: () => poseOK, DBG, closures, tr, cal, PINS, fronts, npcOK: () => npcOK, npcActive, forceTrain: (dir) => trainReset(dir || 1), frame: (t) => frame(t), step: (dt, n = 1) => { for (let i = 0; i < n; i++) { stepTraffic(dt); stepTrain(dt); Game.update(dt) } } }
     window.__stats = stats; window.__ready = true
+    try { const P = window.__npcPoses; if (P && P.ready) P.ready.then(() => { poseOK = true }); else { const t0 = setInterval(() => { const Q = window.__npcPoses; if (Q && Q.ready) { clearInterval(t0); Q.ready.then(() => { poseOK = true }) } }, 500) } } catch (e) { /* chưa có dáng: bỏ qua cảnh */ }
     last = performance.now()
     ;(function loop(now) { try { frame(now) } catch (e) { stats.errors.push(String(e.stack || e)); hud.textContent = 'lỗi: ' + e.message; return } requestAnimationFrame(loop) })(last)
   }
   // chặn tĩnh (không tính thanh chắn tàu đang hạ) dùng cho tìm đường
   const staticBlocked = (tx, ty) => tx < 0 || ty < 0 || tx >= N || ty >= N || blk[ty][tx] || (kind[ty][tx] === 'water' && !bridgeT.has(tx + ',' + ty))
-  const gameApi = { sites, pois, hooks, sky, train, crossings, kind, colliders, staticBlocked, areaOf, groundZ, RS, RN, RAIL_Y, TW, TH }
+  // 4B: lịch/nhịp phố cho api.js
+  const streetInfo = () => ({ day: cal.day, weekday: cal.wd, label: SL.WEEKDAY_NAME[cal.wd], sunrise: +cal.sun.rise.toFixed(3), sunset: +cal.sun.set.toFixed(3), walkingStreet: tr.ws, rush: +tr.D.rush.toFixed(2),
+    density: { moto: +tr.D.moto.toFixed(2), car: +tr.D.car.toFixed(2), bus: +tr.D.bus.toFixed(2), pedOld: +tr.D.pedOld.toFixed(2), pedLake: +tr.D.pedLake.toFixed(2) },
+    vehiclesOn: LANES.reduce((s, L) => s + L.vs.filter((v) => v.on).length, 0), npcOn: npcActive(), actors: actLive.length, lights: stats.lights || 0, night: +nightAt(sky.hour).toFixed(2), headlights: SL.headlightsOn(sky.hour, nightAt(sky.hour), sky.rain) })
+  const gameApi = { sites, pois, hooks, sky, train, crossings, kind, colliders, softProps, getHome: () => home, setZoomTarget, staticBlocked, areaOf, groundZ, RS, RN, RAIL_Y, RAILC, LAKE, TW, TH, NPC, LANES, roadLike,
+    cal, setDay, siteOpenAt, PINS, actLive, streetInfo, nightAt: (h) => nightAt(h ?? sky.hour) }
   return { load, generate, start, cam, stats, N, proj, ...gameApi }
 })()
 window.World = World

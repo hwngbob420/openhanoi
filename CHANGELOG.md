@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.11.0 - Đợt 4: âm lượng tổng, ngày dài hơn, phòng trọ, phố theo giờ, vẽ lại mini-game, rà chữ
+1. **Âm thanh** - mọi tiếng (kể cả sấm) đi qua MỘT AudioContext, bus tổng + bộ chặn (limiter); nền mưa/giông nhỏ đi. Tình huống xấu nhất QA dựng được (giông + sấm dồn dập + tàu qua sát barie + chuông + nhạc + chảo phở + ăn phở) có đỉnh đầu ra khoảng -3,7 dBFS (< -1 dBFS; đo cả bằng đồng hồ 50 ms của audio lẫn vòng đọc 15 ms của QA), bộ chặn nén tối đa khoảng 6,6 dB, lúc đo chuông barie và tàu đều ở gần (độ to không gian 0,78). Có `__audio.meter()` và `__audio.mix()` để đo.
+2. **Ngày dài hơn** - 1 ngày game = 1000 giây (1 giờ game ≈ 41,7 giây). Ngày 1 là Thứ Sáu. `advanceTime(h)` qua 0h tự sang ngày mới.
+3. **Phòng trọ của bạn** - phòng trọ trong ngõ, tới được bằng đi bộ; ở cửa bấm E/chạm có bảng "Nghỉ 1 tiếng (+25 thể lực)" và "Ngủ tới 6:00 sáng (đầy thể lực, +tâm trạng)". Ngủ: màn tối dần, sang 6:00 hôm sau, tự lưu. Đang có việc thì không cho ngủ (báo rõ lý do). Điện thoại có nút "Về nhà (Auto-Walk)", nổi lên đầu khi thể lực thấp.
+4. **Kinh tế, độ khó** - tiền công theo điểm (0 điểm = 0đ, 70 điểm ≈ 63.000đ, 100 điểm = 96.000đ, nhân hệ số việc); gác chắn 6 chuyến tàu mỗi lượt; bấm loạn không lên được điểm cao (bot giả lập: các kiểu bấm ngẫu nhiên ≤ 30 điểm).
+5. **Mini-game vẽ lại** - cả 5 trò (phở/bánh mì, xếp ghế, gác chắn, shipper, xích lô) dùng bộ sprite mới; bảng giá trong trò đọc từ cấu hình giá.
+6. **Phố sống theo giờ và thứ** - quán mở/đóng thật (quán đóng không có chỗ ăn, không giao việc); 4 quán ghim nên giờ nào cũng có ít nhất 5 chỗ ăn mở; phố đi bộ Hồ Gươm từ tối Thứ Sáu tới hết Chủ nhật; mật độ xe/người theo giờ, tắc giờ cao điểm nhưng không xe nào đứng trên ray; ánh sáng mới (hoàng hôn tháng 11, đèn pha xe ban đêm).
+7. **Đi lại** - vật nhỏ (sạp, cột điện, cột đèn, cây, ghế đá…) đi xuyên được; nhà, nước, hàng rào đường ray vẫn chặn; Auto-Walk tới đủ 81 điểm. Zoom mượt: 1 khấc chuột = 1 nấc, trôi ~0,25 giây rồi dừng đúng số nguyên; điện thoại có nút +/−. Vòng chân nhỏ gọn hơn.
+8. **Rà chữ toàn bộ** - tiền thống nhất "50.000đ", "Bát phở bò", "Uống trà chanh", số thập phân kiểu Việt, bộ câu bong bóng viết lại; bong bóng im khi chơi mini-game, câu về tàu chỉ nói gần đường ray (xem docs/TEXT_AUDIT.md).
+9. **Sửa nhỏ của QA** - nút nhắc "E / chạm" cao đủ 44px trên điện thoại; tới quán bằng Auto-Walk để làm việc thì nút nhắc là "Làm việc" (trước đây có lúc hiện "Ăn phở"); màn giới thiệu mini-game trên điện thoại không còn bị cắt mất tiêu đề, nút "Bắt đầu" luôn nổi ở đáy khung, chữ dài vuốt/cuộn được phía sau. Có việc ở đúng quán nào thì phải làm xong hoặc hủy việc mới ăn được ở quán đó.
+
+Giới hạn đã biết:
+- Âm thanh chỉ đo bằng số (đỉnh, độ nén); chưa ai nghe thật trên loa/tai nghe.
+- Bot giả lập (8 lượt mỗi trò): gác chắn kiểu "chơi ẩu" vẫn được ~50 điểm, cao hơn mốc 40 của bấm loạn (đã báo gameplay).
+- 3 quán trà chanh phố tàu (tc_20_83, tc_40_78, tc_91_78) gần như đóng cả ngày (đã báo world).
+- Hàng nút thời tiết/giờ và khối chữ debug vẫn hiện (Giám đốc giữ nguyên).
+- Thiết bị thật (iOS Safari, Android) chưa thử; kiểm bằng giả lập cảm ứng của Chromium.
+
+## 0.10.0 - Đợt 3: ăn uống, xích lô, Auto-Walk, âm không gian, bong bóng thoại
+1. **Ăn uống và thể lực (gameplay)** - `src/gameplay/economy-config.js` là nguồn sự thật duy nhất cho giá món (phở 50.000đ, bánh mì 25.000đ, trà chanh 15.000đ), mức hồi thể lực, tiền phạt, ngưỡng thể lực từng việc. Gợi ý "E / chạm", nút bảng chọn món và tiền thực trừ trong ví luôn khớp nhau (QA kiểm đủ 69 quán: 14 phở, 15 bánh mì, 40 trà chanh). Nhận việc khi thể lực thấp -> thông báo nổi lớn "Thể lực quá thấp — hãy ăn phở hoặc uống trà chanh để hồi sức!" (kèm toast), việc không được nhận.
+2. **Xích lô** - người đi bộ cảnh báo "!"; rung chuông (Space) đúng tầm -> tiếng "kính coong" + bong bóng xanh "Mời bác đi trước!" và người đi bộ nhường; không rung -> xe tự phanh chờ; đâm -> huỷ chuyến và trừ đúng 30.000đ (ví không đủ thì trừ tới 0, không âm). Có `__gameplay.minigames.debug()` cho QA.
+3. **Auto-Walk (world + UI)** - nút "Tự động đi tới (Auto-Walk)" trong thẻ việc đang nhận (Việc Vặt) và điểm check-in Phố Thị Gram: nhân vật tự tìm đường men vỉa hè, qua vạch sang đường, vào cửa ngõ; chạm phím/màn hình là dừng ngay; chip "Đang tự đi… [Dừng]". Đường chấm GPS dài được thay bằng vòng la bàn nhỏ dưới chân nhân vật + chữ khoảng cách (mét; 1 ô = 2 m).
+4. **Âm thanh không gian (audio)** - tiếng tàu và chuông barie nhỏ dần theo khoảng cách (hết hẳn từ 8 ô), cân trái/phải theo trục ngang isometric; âm khu vực tự bật/tắt: hàng phở (dao thớt, nồi nước dùng), Hồ Gươm (gió hồ), ngõ sâu (radio cũ, chó sủa thưa), đường ray. Thêm tiếng `kinhcoong`, `__audio.debugSpatial()`.
+5. **Bong bóng thoại (UI)** - lớp HiDPI riêng (canvas theo devicePixelRatio, font Pixelify Sans nhúng, lời thoại sinh bằng tracery): rao hàng theo giờ, đối đáp, suy nghĩ theo thời tiết/hoàng hôn (có mưa), trầm trồ khi đổi đồ/nhuộm tóc, giao thông, chữ âm thanh môi trường. Mỗi loại một màu viền, ngắt dòng, tự lật khi sát mép. Chỉ bung chữ khi zoom >= 3 (điện thoại: có nút +/- zoom); zoom xa chỉ hiện chấm. Sửa: `__bubbles.say(..., 'wow')` không còn lộ mẫu thô `{{item}}`.
+6. **Bản đồ và API world** - `getZoom/setZoom/worldToScreen/getViewport/getNpcs/getVehicles/getTrain/getBarrier/getZoneAt/autoWalk`, lưới va chạm mịn 4 ô con / ô (BFS hồi quy của QA chuyển sang lưới này), sự kiện `traffic:cut`, `npc:pass`, `weather`.
+
+Giới hạn đã biết:
+- Âm thanh mới kiểm bằng số (gain/pan/khu vực qua `__audio.debugSpatial()`); chưa ai nghe thật nên độ hay/độ to của dao thớt, nồi nước dùng, gió hồ, radio ngõ và tiếng "kính coong" là chưa kiểm chứng.
+- Bong bóng: câu ngắn đôi khi rớt 1 chữ xuống dòng cuối ("mời / em!"); dấu "~" trong chữ âm thanh hiện gần giống gạch ngang; dấu nặng dưới "ịch" nhỏ. Tối đa 4 bong bóng cùng lúc nên chữ tiếng động có thể bị đẩy ra khi đông.
+- Hàng debug (hàng nút thời tiết/giờ, khối chữ fps) vẫn hiện trong bản phát hành; nút nhắc tương tác của player.js cao 36px (dưới 44px) trên điện thoại.
+- Thiết bị thật (iOS Safari, Android) chưa thử; kiểm bằng giả lập cảm ứng của Chromium.
+- Đảo Tháp Rùa vẫn là phần duy nhất không tới được bằng đi bộ (đúng thiết kế).
+
 ## 0.8.0 - Hệ thống ngõ, ngách trong các block nhà
 - Mỗi block nhà (trừ phố tàu) có 1-5 ngõ rộng 1 ô, sinh ngẫu nhiên có luật (carveAlleys trong world.js): ngõ thẳng thông hai đầu ra phố, ngõ ngoằn nghèo rẽ liên tục, ngõ cụt có sân chung 2x2 (cây, miếu thổ địa) hoặc miếu nhỏ ở cuối, ngách cụt ngắn tách từ ngõ dài. Hai ngõ luôn cách nhau ít nhất một dãy nhà; cửa ngõ ưu tiên cạnh đông/nam để nhìn thấy từ camera.
 - Cửa ngõ có biển xanh "NGÕ 12" (12 biển, 2 hướng), vỉa hè trước cửa ngõ để trống. Trong ngõ: nền bê tông có rãnh thoát nước và rêu, sân gạch đỏ, dây phơi quần áo, dây điện chằng chịt, chậu cây, xe máy dựng sát tường, đèn sáng ban đêm. 30 sprite mới (g_alley_*, p_ngo_*, p_laundry_*, p_wires_*, p_pots_*, p_shrine).

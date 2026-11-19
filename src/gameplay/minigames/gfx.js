@@ -1,4 +1,23 @@
 // Hình vẽ pixel dùng chung cho các mini-game (canvas logic 320x180, phóng to bằng CSS pixelated).
+// Đợt 4: các game vẽ bằng sprite pixel của src/assets/minigames (drawMG đặt điểm NEO của sprite vào (x,y)); các hàm khối phẳng dưới đây
+// chỉ còn dùng cho hiệu ứng nhỏ (bong bóng gọi món, thanh, tia sáng).
+export { drawMG, getMGFrames, MG_META } from '../../assets/minigames/index.js'
+import { getMGFrames as _frames, MG_META as _meta } from '../../assets/minigames/index.js'
+// viền sáng 1px quanh sprite (làm nổi người bị va chạm): vẽ bóng đặc màu col lệch 4 hướng rồi tới sprite
+const _sil = new Map()
+export function drawMGOutlined(g, name, x, y, o = {}, col = '#ffffff') {
+  const m = _meta[name]; if (!m) return
+  const fr = _frames(name); if (!fr.length) return
+  const i = o.frame != null ? ((o.frame % fr.length) + fr.length) % fr.length : m.fps && o.t != null ? Math.floor(o.t * m.fps) % fr.length : 0
+  let s = _sil.get(m.w + 'x' + m.h)                    // một canvas tạm cho mỗi cỡ, vẽ lại mỗi lần (chỉ dùng cho 1 sprite/khung)
+  if (!s) { s = document.createElement('canvas'); s.width = m.w; s.height = m.h; _sil.set(m.w + 'x' + m.h, s) }
+  const c = s.getContext('2d'); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, m.w, m.h); c.drawImage(fr[i], 0, 0)
+  c.globalCompositeOperation = 'source-in'; c.fillStyle = col; c.fillRect(0, 0, m.w, m.h); c.globalCompositeOperation = 'source-over'
+  const dx = Math.round(x - m.anchor[0]), dy = Math.round(y - m.anchor[1])
+  g.imageSmoothingEnabled = false
+  for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) g.drawImage(s, dx + ox, dy + oy)
+  g.drawImage(fr[i], dx, dy)
+}
 export const W = 320, H = 180
 export const R = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)) }
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
@@ -63,6 +82,36 @@ export function willow(g, x, y, t = 0) {
   R(g, x - 1, y - 24, 3, 24, '#5a3d22'); R(g, x - 9, y - 30, 19, 7, '#5f9a4a')
   for (let i = -8; i <= 8; i += 3) { const l = 10 + ((i * 7) & 7); R(g, x + i + Math.round(Math.sin(t * 1.6 + i) * 0.6), y - 24, 1, l, '#79b35a') }
 }
+// ─── chữ pixel 3x5 có dấu tiếng Việt (cùng bộ chữ biển hiệu của sprite) — vẽ từng điểm, không nhoè ───
+// (x,y) = góc trên-trái thân chữ; dấu thanh nằm 2 hàng phía trên, dấu nặng 1 hàng dưới -> dòng cách nhau >= 8px.
+const FONT = {
+  A: '.#.|#.#|###|#.#|#.#', B: '##.|#.#|##.|#.#|##.', C: '.##|#..|#..|#..|.##', D: '##.|#.#|#.#|#.#|##.', E: '###|#..|##.|#..|###', F: '###|#..|##.|#..|#..',
+  G: '.##|#..|#.#|#.#|.##', H: '#.#|#.#|###|#.#|#.#', I: '###|.#.|.#.|.#.|###', J: '..#|..#|..#|#.#|.#.', K: '#.#|#.#|##.|#.#|#.#', L: '#..|#..|#..|#..|###',
+  M: '#.#|###|###|#.#|#.#', N: '##.|#.#|#.#|#.#|#.#', O: '.#.|#.#|#.#|#.#|.#.', P: '##.|#.#|##.|#..|#..', Q: '.#.|#.#|#.#|##.|.##', R: '##.|#.#|##.|#.#|#.#',
+  S: '.##|#..|.#.|..#|##.', T: '###|.#.|.#.|.#.|.#.', U: '#.#|#.#|#.#|#.#|###', V: '#.#|#.#|#.#|#.#|.#.', W: '#.#|#.#|###|###|#.#', X: '#.#|#.#|.#.|#.#|#.#',
+  Y: '#.#|#.#|.#.|.#.|.#.', Z: '###|..#|.#.|#..|###', 'Đ': '##.|###|#.#|#.#|##.',
+  0: '###|#.#|#.#|#.#|###', 1: '.#.|##.|.#.|.#.|###', 2: '##.|..#|.#.|#..|###', 3: '##.|..#|.#.|..#|##.', 4: '#.#|#.#|###|..#|..#', 5: '###|#..|##.|..#|##.',
+  6: '.##|#..|###|#.#|###', 7: '###|..#|.#.|.#.|.#.', 8: '###|#.#|###|#.#|###', 9: '###|#.#|###|..#|##.', '-': '...|...|###|...|...', '.': '...|...|...|...|.#.', ' ': '...|...|...|...|...',
+}
+function clusters(str) {
+  const out = []
+  for (const ch of String(str).normalize('NFD')) { if (/[̀-ͯ]/.test(ch)) { if (out.length) out[out.length - 1].m.push(ch) } else out.push({ c: ch.toUpperCase(), m: [] }) }
+  return out
+}
+export const pxTextW = (str) => Math.max(0, clusters(str).length * 4 - 1)
+export function pxText(g, x, y, str, col) {
+  g.fillStyle = col; x = Math.round(x); y = Math.round(y)
+  for (const cl of clusters(str)) {
+    const rows = (FONT[cl.c] || FONT[' ']).split('|'), px = (k, r) => g.fillRect(x + k, y + r, 1, 1)
+    for (let r = 0; r < 5; r++) for (let k = 0; k < 3; k++) if (rows[r][k] === '#') px(k, r)
+    for (const m of cl.m) {
+      if (m === '̂') { px(0, -1); px(2, -1) } else if (m === '̆') { px(0, -1); px(1, -1); px(2, -1) } else if (m === '̛') px(3, 1)
+      else if (m === '́') px(2, -2); else if (m === '̀') px(0, -2); else if (m === '̉') px(1, -2); else if (m === '̃') { px(0, -2); px(2, -2) } else if (m === '̣') px(1, 5)
+    }
+    x += 4
+  }
+}
+
 export function bubble(g, x, y, w, h, fill = '#fffaf0') {
   R(g, x - w / 2 + 1, y - h, w - 2, h, '#2a2118'); R(g, x - w / 2, y - h + 1, w, h - 2, '#2a2118')
   R(g, x - w / 2 + 2, y - h + 1, w - 4, h - 2, fill); R(g, x - w / 2 + 1, y - h + 2, w - 2, h - 4, fill)

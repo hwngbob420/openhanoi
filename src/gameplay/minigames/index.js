@@ -3,8 +3,9 @@
 import { bus } from '../../core/bus.js'
 import { State } from '../../core/state.js'
 import { OUTFIT_OPTIONS } from '../../assets/characters/index.js'
-import { MINIGAME_SECONDS, PAY_MIN, PAY_MAX } from '../balance.js'
+import { MINIGAME_SECONDS, payCurve } from '../balance.js'
 import { clamp, W, H } from './gfx.js'
+import { fmtVND } from '../economy-config.js'
 import pho from './pho.js'
 import tc from './tc.js'
 import rail from './rail.js'
@@ -17,10 +18,10 @@ let active = null
 export const isActive = () => !!active
 export const list = () => Object.values(GAMES).map((g) => ({ id: g.id, title: g.title }))
 export function payFor(score, mult = 1) {
-  const p = (PAY_MIN + (PAY_MAX - PAY_MIN) * clamp(score, 0, 100) / 100) * mult
+  const p = payCurve(clamp(score, 0, 100)) * mult
   return Math.round(p / 1000) * 1000
 }
-const fmtMoney = (n) => Math.round(n).toLocaleString('vi-VN') + 'đ'
+const fmtMoney = fmtVND
 
 const CSS = `
 .gm{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(8,10,16,.9);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:#f4efe2;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;padding:6px;box-sizing:border-box}
@@ -35,11 +36,16 @@ const CSS = `
 .gm-tbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#6bd06b,#e8c34a);transform-origin:left}
 .gm-stage{position:relative;border:3px solid #2a2118;border-radius:4px;background:#000;overflow:hidden;box-shadow:0 0 0 2px #6b5f45}
 .gm-stage canvas{position:static;inset:auto;display:block;width:100%;height:auto;aspect-ratio:16/9;cursor:default;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
-.gm-pane{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px;text-align:center;background:rgba(22,16,12,.84)}
+.gm-over{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.gm-bub{position:absolute;transform:translate(-50%,-100%);padding:4px 10px;border-radius:12px;border:2px solid #fff;font:800 clamp(12px,2.7vw,19px)/1.25 "Segoe UI",system-ui,sans-serif;white-space:nowrap;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.35);box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.gm-bub::after{content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:inherit}
+.gm-bub.blue{background:#1f6fe0;border-color:#cfe6ff}.gm-bub.blue::after{border-top-color:#1f6fe0}
+.gm-bub.red{background:#c9302a;border-color:#ffd0c8}.gm-bub.red::after{border-top-color:#c9302a}
+.gm-pane{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;justify-content:safe center;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;gap:8px;padding:12px;text-align:center;background:rgba(22,16,12,.84)}
 .gm-pane h2{margin:0;font-size:clamp(17px,3.6vw,26px);color:#ffd96a}
 .gm-pane p{margin:0;font-size:clamp(12px,2.6vw,17px);line-height:1.35;max-width:34em;color:#f1e9d4;white-space:pre-line}
 .gm-pane .big{font-size:clamp(22px,5vw,38px);font-weight:800;color:#8ff08f}
-.gm-go{background:#d9a441;color:#2a1c0a;border:3px solid #fff2b0;border-radius:8px;padding:8px 22px;min-height:48px;min-width:48px;font:inherit;font-size:clamp(15px,3.2vw,20px);font-weight:800;cursor:pointer;margin-top:4px}
+.gm-go{background:#d9a441;color:#2a1c0a;border:3px solid #fff2b0;border-radius:8px;padding:8px 22px;min-height:48px;min-width:48px;font:inherit;font-size:clamp(15px,3.2vw,20px);font-weight:800;cursor:pointer;margin-top:4px;position:sticky;bottom:0;flex:none;box-shadow:0 -6px 12px rgba(22,16,12,.9)}
 .gm-hint{font-size:12.5px;color:#cbbf9f;min-height:16px;text-align:center}
 .gm-ctrl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:56px}
 .gm-ctrl button{flex:1 1 90px;max-width:230px;min-height:56px;background:#4a3a2a;color:#fff6dc;border:3px solid #9b8658;border-radius:10px;font:inherit;font-size:16px;font-weight:700;line-height:1.15;cursor:pointer;touch-action:none;white-space:pre-line;padding:4px 8px}
@@ -68,9 +74,9 @@ export function start(id, opts = {}) {
 
   const root = document.createElement('div'); root.className = 'gm'; root.dataset.minigame = id
   root.innerHTML = `<div class="gm-card"><div class="gm-top"><b class="gm-title"></b><span class="gm-score"></span><span class="gm-time"></span><button class="gm-x" type="button">Thoát</button></div>
-    <div class="gm-tbar"><i></i></div><div class="gm-stage"><canvas width="${W}" height="${H}"></canvas><div class="gm-pane"></div></div><div class="gm-hint"></div><div class="gm-ctrl"></div></div>`
+    <div class="gm-tbar"><i></i></div><div class="gm-stage"><canvas width="${W}" height="${H}"></canvas><div class="gm-over"></div><div class="gm-pane"></div></div><div class="gm-hint"></div><div class="gm-ctrl"></div></div>`
   const $ = (q) => root.querySelector(q)
-  const cv = $('canvas'), g = cv.getContext('2d'), pane = $('.gm-pane'), ctrl = $('.gm-ctrl'), hint = $('.gm-hint')
+  const cv = $('canvas'), g = cv.getContext('2d'), pane = $('.gm-pane'), overEl = $('.gm-over'), ctrl = $('.gm-ctrl'), hint = $('.gm-hint')
   g.imageSmoothingEnabled = false
   $('.gm-title').textContent = opts.title || def.title
 
@@ -78,9 +84,10 @@ export function start(id, opts = {}) {
   const keys = new Set()
   const sfx = (name) => bus.emit('sfx', { name })
   const env = {
-    W, H, opts, keys, sfx, ctrl, outfit: outfitColors(), dur, timeScale,
+    W, H, opts, keys, sfx, ctrl, overlay: overEl, outfit: outfitColors(), dur, timeScale,
     setHint: (t) => { hint.textContent = t },
     expose: (st) => { window.__mgState = st },
+    end: (why) => finish(undefined, false),          // mini-game tự kết thúc sớm (vd. cyclo đâm người)
     get stage() { return inst.stage },
     btn(label, o = {}) {
       const b = document.createElement('button'); b.type = 'button'; b.textContent = label
@@ -103,7 +110,7 @@ export function start(id, opts = {}) {
 
   // ── lớp phủ: chặn sự kiện lan xuống canvas thế giới ──
   for (const ev of ['pointerdown', 'pointerup', 'pointermove', 'click', 'dblclick', 'touchstart', 'touchmove', 'touchend', 'wheel', 'contextmenu', 'mousedown', 'mouseup'])
-    root.addEventListener(ev, (e) => { e.stopPropagation(); if (ev === 'touchmove' || ev === 'contextmenu' || ev === 'wheel') e.preventDefault() }, { passive: false })
+    root.addEventListener(ev, (e) => { e.stopPropagation(); if (ev === 'contextmenu' || ((ev === 'touchmove' || ev === 'wheel') && !e.target.closest?.('.gm-pane'))) e.preventDefault() }, { passive: false })   // cho cuộn chữ dài trong bảng giới thiệu/kết quả
   const toLogical = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H] }
   let ptrDown = false
   cv.addEventListener('pointerdown', (e) => { e.preventDefault(); ptrDown = true; try { cv.setPointerCapture(e.pointerId) } catch (er) { /* bỏ qua */ } if (inst.stage === 'play' && inst.game.pointer) inst.game.pointer('down', ...toLogical(e)) })
@@ -145,12 +152,13 @@ export function start(id, opts = {}) {
     inst.stage = 'play'; inst.t = 0; pane.style.display = 'none'
     sfx('click'); if (inst.game.begin) inst.game.begin()
   }
-  function showResult(score, pay, summary) {
+  function showResult(score, pay, summary, fail) {
+    overEl.textContent = ''
     pane.style.display = ''; pane.innerHTML = ''
-    const h = document.createElement('h2'); h.textContent = score >= 80 ? 'Quá đỉnh!' : score >= 50 ? 'Làm tốt lắm!' : score >= 25 ? 'Tạm ổn' : 'Hơi vất vả...'
-    const sc = document.createElement('p'); sc.className = 'big'; sc.textContent = `${score} điểm`
+    const h = document.createElement('h2'); h.textContent = fail ? 'Chuyến bị hủy!' : score >= 80 ? 'Quá đỉnh!' : score >= 50 ? 'Làm tốt lắm!' : score >= 25 ? 'Tạm ổn' : 'Hơi vất vả…'
+    const sc = document.createElement('p'); sc.className = 'big'; sc.textContent = fail ? 'Đâm phải người đi bộ' : `${score} điểm`; if (fail) sc.style.color = '#ff8a7a'
     const sm = document.createElement('p'); sm.textContent = summary || ''
-    const pm = document.createElement('p'); pm.textContent = opts.noPay ? '' : `Tiền công: +${fmtMoney(pay)}`; pm.style.cssText = 'font-weight:800;color:#ffd96a;font-size:clamp(16px,3.4vw,22px)'
+    const pm = document.createElement('p'); pm.textContent = fail ? (fail.fine ? `Bồi thường: -${fmtMoney(fail.fine)}` : 'Không có tiền công') : opts.noPay ? '' : `Tiền công: +${fmtMoney(pay)}`; pm.style.cssText = 'font-weight:800;color:#ffd96a;font-size:clamp(16px,3.4vw,22px)'
     const b = document.createElement('button'); b.type = 'button'; b.className = 'gm-go'; b.textContent = 'Xong (Enter)'
     b.addEventListener('click', () => close())
     pane.append(h, sc, sm, pm, b)
@@ -161,11 +169,14 @@ export function start(id, opts = {}) {
     let res = { score: 0, summary: '' }
     try { res = inst.game.result() || res } catch (e) { console.error('[minigame]', e) }
     const score = Math.round(clamp(Number.isFinite(+override) ? +override : res.score, 0, 100))
-    const pay = payFor(score, opts.mult ?? 1)
+    const failed = !!res.failed
+    const pay = failed ? 0 : payFor(score, opts.mult ?? 1)
     inst.stage = 'result'
-    bus.emit('minigame:end', { id, score, pay })
-    inst.resolve({ id, score, pay, summary: res.summary || '' })
-    if (silent) cleanup(); else showResult(score, pay, res.summary)
+    bus.emit('minigame:end', { id, score, pay, ...(failed ? { failed: true, fine: res.fine || 0 } : {}) })
+    inst.resolve({ id, score, pay, summary: res.summary || '', ...(failed ? { failed: true, fine: res.fine || 0 } : {}) })
+    if (silent) cleanup()
+    else if (failed) { pane.style.display = 'none'; setTimeout(() => { if (active === inst) showResult(score, pay, res.summary, res) }, 1100) }   // giữ khung va chạm + bong bóng ~1 giây rồi mới hiện kết quả
+    else showResult(score, pay, res.summary, null)
   }
   function quit() {
     if (inst.done) return close()
@@ -207,4 +218,5 @@ export function start(id, opts = {}) {
 }
 
 export function debugFinish(score = 100) { if (!active) return false; active.finish(score, true); return true }
+export function debug() { return active ? { id: active.id, stage: active.stage, t: active.t, state: active.game.debug ? active.game.debug() : null } : null }
 export const current = () => active && { id: active.id, stage: active.stage, t: active.t }

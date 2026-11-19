@@ -3,7 +3,10 @@ import { h, icon, vnd } from '../theme.js'
 import { G, S } from '../gp.js'
 
 const TABS = [['hair', 'Nhuộm tóc'], ['top', 'Áo'], ['pants', 'Quần']]
-const KIND_VN = { hair: 'tóc', top: 'áo', pants: 'quần' }
+const KIND_VN = { hair: 'màu tóc', top: 'món áo', pants: 'món quần' }
+// tóc thì "dùng/nhuộm", áo quần thì "mặc"
+const WORD = { hair: { worn: 'Đang dùng', wear: 'Dùng màu này', buy: 'Nhuộm' }, top: { worn: 'Đang mặc', wear: 'Mặc', buy: 'Mua' }, pants: { worn: 'Đang mặc', wear: 'Mặc', buy: 'Mua' } }
+const hairColor = (name) => 'tóc ' + String(name || '').replace(/^(nhuộm|tóc)\s+/i, '')
 let tab = 'hair', prev = null
 
 const owned = (kind, i) => ((S().owned || {})[kind] || []).includes(i)
@@ -18,9 +21,9 @@ function portrait() {
 function act(ctx, kind, i, o) {
   const g = G()
   if (!owned(kind, i)) {
-    if (!g.buy(kind, i)) { ctx.sfx('error'); return ctx.say('Không đủ tiền mua ' + o.name, 'bad') }
-    g.equip(kind, i); ctx.sfx('ting'); ctx.say(`Đã mua và mặc: ${o.name}`, 'good')
-  } else { g.equip(kind, i); ctx.sfx('click'); ctx.toast('Đã mặc: ' + o.name, 'good') }
+    if (!g.buy(kind, i)) { ctx.sfx('error'); return ctx.say((kind === 'hair' ? 'Không đủ tiền nhuộm ' : 'Không đủ tiền mua ') + (kind === 'hair' ? hairColor(o.name) : o.name), 'bad') }
+    g.equip(kind, i); ctx.sfx('ting'); ctx.say(kind === 'hair' ? `Nhuộm xong: ${hairColor(o.name)}` : `Đã mua và mặc: ${o.name}`, 'good')
+  } else { g.equip(kind, i); ctx.sfx('click'); ctx.toast(kind === 'hair' ? `Đã đổi sang ${hairColor(o.name)}` : 'Đã mặc: ' + o.name, 'good') }
   prev = { ...S().outfit }; ctx.rerender(true)
 }
 
@@ -42,16 +45,16 @@ export default {
         h('div', { class: 'hx-btns', style: 'margin-top:8px' }, (() => {
           const has = owned(tab, i), isWorn = worn(tab) === i, afford = money >= (cur ? cur.price : 0)
           return h('button', { class: 'hx-btn pri', 'data-act': 'wear', disabled: isWorn || (!has && !afford), onclick: () => act(ctx, tab, i, cur) },
-            isWorn ? 'Đang mặc' : has ? 'Mặc' : afford ? `Mua · ${vnd(cur.price)}` : 'Thiếu tiền')
+            isWorn ? WORD[tab].worn : has ? WORD[tab].wear : afford ? `${WORD[tab].buy} · ${vnd(cur.price)}` : 'Thiếu tiền')
         })()))))
     list.forEach((o, k) => {
       const has = owned(tab, k), isWorn = worn(tab) === k
       root.append(h('button', { class: 'hx-opt' + (k === i ? ' sel' : ''), 'data-opt': k, onclick: () => { prev = { ...prev, [tab]: k }; ctx.sfx('click'); ctx.rerender(true) } },
         h('span', { class: 'hx-sw', style: 'background:' + o.color }),
         h('div', { class: 'hx-grow' }, h('div', { class: 'hx-title', text: o.name })),
-        isWorn ? h('span', { class: 'hx-tag a', text: 'Đang mặc' }) : has ? h('span', { class: 'hx-tag', text: 'Đã có' }) : h('span', { class: 'hx-pay', text: vnd(o.price) })))
+        isWorn ? h('span', { class: 'hx-tag a', text: WORD[tab].worn }) : has ? h('span', { class: 'hx-tag', text: 'Đã có' }) : h('span', { class: 'hx-pay', text: vnd(o.price) })))
     })
-    root.append(h('div', { class: 'hx-sm', style: 'text-align:center;margin-top:6px', text: `Kho đồ: ${((S().owned || {})[tab] || []).length}/${list.length} món ${KIND_VN[tab]}` }))
+    root.append(h('div', { class: 'hx-sm', style: 'text-align:center;margin-top:6px', text: `Kho đồ: ${((S().owned || {})[tab] || []).length}/${list.length} ${KIND_VN[tab]}` }))
     return root
   },
 }

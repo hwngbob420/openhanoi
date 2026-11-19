@@ -128,10 +128,13 @@ export function getSeatedSprites(outfit) { return seated(outfit, { norm, OUTFIT_
 
 // ---------- VFX (xem vfx.js) ----------
 import * as VFX from './vfx.js'
+// ---------- dáng NPC đời sống phố (poses.js -> window.__npcPoses) ----------
+import { initPoses } from './poses.js'
 
 export function init() {
   loadAll()
   VFX.init(BUNDLE)
+  try { initPoses() } catch (e) { console.warn('[characters] dáng NPC lỗi', e) }
   window.__characters = { OUTFIT_OPTIONS, getSprites, renderPortrait, getSeatedSprites, vfx: VFX.api }
   bus.on('outfit:changed', () => { /* cache theo chỉ số trang phục nên không cần xoá; ảnh khởi tạo xong đã tự xoá */ })
 }

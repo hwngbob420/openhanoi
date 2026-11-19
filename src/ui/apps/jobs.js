@@ -1,9 +1,11 @@
 // App Việc Vặt 24h: bảng việc, chi tiết, nhận/hủy, khoảng cách tới đích, nút Dẫn đường.
 import { h, icon, vnd, hhmm } from '../theme.js'
+import { autoWalkButton } from '../autowalk.js'
 import { G, S, jobTarget, distTiles, fmtDist, siteLabel, hour } from '../gp.js'
 
 let sel = null          // id việc đang xem chi tiết
 const STAGE = { goto: 'Đang đi tới điểm làm', play: 'Đang làm', done: 'Xong' }
+const windowH = () => String(G().balance?.JOB_WINDOW_H ?? 4).replace('.', ',')
 const kindIcon = (k) => (k === 'rail' ? 'camera' : k === 'hair' ? 'user' : 'briefcase')
 
 function distNode(ctx, job) {
@@ -13,8 +15,8 @@ function distNode(ctx, job) {
 }
 function deadline(job) {
   if (job.deadlineHour == null) return '—'
-  const left = job.deadlineHour - hour()
-  return `${hhmm(job.deadlineHour)}${left > 0 && left < 24 ? ` (còn ${left.toFixed(1).replace('.0', '')}g)` : left <= 0 ? ' (trễ)' : ''}`
+  const left = (((job.deadlineHour - hour()) % 24) + 24) % 24          // hạn có thể qua nửa đêm (23h nhận, hạn 3h sáng)
+  return `${hhmm(job.deadlineHour)}${left > 0.05 ? ` (còn ${String(Math.round(left * 10) / 10).replace('.', ',')} giờ)` : ' (sắp hết hạn)'}`
 }
 function gps(ctx, job) {
   const t = jobTarget(job)
@@ -39,7 +41,8 @@ function activeCard(ctx, job) {
     h('div', { class: 'hx-sm' }, 'Đích: ', siteLabel(job) || '—', ' · cách ', distNode(ctx, job)),
     h('div', { class: 'hx-btns' },
       h('button', { class: 'hx-btn pri', 'data-act': 'gps', onclick: () => gps(ctx, job) }, icon('map-pin', 24), 'Dẫn đường'),
-      h('button', { class: 'hx-btn bad', 'data-act': 'cancel', onclick: () => cancel(ctx) }, icon('close', 24), 'Hủy việc')))
+      h('button', { class: 'hx-btn bad', 'data-act': 'cancel', onclick: () => cancel(ctx) }, icon('close', 24), 'Hủy việc')),
+    jobTarget(job) ? autoWalkButton(ctx, jobTarget(job)) : null)
 }
 function detail(ctx, job, active) {
   const t = jobTarget(job)
@@ -50,7 +53,9 @@ function detail(ctx, job, active) {
       h('div', { class: 'hx-kv' },
         h('span', { text: 'Địa điểm' }), h('span', { text: siteLabel(job) || (t && t.label) || '—' }),
         h('span', { text: 'Khoảng cách' }), h('span', null, distNode(ctx, job)),
-        h('span', { text: 'Hạn chót' }), h('span', { text: deadline(job) }),
+        // việc trên bảng: deadlineHour là giờ việc rời bảng (chưa phải hạn làm); hạn làm = lúc nhận + JOB_WINDOW_H
+        h('span', { text: active ? 'Hạn chót' : 'Nhận trước' }), h('span', { text: deadline(job) }),
+        active ? null : h('span', { text: 'Thời gian làm' }), active ? null : h('span', { text: `${windowH()} giờ sau khi nhận` }),
         h('span', { text: 'Tiền công' }), h('span', { class: 'hx-pay', text: vnd(job.pay) }))),
     h('div', { class: 'hx-btns' },
       active ? h('button', { class: 'hx-btn bad', 'data-act': 'cancel', onclick: () => cancel(ctx) }, 'Hủy việc')
@@ -75,7 +80,7 @@ export default {
     for (const j of board) {
       root.append(h('button', { class: 'hx-card tap', 'data-job': j.id, onclick: () => { sel = j.id; ctx.sfx('click'); ctx.rerender('top') } },
         h('div', { class: 'hx-row' }, icon(kindIcon(j.kind), 24), h('div', { class: 'hx-grow' }, h('div', { class: 'hx-title', text: j.title }),
-          h('div', { class: 'hx-sm' }, siteLabel(j) || '—'), h('div', { class: 'hx-sm' }, 'Cách ', distNode(ctx, j), ' · hạn ', j.deadlineHour != null ? hhmm(j.deadlineHour) : '—')),
+          h('div', { class: 'hx-sm' }, siteLabel(j) || '—'), h('div', { class: 'hx-sm' }, 'Cách ', distNode(ctx, j), ' · nhận trước ', j.deadlineHour != null ? hhmm(j.deadlineHour) : '—')),
           h('span', { class: 'hx-pay', text: vnd(j.pay) }))))
     }
     return root

@@ -4,9 +4,10 @@ import { State, DEFAULT_STATE } from '../core/state.js'
 import { Game } from '../world/player.js'
 import { OUTFIT_OPTIONS } from '../assets/characters/index.js'
 import * as B from './balance.js'
+import { fmtVND, eatToast } from './economy-config.js'
 
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
-export const fmt = (n) => Math.round(n).toLocaleString('vi-VN') + 'đ'
+export const fmt = fmtVND
 export const sfx = (name) => bus.emit('sfx', { name })
 export const changed = (key) => bus.emit('state:changed', { key })
 export function say(msg) { bus.emit('toast', { msg }); if (!window.__ui) { try { Game.toast(msg) } catch (e) { /* chưa có world */ } } }
@@ -14,6 +15,13 @@ export function say(msg) { bus.emit('toast', { msg }); if (!window.__ui) { try {
 // giờ tuyệt đối (giờ game từ đầu game) – dùng cho hạn việc / hạn nợ
 export const nowAbs = () => (State.day - 1) * 24 + State.hour
 export const W = () => window.__worldAPI
+// quán mở cửa? ưu tiên __worldAPI.isSiteOpen(id); thiếu trường `open` thì coi như mở (rail, xích lô...)
+export function siteOpen(s) {
+  if (!s) return false
+  const w = W()
+  if (w && typeof w.isSiteOpen === 'function' && s.id != null) { try { const r = w.isSiteOpen(s.id); if (typeof r === 'boolean') return r } catch (e) { /* bỏ qua */ } }
+  return s.open !== false
+}
 
 export function syncClock() {
   const w = W(); if (!w) return
@@ -25,7 +33,7 @@ export function syncClock() {
 export function earn(n, reason = 'việc') {
   n = Math.round(+n || 0); if (n <= 0) return 0
   State.money += n; State.stats.earned += n
-  State.mood = clamp(State.mood + Math.min(2, n / 45000), 0, 100)
+  State.mood = clamp(State.mood + Math.min(B.EARN_MOOD.max, n / B.EARN_MOOD.per), 0, 100)
   bus.emit('money:earn', { amount: n, reason }); changed('money'); changed('mood')
   return n
 }
@@ -37,6 +45,15 @@ export function spend(n, reason = 'chi tiêu') {
   bus.emit('money:spend', { amount: n, reason }); changed('money')
   return true
 }
+// Phạt/bồi thường: trừ thẳng vào ví, KHÔNG để ví âm (thiếu thì trừ tới 0 và nói rõ). Trả về số tiền thực bị trừ.
+export function fine(amount, reason = 'bồi thường') {
+  const want = Math.max(0, Math.round(+amount || 0)), paid = Math.min(want, Math.max(0, State.money))
+  State.money -= paid
+  if (paid > 0) bus.emit('money:spend', { amount: paid, reason, fine: true, wanted: want }); changed('money')
+  sfx('error')
+  say(paid >= want ? `Bồi thường ${fmt(paid)} cho người đi bộ.` : `Bồi thường ${fmt(want)} nhưng ví chỉ còn ${fmt(paid)} — trừ hết, ví về ${fmt(0)}.`)
+  return paid
+}
 export function addStamina(d) { State.stamina = clamp(State.stamina + d, 0, 100); changed('stamina') }
 export function addMood(d) { State.mood = clamp(State.mood + d, 0, 100); changed('mood') }
 
@@ -47,7 +64,7 @@ export function payMultiplier() {
 
 // ───── mỗi giờ game ─────
 export function hourlyTick() {
-  const H = B.HOURLY, h = Math.floor(State.hour), night = h >= 22 || h < 5
+  const H = B.HOURLY, h = Math.floor(State.hour), night = h >= 22 || h < 6
   addStamina(night ? H.staminaNight : H.stamina)
   let dm = H.mood
   if (W()?.isRaining?.()) dm += H.moodRain
@@ -60,11 +77,11 @@ export function hourlyTick() {
 export function eat(dishId, opts = {}) {
   const d = B.DISHES[dishId]
   if (!d) return false
-  if (!spend(d.price, 'ăn ' + d.name.toLowerCase())) return false
+  if (!spend(d.price, (d.act || 'Ăn').toLowerCase() + ' ' + d.name.toLowerCase())) return false
   addStamina(d.stamina)
   addMood(d.mood + (opts.atStall ? B.EAT_AT_STALL_MOOD : 0))
   sfx(dishId === 'trachanh' ? 'pop' : 'sizzle')
-  say(`Ăn ${d.name.toLowerCase()}: +${d.stamina} thể lực (-${fmt(d.price)})`)
+  say(eatToast(d))
   bus.emit('eat', { dish: dishId, atStall: !!opts.atStall })
   return true
 }
@@ -86,7 +103,7 @@ export function buy(kind, index) {
   if (!State.owned[kind].includes(index)) {
     if (!spend(it.price, 'mua ' + it.name.toLowerCase())) return false
     State.owned[kind].push(index); State.owned[kind].sort((a, b) => a - b)
-    addMood(5); changed('owned'); sfx('ting'); say(`Đã mua: ${it.name}`)
+    addMood(5); changed('owned'); sfx('ting'); say(kind === 'hair' ? `Nhuộm xong: tóc ${it.name.replace(/^(nhuộm|tóc)\s+/i, '')}` : `Đã mua: ${it.name}`)
   }
   equip(kind, index)
   return true

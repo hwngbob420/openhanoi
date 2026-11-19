@@ -31,7 +31,7 @@ export function h(tag, props, ...kids) {
   return el
 }
 
-export const vnd = (n) => (Math.round(+n || 0) < 0 ? '-' : '') + String(Math.abs(Math.round(+n || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '₫'
+export const vnd = (n) => (Math.round(+n || 0) < 0 ? '-' : '') + String(Math.abs(Math.round(+n || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ'
 export const hhmm = (hr) => { hr = ((+hr || 0) % 24 + 24) % 24; let H = Math.floor(hr), M = Math.floor((hr - H) * 60); return String(H).padStart(2, '0') + ':' + String(M).padStart(2, '0') }
 
 export const APP_COLORS = { jobs: '#ffb62e', ride: '#35c4b0', debts: '#ff6b5e', shop: '#e86bb0', gram: '#8b7bff' }
@@ -52,6 +52,9 @@ export const CSS = `
 .hx-chip.st .hx-ic{color:#7fe0ff}.hx-chip.md .hx-ic{color:#ff9fc8}
 .hx-mini{width:36px;height:8px;background:#0b0e16;border:1px solid #000;position:relative;image-rendering:pixelated}
 .hx-mini i{position:absolute;left:0;top:0;bottom:0;background:#62d894}.hx-mini.low i{background:#ff6f61}.hx-mini.mid i{background:#ffd23a}
+.hx-chip.st.tired{border-color:#ff6f61}.hx-chip.st.tired .hx-ic{color:#ff6f61;animation:hxtired 1.4s ease-in-out infinite}
+@keyframes hxtired{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.hx-chip.st.tired .hx-ic,.hx-tiredtip .hx-ic{animation:none}}
 @media (max-width:700px){#hx-dock{bottom:76px;flex-direction:column;align-items:flex-end}#hx-hud{left:8px;right:8px;justify-content:flex-end;gap:3px}.hx-chip{padding:0 6px 0 2px;gap:2px;font-size:12px}.hx-mini{width:28px}}
 
 /* ---- nút nổi: điện thoại + nhạc ---- */
@@ -94,6 +97,10 @@ body.hx-open #hx-dock{display:none}
 .hx-tile .ico{width:60px;height:60px;border-radius:12px;border:3px solid #080a11;display:flex;align-items:center;justify-content:center;color:#1a1306;box-shadow:0 4px 0 #080a11,inset 0 -5px 0 rgba(0,0,0,.2),inset 0 3px 0 rgba(255,255,255,.35)}
 .hx-tile:active .ico{transform:translateY(3px);box-shadow:0 1px 0 #080a11}
 .hx-tile .lb{font-size:12px;text-align:center;line-height:1.25;max-width:100px}
+.hx-homecard{margin:14px 0 0}.hx-homecard.tired{margin:0 0 14px;border-color:#ff6f61;background:#2e1f22}
+.hx-homecard .hx-aw{margin-top:8px}
+.hx-tiredtip{display:flex;align-items:center;gap:6px;margin-bottom:8px;color:#ffb3aa;font-size:16px;line-height:1.3}
+.hx-tiredtip .hx-ic{color:#ff6f61;animation:hxtired 1.4s ease-in-out infinite}.hx-tiredtip span{min-width:0;overflow-wrap:anywhere}
 .hx-demo{display:inline-block;margin-top:14px;padding:2px 8px;border:2px dashed #7a8299;color:#a2abc6;font-size:12px;border-radius:4px}
 
 /* ---- trong app ---- */

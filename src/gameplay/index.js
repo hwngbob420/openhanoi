@@ -8,16 +8,20 @@
 //   dishes, menu (OUTFIT_OPTIONS + giá + owned), equip/buy, save: restoreBackup(), setChip(bool)
 //   bus thêm: 'eat' {dish,atStall}, 'debt:paid' {id,amount}, 'debt:late' {id,late}
 //   debug: addMoney(n) / setStamina(n) / setMood(n) / skipDays(n) (cho QA)
+//   Đợt 4: rest('nap'|'sleep')→Promise<{ok,reason?,hours,day,hour}> (nhà = site 'home'), home()→{id,gx,gy,label,fallback,canNap,canSleep,napReason,sleepReason,sleepHours,dueWarn}
+//   bus thêm: 'rest:done' {kind,hours,day,hour}
 import { bus } from '../core/bus.js'
 import { State } from '../core/state.js'
 import { OUTFIT_OPTIONS } from '../assets/characters/index.js'
 import * as B from './balance.js'
+import * as Cfg from './economy-config.js'
 import * as E from './economy.js'
 import * as Save from './save.js'
 import * as Jobs from './jobs.js'
 import * as Debts from './debts.js'
 import * as Stalls from './stalls.js'
 import * as MG from './minigames/index.js'
+import * as Home from './home.js'
 
 let ready = false, lastHour = -1, clockTimer = 0
 
@@ -32,6 +36,7 @@ function onReady() {
   bus.emit('outfit:changed', { outfit: State.outfit, reason: loaded ? 'load' : 'start' })
   E.changed('all')
   Stalls.start()
+  Home.start()
   clearInterval(clockTimer)
   clockTimer = setInterval(clock, 250)
 }
@@ -45,6 +50,7 @@ function clock() {
 export function init() {
   State.flags ||= {}
   Save.setHooks({ afterLoad })
+  Home.setHooks({ afterTimeJump: () => { E.syncClock(); lastHour = Math.floor(State.hour) }, refreshBoard: () => Jobs.refillBoard(false), save: () => Save.save() })
   Save.load()
   Debts.ensureDefault()
   bus.on('world:ready', onReady)
@@ -61,15 +67,18 @@ export function init() {
     eat: (dishId) => E.eat(dishId),
     jobs: { board: Jobs.board, accept: Jobs.accept, cancel: () => Jobs.cancel(), current: Jobs.current, startWork: Jobs.startWork, refresh: () => Jobs.refillBoard(false) },
     debts: { list: Debts.list, pay: Debts.pay, catalog: Debts.catalog, take: Debts.take },
+    rest: (kind, opts) => Home.rest(kind, opts),
+    home: () => Home.info(),
     save: () => Save.save(),
     exportSave: Save.exportSave,
     importSave: Save.importSave,
     reset: (opts) => Save.reset(opts),
     restoreBackup: Save.restoreBackup,
-    minigames: { start: MG.start, debugFinish: MG.debugFinish, list: MG.list, isActive: MG.isActive, current: MG.current },
+    minigames: { start: MG.start, debugFinish: MG.debugFinish, debug: MG.debug, list: MG.list, isActive: MG.isActive, current: MG.current },
     dishes: B.DISHES,
     menu: () => Object.fromEntries(Object.entries(OUTFIT_OPTIONS).map(([k, list]) => [k, list.map((o, i) => ({ ...o, index: i, owned: State.owned[k].includes(i), equipped: State.outfit[k] === i }))])),
     balance: B,
+    config: Cfg,
     setChip: Jobs.setChip,
     debug: {
       addMoney: (n) => { State.money = Math.max(0, State.money + n); E.changed('money') },

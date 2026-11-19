@@ -1,0 +1,7 @@
+Pixelify Sans — Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
+Giấy phép: SIL Open Font License, Version 1.1 — https://openfontlicense.org
+Nguồn file: ~/.claude/hanoi-game-refs/fonts/PixelifySans.ttf. Bản nhúng (font-data.js) là TẬP CON Latin + Latin mở rộng (đủ dấu tiếng Việt), đổi định dạng sang woff2; không đổi nét chữ.
+
+Tóm tắt OFL 1.1: được dùng, nghiên cứu, sửa, nhúng và phân phối lại font (kể cả trong sản phẩm thương mại) miễn là
+(1) kèm thông báo bản quyền và giấy phép này; (2) không bán riêng font; (3) bản sửa đổi không được dùng "Reserved Font Name" nếu có;
+(4) font phái sinh vẫn dưới OFL. Văn bản đầy đủ tại https://openfontlicense.org/open-font-license-official-text/

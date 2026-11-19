@@ -1,6 +1,10 @@
 // Mini-game #2: Quán Trà chanh xếp ghế, né xe. Khuân ghế từ chồng ghế (vỉa hè dưới) sang hàng quán (vỉa hè trên),
 // băng qua đường có xe máy / ô tô. Bị xe quệt thì rơi ghế và choáng 1 giây.
-import { R, person, car, scooter, chair, shadow, burst, clamp, rnd, pick, W, H } from './gfx.js'
+import { R, burst, clamp, rnd, pick, drawMG, W, H } from './gfx.js'
+import { MG } from '../balance.js'
+
+const K = MG.tc
+const lerp = (a, b, f) => a + (b - a) * clamp(f, 0, 1)
 
 const SLOTS = [44, 100, 160, 220, 276]
 const LANES = [{ y: 74, dir: 1 }, { y: 100, dir: -1 }, { y: 126, dir: 1 }]
@@ -9,22 +13,24 @@ const CHC = ['#d34a3a', '#2f8fd0', '#e0b020', '#4aa860']
 
 export default {
   id: 'tc',
-  title: 'Xếp ghế trà chanh',
-  how: 'Ôm ghế ở chồng ghế (vỉa hè dưới), băng qua đường mang sang hàng quán (vỉa hè trên) rồi đặt vào chỗ trống.\nĐi bằng mũi tên / WASD / nút mũi tên, hoặc chạm vào chỗ muốn tới. Né xe!',
+  title: 'Xếp ghế quán trà chanh',
+  how: 'Ôm ghế ở chồng ghế (vỉa hè dưới), băng qua đường mang sang hàng quán (vỉa hè trên) rồi đặt vào chỗ trống.\nĐi bằng mũi tên / WASD / nút mũi tên, hoặc chạm vào chỗ muốn tới. Né xe! Xe chạy nhanh và dày dần; bị quệt thì rơi ghế và trừ điểm. Xếp đủ ' + K.target + ' ghế mới được trọn điểm.',
   create(env) {
     const P = { x: 160, y: 164, vx: 0, vy: 0, carry: -1, stun: 0, step: 0, dir: 1, target: null }
-    const S = { slots: SLOTS.map(() => -1), placed: 0, hits: 0, cars: [], spawn: [0.3, 0.9, 1.5], fx: [], dropped: [], cooldown: 0, clear: 0, trips: 0 }
+    const S = { slots: SLOTS.map(() => -1), placed: 0, hits: 0, cars: [], spawn: [0.3, 0.9, 1.5], fx: [], dropped: [], cooldown: 0, clear: 0, trips: 0, dur: env.dur || 45 }
+    env.expose({ S, P, SLOTS, LANES })
     env.setHint('Mũi tên / WASD hoặc nút bên dưới. Ghế tự nhặt ở chồng ghế và tự đặt vào chỗ trống trên vỉa hè quán.')
     const mk = (label, key, cls = 'sm') => env.btn(label, { key, cls })
     mk('◀', 'arrowleft'); mk('▲', 'arrowup'); mk('▼', 'arrowdown'); mk('▶', 'arrowright')
     const held = (...ks) => ks.some((k) => env.keys.has(k))
+    const look = { x: P.x, y: P.y, face: 'up' }          // chỉ phần vẽ dùng
 
     function spawnCar(i, t) {
       const L = LANES[i], moto = Math.random() < 0.55, w = moto ? 16 : 24
-      const v = (moto ? rnd(70, 110) : rnd(48, 80)) * (1 + t / 200)
+      const v = (moto ? rnd(70, 110) : rnd(48, 80)) * (1 + t * K.carRamp)
       const x = L.dir > 0 ? -w : W + w
       S.cars.push({ lane: i, x, y: L.y, dir: L.dir, v, moto, w, col: pick(CARC), seed: Math.random() * 9 })
-      S.spawn[i] = rnd(1.5, 2.6) * clamp(1.2 - t / 150, 0.75, 1.2)
+      const f = t / S.dur; S.spawn[i] = rnd(lerp(K.spawnStart[0], K.spawnEnd[0], f), lerp(K.spawnStart[1], K.spawnEnd[1], f))
     }
     return {
       key(k, down) { if (down && (k === 'a' || k === 'd' || k === 'w' || k === 's')) P.target = null },
@@ -67,43 +73,51 @@ export default {
       hud() { return `Ghế ${S.placed} · va ${S.hits}` },
       draw(g, t, stage) {
         const T = stage === 'play' ? t : performance.now() / 1000
-        // vỉa hè trên (hàng quán)
-        R(g, 0, 0, W, 56, '#b9a98a'); for (let x = 0; x < W; x += 16) R(g, x, 46, 15, 9, '#a69674')
-        R(g, 0, 0, W, 22, '#4a8f6a'); for (let x = 0; x < W; x += 16) R(g, x, 18, 8, 6, '#3a7a58')
-        R(g, 90, 5, 140, 11, '#2f5a3a'); R(g, 92, 7, 136, 7, '#f0e29a'); for (let i = 0; i < 7; i++) R(g, 96 + i * 19, 9, 11, 3, '#4a8f6a')
-        R(g, 8, 26, 22, 18, '#8a5a2a'); R(g, 10, 22, 18, 4, '#d9b443')    // quầy / xe nước
-        for (let i = 0; i < 4; i++) R(g, 12 + i * 4, 18 - (i % 2), 2, 4, 'rgba(120,200,120,.8)')
-        R(g, 0, 55, W, 1, '#7a6a4a')
+        // hướng nhìn của người chơi: suy ra từ bước di chuyển giữa hai khung vẽ (biến cục bộ của phần vẽ, không ảnh hưởng luật chơi)
+        const mdx = P.x - look.x, mdy = P.y - look.y; look.x = P.x; look.y = P.y
+        const moving = Math.abs(mdx) + Math.abs(mdy) > 0.01 && P.stun <= 0
+        if (moving) look.face = Math.abs(mdy) > Math.abs(mdx) ? (mdy > 0 ? 'down' : 'up') : (mdx > 0 ? 'right' : 'left')
+        // vỉa hè trên + dãy mặt tiền (tiệm điện thoại · quán TRÀ CHANH · tạp hoá) + xe nước
+        for (let x = 0; x < W; x += 16) { drawMG(g, 'tc_pave', x, 26); drawMG(g, 'tc_pave', x, 42) }
+        drawMG(g, 'tc_shopfront', 0, 0)
+        drawMG(g, 'tc_cart', 20, 50)
         SLOTS.forEach((sx, i) => {
-          R(g, sx - 12, 42, 24, 3, 'rgba(0,0,0,.14)')
-          if (S.slots[i] >= 0) { chair(g, sx, 46, CHC[S.slots[i] % CHC.length]); if (S.clear > 0) person(g, sx, 40, { hair: '#2b2230', top: '#e8e0cc', pants: '#444' }, {}) }
-          else { R(g, sx - 6, 36, 12, 1, '#fff2a0'); R(g, sx - 6, 46, 12, 1, '#fff2a0'); R(g, sx - 6, 36, 1, 10, '#fff2a0'); R(g, sx + 5, 36, 1, 10, '#fff2a0') }
+          if (sx + 14 < W - 6) drawMG(g, 'tc_table', sx + 15, 50)
+          if (S.slots[i] >= 0) {
+            const col = S.slots[i] % CHC.length
+            if (S.clear > 0) drawMG(g, 'cust_' + (col + (i % 2 ? 4 : 0)) + '_down', sx, 49, { t: T })     // khách ngồi đúng ghế cùng màu
+            else drawMG(g, 'tc_stool_' + col, sx, 47)
+          } else drawMG(g, 'tc_slot', sx, 46, { t: T })
         })
-        // đường
-        R(g, 0, 56, W, 86, '#4a4d55'); for (let l = 0; l < 4; l++) { const y = 61 + l * 26; if (l > 0 && l < 3) for (let x = -((T * 20) % 24); x < W; x += 24) R(g, x, y + 8, 12, 2, '#d9d2b0') }
-        R(g, 0, 56, W, 2, '#7a7c82'); R(g, 0, 140, W, 2, '#7a7c82')
-        for (let y = 60; y < 138; y += 8) R(g, 112, y, 4, 4, '#e8e4d2'), R(g, 204, y, 4, 4, '#e8e4d2')    // vạch đi bộ nhạt
-        // vỉa hè dưới
-        R(g, 0, 142, W, H - 142, '#b9a98a'); for (let x = 0; x < W; x += 16) R(g, x, 146, 15, 8, '#a69674'), R(g, x + 8, 160, 15, 8, '#a69674')
-        // chồng ghế
-        for (let i = 0; i < 4; i++) chair(g, 140 + (i % 2) * 11, 168 - Math.floor(i / 2) * 6 + 4, CHC[i % 4])
-        R(g, 134, 170, 36, 2, 'rgba(0,0,0,.25)')
+        // đường 3 làn: nhựa + vạch đứt giữa làn, bó vỉa hai bên, vạch qua đường chỗ khuân ghế
+        for (let x = 0; x < W; x += 32) { drawMG(g, 'tc_road', x, 56); drawMG(g, 'tc_road', x, 116); drawMG(g, 'tc_road_dash', x, 82); drawMG(g, 'tc_road_dash', x, 108) }
+        g.globalAlpha = 0.32; for (let y = 60; y < 138; y += 8) for (let x = 136; x < 184; x += 8) drawMG(g, 'tc_zebra', x, y); g.globalAlpha = 1
+        for (let x = 0; x < W; x += 32) { drawMG(g, 'tc_curb', x, 54); drawMG(g, 'tc_curb', x, 140) }
+        // vỉa hè dưới + chồng ghế (chỗ lấy ghế)
+        for (let x = 0; x < W; x += 16) for (let y = 144; y < H; y += 16) drawMG(g, 'tc_pave', x, y)
+        drawMG(g, 'tc_stack', 140, 174)
         // ghế rơi
-        for (const d of S.dropped) chair(g, d.x + Math.min(8, d.t * 30), d.y + 3, d.col)
-        // sắp theo y: xe + người
-        const draws = S.cars.map((c) => ({ y: c.y, f: () => (c.moto ? scooter(g, c.x, c.y, c.dir, c.col) : car(g, c.x, c.y, c.dir, c.col)) }))
+        for (const d of S.dropped) drawMG(g, 'tc_stool_' + Math.max(0, CHC.indexOf(d.col)), d.x + Math.min(8, d.t * 30), d.y + 4)
+        // sắp theo y: xe + người (hình xe canh giữa đúng tâm va chạm c.x, chân bánh ở c.y)
+        const draws = S.cars.map((c) => {
+          const k = Math.max(0, CARC.indexOf(c.col)), side = c.dir > 0 ? 'r' : 'l'
+          return { y: c.y, f: () => drawMG(g, c.moto ? `veh_moto_${k % 4}_${side}` : `veh_car_${k % 3}_${side}`, c.x, c.y, { t: T + c.seed }) }
+        })
         draws.push({ y: P.y, f: () => {
           if (P.stun > 0 && Math.floor(T * 14) % 2) return
-          person(g, P.x, P.y, env.outfit, { step: P.step, dir: P.dir })
-          if (P.carry >= 0) chair(g, P.x + P.dir * 7, P.y - 6, CHC[P.carry % CHC.length])
-          if (P.stun > 0) { R(g, P.x - 5 + Math.sin(T * 16) * 3, P.y - 20, 2, 2, '#ffe14a'); R(g, P.x + 3 - Math.sin(T * 16) * 3, P.y - 21, 2, 2, '#ffe14a') }
+          const fr = moving ? Math.floor(P.step * 8) % 4 : 0
+          if (P.carry >= 0) {
+            drawMG(g, 'player_carry_' + look.face, P.x, P.y, { frame: fr, outfit: env.outfit })
+            drawMG(g, 'tc_stool_' + (P.carry % CHC.length), P.x, P.y - 26 + (fr % 2))           // ghế đặt trên hai tay giơ qua đầu
+          } else drawMG(g, 'player_' + look.face, P.x, P.y, { frame: fr, outfit: env.outfit })
+          if (P.stun > 0) { R(g, P.x - 5 + Math.sin(T * 16) * 3, P.y - 30, 2, 2, '#ffe14a'); R(g, P.x + 3 - Math.sin(T * 16) * 3, P.y - 31, 2, 2, '#ffe14a') }
         } })
         draws.sort((a, b) => a.y - b.y).forEach((d) => d.f())
         for (const f of S.fx) burst(g, f.x, f.y, f.t, f.c)
         if (P.target) { R(g, P.target.x - 3, P.target.y - 1, 7, 2, '#ffffff'); R(g, P.target.x - 1, P.target.y - 3, 2, 6, '#ffffff') }
       },
       result() {
-        const score = clamp(Math.round(S.placed * (100 / 12) - S.hits * 4), 0, 100)
+        const score = clamp(Math.round(S.placed * (100 / K.target) - S.hits * K.hit), 0, 100)
         return { score, summary: `Xếp ${S.placed} ghế · bị xe quệt ${S.hits} lần` }
       },
     }

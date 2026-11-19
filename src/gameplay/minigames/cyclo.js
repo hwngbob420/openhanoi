@@ -1,32 +1,85 @@
 // Mini-game #5: Đạp xích lô quanh Hồ Gươm. Đạp luân phiên chân trái / phải (A và D, ← và →, hoặc 2 nút) để lấy đà;
 // đạp cùng một bên liên tục thì yếu. Có người qua đường: bấm RUNG CHUÔNG (Space) trước khi tới gần, nếu không phải phanh gấp.
-import { R, shadow, willow, tree, burst, npc, person, clamp, rnd, W, H } from './gfx.js'
+// Luật đi bộ: người đi bộ sắp sang đường hiện dấu `!` đỏ từ xa. Space đúng tầm = "kính coong" -> họ dừng bên lề, bong bóng xanh
+// "Mời bác đi trước!", xe đi qua. Không rung: họ vẫn bước qua, xe tự phanh chờ họ qua hẳn mới đạp tiếp; đạp quá nhanh thì phanh
+// không kịp -> đâm: huỷ chuyến ngay, bồi thường (economy-config FINES) trừ thẳng vào ví, không để ví âm.
+import { R, shadow, burst, clamp, rnd, drawMG, drawMGOutlined, W, H } from './gfx.js'
+import { bus } from '../../core/bus.js'
+import { fine as fineWallet } from '../economy.js'
+import { CYCLO_FINE, fmtVND } from '../economy-config.js'
+import { MG } from '../balance.js'
 
-const GOAL = 5000                              // quãng đường (px logic) ứng với 100 điểm
+const K = MG.cyclo
+const lerp = (a, b, f) => a + (b - a) * clamp(f, 0, 1)
+
+// Đợt 4: tốc độ đến từ NHỊP đạp (luân phiên, khoảng cách hai nhịp gần nhịp chuẩn K.cadence0 -> K.cadence1 nhanh dần trong lượt);
+// đạp dồn quá nhanh (< K.minGap) = hụt xích, mất đà. Quãng đường K.goal ứng với phần điểm quãng đường tối đa.
+const WARN_DX = 215                            // dấu ! hiện từ xa tới đây
+const CROSS_DX = 72                            // không được nhường thì người đi bộ bước ra đường khi xe cách chừng này
+const BRAKE = 130                              // gia tốc phanh (px/s²)
 const CX = 104                                 // vị trí xích lô trên màn hình
 
 export default {
   id: 'cyclo',
   title: 'Đạp xích lô Hồ Gươm',
-  how: 'Đạp luân phiên hai chân: A rồi D (hoặc ← rồi →, hoặc chạm hai nút Trái / Phải) để xích lô chạy nhanh.\nThấy người qua đường thì RUNG CHUÔNG (Space) trước khi tới sát. Đạp càng đều, khách càng boa nhiều.',
+  how: 'Đạp luân phiên hai chân: A rồi D (hoặc ← rồi →, hoặc chạm hai nút Chân trái / Chân phải), giữ NHỊP ĐỀU khoảng 3–4 lần mỗi giây (thanh xanh dương = độ đều). Đạp dồn quá nhanh sẽ hụt xích.\nThấy dấu ! đỏ là có người sắp sang đường: bấm Space (nút Rung chuông) cho kêu kính coong, họ sẽ nhường xe bạn đi trước. Không rung thì phải phanh chờ họ qua; rung chuông vô cớ bị trừ điểm; đạp quá nhanh mà đâm người thì chuyến bị hủy và phải đền ' + fmtVND(CYCLO_FINE) + '.',
   create(env) {
-    const S = { dist: 0, v: 0, last: '', streak: 0, flow: 0, hits: 0, rang: 0, walkers: [], nextWalker: 380, fx: [], bell: 0, crank: 0, tips: 0, stumble: 0, bellFx: 0, taps: 0 }
-    env.setHint('Đạp LUÂN PHIÊN trái – phải (A / D hoặc ← / →). Space hoặc nút chuông để rung chuông khi có người qua đường.')
+    const S = { dist: 0, v: 0, last: '', streak: 0, flow: 0, hits: 0, walkers: [], nextWalker: 380, fx: [], crank: 0, stumble: 0, bellFx: 0, taps: 0, wid: 0,
+      yields: 0, bells: 0, lastBell: '', braking: false, crashed: false, fine: 0, fineWanted: 0, stopTime: 0, bubs: new Map(), noSpawn: false,
+      t: 0, lastTap: -9, slips: 0, badBells: 0, met: 0, dur: env.dur || 45 }
+    const cadence = () => lerp(K.cadence0, K.cadence1, S.t / S.dur)
+    env.setHint('Đạp LUÂN PHIÊN trái – phải (A / D hoặc ← / →) theo nhịp đều, đừng dồn. Thấy dấu ! thì bấm Space / nút chuông.')
     env.btn('Chân trái', { key: 'a', cls: 'green', sub: 'A / ←' })
     env.btn('Rung chuông', { cls: '', onDown: () => bell(), sub: 'Space' })
     env.btn('Chân phải', { key: 'd', cls: 'green', sub: 'D / →' })
-    function bell() { S.bellFx = 0.6; env.sfx('bell'); for (const w of S.walkers) if (!w.warned && w.x - S.dist > 0 && w.x - S.dist < 190) { w.warned = true; S.fx.push({ x: CX + (w.x - S.dist), y: 100, t: 0, c: '#8ff08f' }) } }
-    function pedal(side) {
-      if (S.stumble > 0) return
-      S.taps++
-      const alt = side !== S.last
-      S.streak = alt ? S.streak + 1 : 0
-      S.last = side
-      const power = alt ? 15 + Math.min(S.streak, 12) * 0.9 : 4
-      S.v = Math.min(150, S.v + power)
-      S.crank += 0.9
-      S.flow = clamp(S.flow + (alt ? 0.08 : -0.15), 0, 1)
+    const over = env.overlay
+    const night = !!(window.__worldAPI?.isNight?.())          // chỉ phần vẽ: đèn bờ hồ sáng khi trời tối
+    function playBell() {          // "kính coong"; audio chưa có tiếng này (has() === false) thì dùng 'bell'
+      const has = window.__audio && typeof window.__audio.has === 'function' ? window.__audio.has('kinhcoong') : true
+      S.lastBell = has ? 'kinhcoong' : 'bell'
+      bus.emit('sfx', { name: S.lastBell })
     }
+    function bubble(key, text, cls, x, y) {      // bong bóng DOM (chữ đủ dấu, nét sắc) neo theo toạ độ logic 320x180
+      let b = S.bubs.get(key)
+      if (!b) { b = document.createElement('div'); b.className = 'gm-bub ' + cls; b.textContent = text; b.dataset.key = key; over.appendChild(b); S.bubs.set(key, b) }
+      b.style.left = (x / W * 100) + '%'; b.style.top = (y / H * 100) + '%'
+      const ow = over.clientWidth, bw = b.offsetWidth                       // giữ bong bóng trọn trong khung (người đứng sát mép phải/trái)
+      if (ow && bw) { const cx = x / W * ow, lo = bw / 2 + 4, hi = ow - bw / 2 - 4; if (cx < lo || cx > hi) b.style.left = clamp(cx, lo, Math.max(lo, hi)) + 'px' }
+      return b
+    }
+    function dropBubble(key) { const b = S.bubs.get(key); if (b) { b.remove(); S.bubs.delete(key) } }
+    function bell() {
+      if (S.crashed) return
+      S.bellFx = 0.6; S.bells++; playBell()
+      let t = null          // người đi bộ gần nhất đang đợi bên lề trong tầm nhìn -> nhường
+      for (const w of S.walkers) { const dx = w.x - S.dist; if (w.state === 'wait' && dx > 18 && dx < WARN_DX && (!t || dx < t.x - S.dist)) t = w }
+      if (!t) S.badBells++                      // rung vô cớ (không có ai đang chờ trong tầm)
+      if (t) { t.state = 'yield'; t.yieldT = 0; S.yields++; S.met++; S.fx.push({ x: CX + (t.x - S.dist), y: 100, t: 0, c: '#6bb8ff' }) }
+    }
+    function pedal(side) {
+      if (S.stumble > 0 || S.crashed || S.braking) return
+      S.taps++
+      const gap = S.t - S.lastTap; S.lastTap = S.t
+      const alt = side !== S.last
+      S.last = side
+      if (gap < K.minGap) { S.slips++; S.v *= 0.85; S.streak = 0; S.flow = clamp(S.flow - 0.2, 0, 1); return }   // dồn quá nhanh: hụt xích
+      const q = alt ? Math.max(0, 1 - ((gap - cadence()) / K.band) ** 2) : 0                                       // độ khớp nhịp 0..1
+      S.streak = q > 0.5 ? S.streak + 1 : 0
+      S.v = Math.min(150, S.v + K.power * q)
+      S.crank += 0.9
+      S.flow = clamp(S.flow * 0.65 + q * 0.35, 0, 1)
+    }
+    function spawnWalker(dx = 420) { S.walkers.push({ id: ++S.wid, x: S.dist + dx, seed: S.wid * 5 + 1, state: 'wait', p: 0, yieldT: 0, hit: false, dir: Math.random() < 0.5 ? 1 : -1 }) }
+    function crash(w) {
+      w.hit = true; S.hits++; S.crashed = true; S.braking = false; S.v = 0; S.stumble = 1
+      env.sfx('horn')
+      S.fineWanted = CYCLO_FINE
+      S.fine = (env.fine || fineWallet)(CYCLO_FINE, 'bồi thường')          // trừ thẳng vào ví, tối đa bằng số tiền đang có
+      S.fx.push({ x: CX + (w.x - S.dist), y: 100, t: 0, c: '#e0553f' })
+      bubble('crash', 'Á! Đụng người rồi! −' + fmtVND(S.fine) + (S.fine < CYCLO_FINE ? ' (hết sạch ví)' : ''), 'red', CX + 6, 112)
+      env.end('crash')                                       // huỷ chuyến ngay
+    }
+    env.expose({ S, spawnWalker, ring: bell, setSpeed: (v) => { S.v = v }, setDist: (d) => { S.dist = d }, noSpawn: (on) => { S.noSpawn = !!on } })
     return {
       key(k, down) {
         if (!down) return
@@ -35,24 +88,41 @@ export default {
         else if (k === ' ' || k === 'b' || k === 'arrowup' || k === 'enter') bell()
       },
       pointer(type, x) { if (type === 'down') { if (x < W * 0.4) pedal('L'); else if (x > W * 0.6) pedal('R'); else bell() } },
+      debug() {
+        return {
+          cadence: +cadence().toFixed(3), slips: S.slips, badBells: S.badBells, met: S.met, flow: +S.flow.toFixed(2),
+          walkers: S.walkers.length, list: S.walkers.map((w) => ({ id: w.id, dx: Math.round(w.x - S.dist), state: w.state, p: +w.p.toFixed(2) })),
+          yields: S.yields, yielded: S.yields > 0, bells: S.bells, lastBell: S.lastBell, braking: S.braking, crashed: S.crashed, hits: S.hits,
+          fine: S.fine, fineWanted: S.fineWanted, dist: Math.round(S.dist), v: Math.round(S.v), stopTime: +S.stopTime.toFixed(2),
+        }
+      },
       update(dt, t) {
-        S.v *= Math.exp(-0.55 * dt)
+        S.t = t
+        if (S.crashed) { S.bellFx = 0; for (const f of S.fx) f.t += dt * 2; return }
         S.flow = Math.max(0, S.flow - dt * 0.12)
         if (S.stumble > 0) { S.stumble -= dt; S.v *= Math.exp(-4 * dt) }
+        // có người đang sang đường phía trước -> phanh (xe chậm thì kịp dừng, quá nhanh thì đâm)
+        S.braking = S.walkers.some((w) => w.state === 'cross' && !w.hit && w.p < 1 && w.x - S.dist > -2 && w.x - S.dist < 120)
+        if (S.braking) { S.v = Math.max(0, S.v - BRAKE * dt); if (S.v < 1) { S.v = 0; S.stopTime += dt } } else S.v *= Math.exp(-K.drag * dt)
         S.dist += S.v * dt
-        S.tips += S.v * dt * S.flow * 0.0
-        if (S.dist > S.nextWalker) { S.walkers.push({ x: S.dist + 230, seed: S.walkers.length * 5 + 1, warned: false, hit: false, p: 0, dir: Math.random() < 0.5 ? 1 : -1 }); S.nextWalker += rnd(360, 560) }
+        if (!S.noSpawn && S.dist > S.nextWalker) { spawnWalker(420); S.nextWalker += rnd(360, 560) * lerp(1, K.walkerGapEnd, t / S.dur) }
         for (const w of S.walkers) {
           const dx = w.x - S.dist
-          if (dx < 62) w.p = Math.min(1, w.p + dt * 0.9)            // bắt đầu băng qua đường
-          if (!w.hit && !w.warned && dx < 8 && dx > -10 && w.p > 0.15 && w.p < 0.85) { w.hit = true; S.hits++; S.stumble = 0.9; S.v *= 0.2; env.sfx('horn'); S.fx.push({ x: CX + dx, y: 100, t: 0, c: '#e0553f' }) }
+          if (w.state === 'wait' && dx < CROSS_DX) { w.state = 'cross'; S.met++ }                       // không ai nhường -> bước ra đường
+          if (w.state === 'yield') { w.yieldT += dt; if (dx < -16 && w.yieldT > 1.2) { w.state = 'cross'; dropBubble('y' + w.id) } }   // xe qua rồi họ mới sang
+          if (w.state === 'cross') {
+            w.p = Math.min(1, w.p + dt * 0.7)
+            const q = w.dir > 0 ? w.p : 1 - w.p                                            // vị trí ngang đường (0 mép hồ .. 1 mép xa)
+            if (!w.hit && dx < 10 && dx > -8 && q > 0.3 && q < 0.98) { crash(w); return }
+            if (w.p >= 1) w.state = 'done'
+          }
         }
-        S.walkers = S.walkers.filter((w) => w.x - S.dist > -60)
+        S.walkers = S.walkers.filter((w) => { const keep = w.state === 'done' ? w.x - S.dist > -10 : w.x - S.dist > -70; if (!keep) dropBubble('y' + w.id); return keep })
         S.bellFx = Math.max(0, S.bellFx - dt)
         for (const f of S.fx) f.t += dt * 2
         S.fx = S.fx.filter((f) => f.t < 1)
       },
-      hud() { return `Quãng đường ${Math.round(S.dist / 10)}m${S.flow > 0.5 ? ' · đạp đều' : ''}` },
+      hud() { return `Quãng đường ${Math.round(S.dist / 10)}m${S.flow > 0.5 ? ' · đạp đều' : ''}${S.braking ? ' · phanh chờ người đi bộ' : ''}${S.yields ? ' · được nhường ' + S.yields : ''}` },
       draw(g, t, stage) {
         const T = stage === 'play' ? t : performance.now() / 1000
         const d = S.dist
@@ -60,52 +130,65 @@ export default {
         const bands = ['#bfe3f2', '#cde9f4', '#dcf0f6', '#e8f6f4']
         bands.forEach((c, i) => R(g, 0, i * 14, W, 14, c))
         // mây
-        for (let i = 0; i < 4; i++) { const x = ((i * 97 - d * 0.04) % (W + 60) + W + 60) % (W + 60) - 30; R(g, x, 12 + (i % 2) * 14, 26, 6, '#fff'); R(g, x + 6, 8 + (i % 2) * 14, 14, 5, '#fff') }
-        // bờ xa: nhà cổ + cây
-        for (let i = 0; i < 12; i++) { const x = (((i * 41 - d * 0.12) % 500) + 500) % 500 - 30; const h = 14 + (i * 7) % 12; R(g, x, 58 - h, 30, h, ['#c9a46a', '#d6b08a', '#a8b8a0', '#e0c88a'][i % 4]); R(g, x, 58 - h, 30, 3, '#8a4a3a'); for (let k = 5; k < 26; k += 9) R(g, x + k, 58 - h + 6, 4, 5, '#ffe9a0') }
-        // hồ
-        R(g, 0, 58, W, 52, '#5f9fb8'); for (let r = 0; r < 6; r++) { const y = 62 + r * 8; for (let x = -((d * (0.25 + r * 0.05) + r * 17) % 32); x < W; x += 32) R(g, x + (r % 2) * 10, y, 12 - r, 1, 'rgba(255,255,255,.4)') }
-        // cầu Thê Húc + đền Ngọc Sơn (đảo nhỏ) và Tháp Rùa
-        const lm = (off, fn) => { const x = off - d * 0.35; if (x > -70 && x < W + 70) fn(x) }
-        lm(400, (x) => { R(g, x - 22, 74, 44, 6, '#4a7a58'); R(g, x - 6, 60, 12, 14, '#c9b078'); R(g, x - 8, 56, 16, 5, '#7a2f28'); R(g, x - 4, 50, 8, 7, '#c9b078'); R(g, x - 5, 46, 10, 4, '#7a2f28'); R(g, x - 1, 40, 2, 6, '#7a2f28') })           // Tháp Rùa
-        lm(1250, (x) => { R(g, x - 30, 76, 60, 5, '#4a7a58'); R(g, x - 18, 66, 36, 10, '#c0392b'); R(g, x - 20, 62, 40, 5, '#7a2f28'); R(g, x - 14, 69, 8, 7, '#2a1c14'); R(g, x + 6, 69, 8, 7, '#2a1c14'); for (let k = -28; k < 30; k += 4) R(g, x + k, 82, 2, 1, '#c0392b') })   // Đền Ngọc Sơn
-        lm(2300, (x) => { R(g, x - 40, 78, 80, 4, '#c0392b'); for (let k = -36; k < 40; k += 8) R(g, x + k, 74, 2, 8, '#9a2f20'); R(g, x - 40, 72, 80, 2, '#c0392b') })                                                                                          // cầu Thê Húc
-        lm(3300, (x) => { R(g, x - 22, 74, 44, 6, '#4a7a58'); R(g, x - 6, 60, 12, 14, '#c9b078'); R(g, x - 8, 56, 16, 5, '#7a2f28'); R(g, x - 4, 50, 8, 7, '#c9b078'); R(g, x - 5, 46, 10, 4, '#7a2f28') })
-        // bờ + cây liễu + ghế đá
-        R(g, 0, 108, W, 14, '#6aa850'); R(g, 0, 108, W, 2, '#8cc56a')
-        for (let i = 0; i < 8; i++) { const x = (((i * 83 - d * 0.7) % 664) + 664) % 664 - 40; willow(g, x, 120, T) }
-        // đường đi
-        R(g, 0, 122, W, 58, '#a89a84'); R(g, 0, 122, W, 2, '#c9bba4'); R(g, 0, 150, W, 1, 'rgba(0,0,0,.1)')
-        for (let x = -((d * 1.0) % 30); x < W; x += 30) { R(g, x, 138, 14, 2, '#d9d2b0') }
-        for (let x = -((d * 1.0) % 20); x < W; x += 20) { R(g, x, 123, 9, 2, 'rgba(0,0,0,.12)'); R(g, x + 6, 170, 9, 2, 'rgba(0,0,0,.12)') }
-        // người qua đường
-        for (const w of S.walkers) {
-          const sx = CX + (w.x - d), wy = 118 + (w.dir > 0 ? w.p : 1 - w.p) * 46
-          if (w.p > 0 || sx < W + 20) { npc(g, sx, wy + 14, w.seed, { step: T + w.seed, dir: w.dir }); if (sx - CX < 120 && !w.hit && !w.warned && sx > CX) { R(g, sx - 2, wy - 8, 4, 8, '#e0553f'); R(g, sx - 1, wy + 1, 2, 2, '#e0553f') } }
+        for (let i = 0; i < 4; i++) { const x = ((i * 97 - d * 0.04) % (W + 60) + W + 60) % (W + 60) - 30; drawMG(g, 'cy_cloud', Math.round(x), 6 + (i % 2) * 14) }
+        // bờ hồ bên kia: nhà ống mái ngói + cây (ghép liền mỗi 160px, trôi chậm)
+        for (let x = -(((d * 0.12) % 160) + 160) % 160; x < W; x += 160) drawMG(g, 'cy_far_shore', Math.round(x), 60)
+        // mặt Hồ Gươm, sóng lăn tăn
+        for (let x = -(((d * 0.25) % 64) + 64) % 64; x < W; x += 64) drawMG(g, 'cy_water', Math.round(x), 58, { t: T })
+        // Tháp Rùa, cầu Thê Húc + đền Ngọc Sơn (trôi theo xe)
+        const lm = (off, name, y) => { const x = off - d * 0.35; if (x > -70 && x < W + 70) drawMG(g, name, Math.round(x), y) }
+        lm(400, 'cy_turtle_tower', 96); lm(1250, 'cy_ngocson', 104); lm(2300, 'cy_turtle_tower', 96); lm(3300, 'cy_ngocson', 104)
+        // bờ cỏ + kè đá, liễu rủ, cột đèn gang, ghế đá
+        for (let x = -(((d * 0.7) % 32) + 32) % 32; x < W; x += 32) drawMG(g, 'cy_bank', Math.round(x), 108)
+        for (let i = 0; i < 8; i++) {
+          const x = Math.round((((i * 83 - d * 0.7) % 664) + 664) % 664 - 40)
+          if (i % 4 === 1) { drawMG(g, 'cy_lamp', x, 122, { frame: night ? 1 : 0 }); drawMG(g, 'cy_bench', x + 26, 121) }
+          else drawMG(g, 'cy_willow', x, 122, { t: T + i * 0.3 })
         }
-        // xích lô: bánh xe quay theo quãng đường
+        // vỉa hè lát đá + đường nhựa có vạch (cuộn đúng tốc độ xe)
+        for (let x = -((d % 32) + 32) % 32; x < W; x += 32) drawMG(g, 'cy_road', Math.round(x), 122)
+        // xích lô (người đạp màu theo trang phục + khách Tây); bánh quay theo quãng đường nên phanh là bánh đứng
         const wob = Math.round(Math.sin(S.crank * 3) * (S.v > 6 ? 0.8 : 0)) + (S.stumble > 0 ? Math.round(Math.sin(T * 40) * 1.5) : 0), by = 152 + wob
-        const wheel = (x, y, r) => { R(g, x - r + 1, y - r, r * 2 - 2, r * 2, '#2a2a2e'); R(g, x - r, y - r + 1, r * 2, r * 2 - 2, '#2a2a2e'); R(g, x - r + 2, y - r + 2, r * 2 - 4, r * 2 - 4, '#9a9aa4'); const a = d * 0.06; for (let k = 0; k < 4; k++) { const ang = a + k * 1.5708; R(g, x + Math.cos(ang) * (r - 3) - 0.5, y + Math.sin(ang) * (r - 3) - 0.5, 1, 1, '#2a2a2e'); R(g, x + Math.cos(ang) * (r / 2) - 0.5, y + Math.sin(ang) * (r / 2) - 0.5, 1, 1, '#2a2a2e') } }
-        shadow(g, CX + 4, by + 3, 56)
-        // thùng xe + khách ngồi trước, mui che
-        R(g, CX + 2, by - 18, 28, 14, '#c0392b'); R(g, CX + 2, by - 20, 28, 3, '#7a2f28'); R(g, CX + 4, by - 16, 24, 6, '#f0d78a')
-        npc(g, CX + 15, by - 4, 3, {}); R(g, CX, by - 34, 34, 4, '#d9a441'); R(g, CX + 2, by - 30, 2, 12, '#7a4c22'); R(g, CX + 30, by - 30, 2, 12, '#7a4c22')
-        wheel(CX + 14, by - 2, 7); wheel(CX + 26, by - 2, 7)
-        // người đạp (phía sau)
-        const sw = Math.sin(S.crank * 3)
-        R(g, CX - 22, by - 7, 24, 2, '#555'); wheel(CX - 20, by - 2, 7)
-        person(g, CX - 10, by - 8, env.outfit, { step: S.crank * 0.5, dir: 1 })
-        R(g, CX - 11 + Math.round(sw * 3), by - 5, 3, 2, env.outfit.pants)
-        R(g, CX - 14, by - 22, 3, 1, '#555')
-        if (S.bellFx > 0) { R(g, CX - 22, by - 30, 3, 3, '#ffe14a'); R(g, CX - 28, by - 32, 2, 2, '#ffe14a'); R(g, CX - 20, by - 36, 2, 2, '#ffe14a') }
+        const cyBase = 157
+        const drawCyclo = () => {
+          shadow(g, CX + 4, by + 4, 56)
+          drawMG(g, 'cyclo', CX + 4, by + 5, { frame: Math.floor(d / 9) % 4, outfit: env.outfit })
+          if (S.bellFx > 0) drawMG(g, 'fx_bell', CX - 18, by - 38, { t: T })
+          if (S.crashed) R(g, CX - 26, by + 5, 60, 1, 'rgba(60,40,30,.55)')          // vệt phanh gấp
+        }
+        // người qua đường (dấu ! đỏ cảnh báo từ xa, bong bóng xanh khi nhường) — sắp theo chân với xích lô; người bị đâm luôn vẽ trên cùng
+        const live = new Set(), front = [], back = []
+        for (const w of S.walkers) {
+          const dx = w.x - d, sx = Math.round(CX + dx), q = w.dir > 0 ? w.p : 1 - w.p, wy = 118 + q * 46, fy = Math.round(wy + 14)
+          if (sx > W + 20) continue
+          const face = w.dir > 0 ? 'down' : 'up'                      // chờ bên lề cũng quay mặt ra đường
+          const walking = w.state === 'cross' && !w.hit
+          const dr = () => {
+            if (w.hit) drawMGOutlined(g, `ped_${w.seed % 8}_${face}`, sx, fy, { frame: 0 }, Math.floor(T * 6) % 2 ? '#ffffff' : '#ff5a4a')   // người bị đâm: viền sáng nháy, luôn ở trên xe
+            else drawMG(g, `ped_${w.seed % 8}_${face}`, sx, fy, walking ? { t: T + w.seed * 0.13 } : { frame: 0 })
+            if (w.hit) { R(g, sx - 9, fy - 31, 1, 1, '#ffe14a'); R(g, sx + 8, fy - 29, 1, 1, '#ffe14a'); R(g, sx - 6, fy - 34, 2, 2, '#ff8a3a'); R(g, sx + 5, fy - 33, 2, 2, '#ff8a3a') }
+            if (w.state === 'wait' && dx > 0 && dx < WARN_DX) drawMG(g, 'ico_warn', sx, fy - 31, { t: T })
+          }
+          ;(w.hit ? front : fy > cyBase ? front : back).push(w.hit ? { y: 1e9, dr } : { y: fy, dr })
+          if (w.state === 'yield') { bubble('y' + w.id, 'Mời bác đi trước!', 'blue', sx, fy - 32); live.add('y' + w.id) }
+        }
+        for (const k of [...S.bubs.keys()]) if (k[0] === 'y' && !live.has(k)) dropBubble(k)
+        back.sort((a, b) => a.y - b.y).forEach((o) => o.dr())
+        drawCyclo()
+        front.sort((a, b) => a.y - b.y).forEach((o) => o.dr())
         for (const f of S.fx) burst(g, f.x, f.y, f.t, f.c)
         // đồng hồ tốc độ
         R(g, 8, H - 14, 70, 7, '#2a2118'); const sp = clamp(S.v / 110, 0, 1); R(g, 9, H - 13, 68 * sp, 5, sp > 0.45 && sp < 0.95 ? '#6bd06b' : '#e8c34a'); R(g, 8, H - 9, 70, 1, 'rgba(255,255,255,.2)')
         R(g, 84, H - 14, 70, 7, '#2a2118'); R(g, 85, H - 13, 68 * S.flow, 5, '#6aa0e8')
       },
       result() {
-        const score = clamp(Math.round(100 * S.dist / GOAL) - S.hits * 6, 0, 100)
-        return { score, summary: `Đạp được ${Math.round(S.dist / 10)}m · va người qua đường ${S.hits} lần · tổng ${S.taps} nhịp đạp` }
+        for (const k of [...S.bubs.keys()]) if (k !== 'crash') dropBubble(k)
+        if (S.crashed) return { score: 0, failed: true, fine: S.fine, summary: `Xe đâm người đi bộ sau ${Math.round(S.dist / 10)}m. Chuyến bị hủy, đền ${fmtVND(S.fine)}${S.fine < S.fineWanted ? ' (ví chỉ có bấy nhiêu, đã trừ hết)' : ''}.` }
+        // quãng đường (tối đa 100 - K.courtesy) + lịch sự (K.courtesy × tỉ lệ người đi bộ được rung chuông nhường) - rung vô cớ
+        const distPart = Math.min(100 - K.courtesy, (100 - K.courtesy) * S.dist / K.goal)
+        const court = S.met ? K.courtesy * S.yields / S.met : 0
+        const score = clamp(Math.round(distPart + court - K.badBell * S.badBells), 0, 100)
+        return { score, summary: `Đạp được ${Math.round(S.dist / 10)}m · người đi bộ nhường đường ${S.yields}/${S.met} · hụt xích ${S.slips} · rung chuông vô cớ ${S.badBells}` }
       },
     }
   },

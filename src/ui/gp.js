@@ -18,7 +18,7 @@ const mock = (() => {
       { id: 'm1', kind: 'ship', title: 'Giao hộp bún chả nóng', siteId: pick(1).id, pay: 45000, deadlineHour: (hour() + 2) % 24, stage: 'goto', desc: 'Khách ở tầng 3 không thang máy. Nhớ lấy thêm nước chấm.' },
       { id: 'm2', kind: 'pho', title: 'Bưng phở giờ cao điểm', siteId: pick(2).id, pay: 60000, deadlineHour: (hour() + 3) % 24, stage: 'goto', desc: 'Quán đông, bưng nhanh kẻo nguội.' },
       { id: 'm3', kind: 'hair', title: 'Gội đầu giúp tiệm tóc', siteId: pick(3).id, pay: 38000, deadlineHour: (hour() + 5) % 24, stage: 'goto', desc: 'Khách quen, hay kể chuyện.' },
-      { id: 'm4', kind: 'rail', title: 'Chụp ảnh khách Phố Tàu', siteId: pick(4).id, pay: 80000, deadlineHour: (hour() + 7) % 24, stage: 'goto', desc: 'Nhớ chụp lúc tàu qua.' },
+      { id: 'm4', kind: 'rail', title: 'Chụp ảnh khách ở phố tàu', siteId: pick(4).id, pay: 80000, deadlineHour: (hour() + 7) % 24, stage: 'goto', desc: 'Nhớ chụp lúc tàu qua.' },
     ]
   }
   const ping = (key) => bus.emit('state:changed', { key })
@@ -53,7 +53,7 @@ export const playerPos = () => { try { return W()?.getPlayer?.() || null } catch
 export const sites = () => { try { return W()?.getSites?.('any') || [] } catch (e) { return [] } }
 export const pois = () => { try { return W()?.getPois?.() || [] } catch (e) { return [] } }
 export const distTiles = (t) => { const p = playerPos(); return p && t ? Math.hypot(t.gx - p.gx, t.gy - p.gy) : null }
-export const fmtDist = (d) => (d == null ? '—' : d < 1 ? 'ngay đây' : d < 250 ? `${Math.round(d * 4)} m` : `${(d * 4 / 1000).toFixed(1)} km`)
+export const fmtDist = (d) => (d == null ? '—' : d < 1 ? 'ngay đây' : d < 250 ? `${Math.round(d * 4)} m` : `${(d * 4 / 1000).toFixed(1).replace('.', ',')} km`)
 
 // đích của một việc (siteId -> sites; hoặc job.target/gx,gy)
 export function jobTarget(job) {

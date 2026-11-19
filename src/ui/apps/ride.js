@@ -15,7 +15,7 @@ function go(ctx, p, price) {
 }
 
 export default {
-  id: 'ride', title: 'Xe Ôm Công Nghệ', sub: 'Bác tài tới liền, giá theo ký', icon: 'car',
+  id: 'ride', title: 'Xe Ôm Công Nghệ', sub: 'Bác tài đến ngay, giá theo cây số', icon: 'car',
   open() { sel = null },
   back() { if (sel) { sel = null; return true } return false },
   render(ctx) {

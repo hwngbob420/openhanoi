@@ -14,6 +14,7 @@ const view = (d) => ({
   canPayNow: State.day >= d.nextDay - 1,                    // kỳ mở trước hạn 1 ngày
 })
 const assets = () => (State.flags.assets ||= [])
+const low = (name) => String(name || '').replace(/^Trả góp/, 'trả góp')            // "Trả góp xe máy cũ" -> "trả góp xe máy cũ" (đặt giữa câu)
 
 export function ensureDefault() {
   if (!State.debts.length && !assets().includes(B.DEFAULT_DEBT.id) && !State.flags.defaultDebtGiven) {
@@ -28,7 +29,7 @@ export const list = () => State.debts.map(view)
 export function pay(id) {
   const d = State.debts.find((x) => x.id === id)
   if (!d) return false
-  if (State.day < d.nextDay - 1) { sfx('error'); say(`Chưa tới kỳ: còn ${d.nextDay - State.day} ngày nữa (hạn ngày ${d.nextDay}).`); return false }
+  if (State.day < d.nextDay - 1) { sfx('error'); say(`Chưa tới kỳ đóng: còn ${d.nextDay - State.day} ngày nữa (hạn ngày ${d.nextDay}).`); return false }
   const amount = Math.min(d.per, d.total - d.paid)
   if (!spend(amount, 'trả góp ' + d.name.toLowerCase())) return false
   d.paid += amount; d.late = 0
@@ -37,9 +38,9 @@ export function pay(id) {
     State.debts = State.debts.filter((x) => x !== d)
     assets().push(d.id)
     if (d.kind === 'house') State.flags.home = { id: d.id, name: d.name, tier: (B.DEBT_CATALOG.find((c) => c.id === d.id) || {}).tier || 0 }
-    say(`Trả xong "${d.name}"!`); sfx('win')
+    say(`Tất toán xong: ${d.name}!`); sfx('win')
   } else {
-    addMood(2); sfx('ting'); say(`Đã trả kỳ ${fmt(amount)}: ${d.name} (còn ${fmt(d.total - d.paid)})`)
+    addMood(2); sfx('ting'); say(`Đã đóng kỳ ${fmt(amount)}: ${d.name} (còn ${fmt(d.total - d.paid)})`)
   }
   bus.emit('debt:paid', { id, amount }); changed('debts')
   return true
@@ -51,7 +52,7 @@ export function catalog() {
   return B.DEBT_CATALOG.map((c) => {
     let reason = ''
     if (have.has(c.id)) reason = 'Đã có'
-    else if (c.needTier && !tierOf(c.needTier)) reason = 'Cần có khoản trước đó'
+    else if (c.needTier && !tierOf(c.needTier)) reason = `Cần ký ${low((B.DEBT_CATALOG.find((x) => x.kind === 'house' && x.tier === c.needTier) || {}).name || 'khoản trước đó')} trước đã`
     return { ...c, available: !reason, reason }
   })
 }
@@ -62,7 +63,7 @@ export function take(id) {
   if (!spend(c.deposit, 'đặt cọc ' + c.name.toLowerCase())) return false
   State.debts.push({ id: c.id, kind: c.kind, name: c.name, total: c.total, per: c.per, paid: c.deposit, nextDay: State.day + c.period, period: c.period, late: 0 })
   if (c.id === 'grab') State.flags.grab = true
-  sfx('ting'); say(`Ký trả góp: ${c.name}. Kỳ đầu ngày ${State.day + c.period}.`)
+  sfx('ting'); say(`Đã ký ${low(c.name)}. Kỳ đầu ngày ${State.day + c.period}.`)
   changed('debts')
   return true
 }
@@ -70,11 +71,11 @@ export function take(id) {
 // qua ngày: nhắc hạn, phạt trễ
 export function onNewDay(day) {
   for (const d of State.debts) {
-    if (day === d.nextDay) say(`Hôm nay đến hạn: ${d.name} (${fmt(Math.min(d.per, d.total - d.paid))}). Mở app Sổ Nợ.`)
+    if (day === d.nextDay) say(`Hôm nay đến hạn: ${d.name} (${fmt(Math.min(d.per, d.total - d.paid))}). Mở app Sổ Nợ Trả Góp để đóng kỳ.`)
     else if (day > d.nextDay) {
       d.late = (d.late || 0) + 1
       addMood(d.late === 1 ? B.LATE_MOOD : B.LATE_MOOD_DAILY)
-      say(`Trễ kỳ "${d.name}" ${d.late} ngày — tâm trạng tụt.`); sfx('error')
+      say(`Trễ kỳ ${low(d.name)} ${d.late} ngày — tâm trạng tụt.`); sfx('error')
       bus.emit('debt:late', { id: d.id, late: d.late })
     }
   }

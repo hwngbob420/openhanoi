@@ -4,6 +4,8 @@ import { bus } from '../core/bus.js'
 import { h, icon, vnd, hhmm, CSS } from './theme.js'
 import { S, hour, day } from './gp.js'
 import { createPhone } from './phone.js'
+import { initBubbles } from './bubbles/index.js'
+import { initAutoWalk } from './autowalk.js'
 
 let phone = null
 
@@ -36,6 +38,7 @@ export function init() {
     const s = S()
     tTime.textContent = hhmm(hour()); tMoney.textContent = vnd(s.money ?? 0)
     setBar(bSt, s.stamina); setBar(bMd, s.mood)
+    hud.querySelector('.st').classList.toggle('tired', s.stamina != null && +s.stamina < 25)   // nhấp nháy nhẹ biểu tượng thể lực
     hud.querySelector('.st').title = `Thể lực ${Math.round(s.stamina ?? 0)}`; hud.querySelector('.md').title = `Tâm trạng ${Math.round(s.mood ?? 0)}`
   }
 
@@ -53,6 +56,7 @@ export function init() {
   refreshMusic()
   root.append(hud, h('div', { id: 'hx-dock' }, musicFab, phoneBtn), phone.el, toasts)
   document.body.append(root)
+  try { initAutoWalk(); initBubbles() } catch (e) { console.error('[ui] bubbles', e) }
 
   // ───── sự kiện ─────
   bus.on('toast', (d) => { toast(d && d.msg, d && d.kind); sfx('ting') })

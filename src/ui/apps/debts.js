@@ -21,7 +21,7 @@ export default {
         h('div', { class: 'hx-sm', text: done ? 'Hết nợ, nhẹ cả người.' : `Còn ${vnd(left)} · mỗi kỳ ${vnd(d.per)}
 Kỳ tới: ngày ${d.nextDay ?? '—'}${d.nextDay != null ? (d.nextDay > today ? ` · còn ${d.nextDay - today} ngày` : d.nextDay === today ? ' · hôm nay' : ` · trễ ${today - d.nextDay} ngày`) : ''}` }),
         done ? null : h('div', { class: 'hx-btns' }, h('button', { class: 'hx-btn pri', 'data-act': 'pay', disabled: early, onclick: () => {
-          if (G().debts.pay(d.id)) { ctx.sfx('click'); ctx.say(`Đã đóng kỳ ${vnd(per)} cho ${d.name}`, 'good') } else { ctx.sfx('error'); ctx.say('Không đủ tiền đóng kỳ này', 'bad') }
+          if (G().debts.pay(d.id)) { ctx.sfx('click'); ctx.say(`Đã đóng kỳ ${vnd(per)}: ${d.name}`, 'good') } else { ctx.sfx('error'); ctx.say('Không đủ tiền đóng kỳ này', 'bad') }
           ctx.rerender(true)
         } }, icon('wallet', 24), early ? 'Chưa tới kỳ đóng' : `Đóng kỳ · ${vnd(per)}`))))
     }

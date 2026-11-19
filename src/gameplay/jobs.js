@@ -2,10 +2,12 @@
 import { bus } from '../core/bus.js'
 import { State } from '../core/state.js'
 import * as B from './balance.js'
-import { earn, addStamina, addMood, say, sfx, fmt, nowAbs, payMultiplier, changed, W } from './economy.js'
+import { earn, addStamina, addMood, say, sfx, fmt, nowAbs, payMultiplier, changed, W, siteOpen } from './economy.js'
 import * as MG from './minigames/index.js'
+import { staminaNeeded, LOW_STAMINA_MSG, fmtDec } from './economy-config.js'
+import { bigNotice } from './notice.js'
 
-let removeMarker = null, chip = null, chipOn = true, working = false
+let removeMarker = null, chip = null, chipOn = true, working = false, tickN = 0
 const pick = (a) => a[Math.floor(Math.random() * a.length)]
 const hourOf = (abs) => ((abs % 24) + 24) % 24
 const hh = (abs) => { const h = hourOf(abs), m = Math.floor((h % 1) * 60); return `${String(Math.floor(h)).padStart(2, '0')}:${String(m).padStart(2, '0')}` }
@@ -14,20 +16,23 @@ const seq = () => (State.flags.jobSeq = (State.flags.jobSeq || 0) + 1)
 function sitesFor(kinds) { const w = W(); return w ? kinds.flatMap((k) => w.getSites(k)) : [] }
 const siteById = (id) => W()?.getSites('any').find((s) => s.id === id)
 
-function payEstimate(kind) { const d = B.JOB_KINDS[kind]; const m = d.mult * (kind === 'ship' && State.flags.grab ? B.GRAB_SHIP_BONUS : 1); return { payMin: Math.round(B.PAY_MIN * m / 1000) * 1000, payMax: Math.round(B.PAY_MAX * m / 1000) * 1000, pay: Math.round((B.PAY_MIN + B.PAY_MAX) / 2 * m / 1000) * 1000 } }
+function payEstimate(kind) { const d = B.JOB_KINDS[kind]; const m = d.mult * (kind === 'ship' && State.flags.grab ? B.GRAB_SHIP_BONUS : 1); const r = (v) => Math.round(v * m / 1000) * 1000; return { payMin: r(B.payCurve(0)), payMax: r(B.payCurve(100)), pay: r(B.payCurve(B.PAY_EST_SCORE)) } }
 
 function makeJob(kind, taken) {
   const d = B.JOB_KINDS[kind]
-  const pool = sitesFor(d.siteKinds).filter((s) => !taken.has(s.id))
+  const pool = sitesFor(d.siteKinds).filter((s) => !taken.has(s.id) && siteOpen(s))      // quán đóng cửa: không giao việc
   if (!pool.length) return null
   const s = pick(pool)
   const exp = nowAbs() + B.BOARD_LIFE_H
-  return { id: 'j' + seq(), kind, title: d.title, desc: d.desc, minigame: d.minigame, variant: d.variant || null, siteId: s.id, siteLabel: s.label, ...payEstimate(kind), staminaCost: d.stamina, expiresAbs: exp, deadlineHour: hourOf(exp), stage: 'board' }
+  const title = kind === 'banhmi' && s.pinned === 'circle_k' ? 'Phụ quầy bánh mì cửa hàng tiện lợi' : d.title     // cửa hàng tiện lợi không phải "xe bánh mì"
+  return { id: 'j' + seq(), kind, title, desc: d.desc, minigame: d.minigame, variant: d.variant || null, siteId: s.id, siteLabel: s.label, ...payEstimate(kind), staminaCost: d.stamina, expiresAbs: exp, deadlineHour: hourOf(exp), stage: 'board' }
 }
 export function refillBoard(silent) {
   const now = nowAbs()
   const before = State.board.length
-  State.board = State.board.filter((j) => j.expiresAbs > now)
+  // bỏ việc hết hạn + việc ở quán vừa đóng cửa (việc ĐÃ NHẬN thì vẫn giữ tới hạn — chủ quán đã thuê, dọn hàng vẫn cần người)
+  const open = new Map((W()?.getSites('any') || []).map((s) => [s.id, siteOpen(s)]))
+  State.board = State.board.filter((j) => j.expiresAbs > now && open.get(j.siteId) !== false)
   const taken = new Set(State.board.map((j) => j.siteId)); if (State.job) taken.add(State.job.siteId)
   const kinds = Object.keys(B.JOB_KINDS)
   let guard = 0, added = 0
@@ -53,9 +58,10 @@ export function accept(id) {
   if (State.job) { say('Bạn đang làm một việc rồi — hủy hoặc làm xong đã.'); sfx('error'); return false }
   const j = State.board.find((x) => x.id === id)
   if (!j) return false
-  if (State.stamina < B.MIN_STAMINA_TO_WORK || State.stamina < j.staminaCost) { say('Mệt quá rồi — đi ăn gì đó lấy sức đã (thể lực thấp).'); sfx('error'); return false }
+  if (State.stamina < staminaNeeded(j.kind)) { bigNotice(LOW_STAMINA_MSG); say(LOW_STAMINA_MSG); sfx('error'); return false }
   const site = siteById(j.siteId); const w = W()
   if (!site || !w) { say('Không tìm thấy địa điểm làm việc.'); return false }
+  if (!siteOpen(site)) { say(`${site.label} vừa đóng cửa — việc này không còn nữa.`); sfx('error'); refillBoard(true); return false }
   State.board = State.board.filter((x) => x !== j)
   const now = nowAbs()
   State.job = { ...j, stage: 'goto', arrived: false, acceptedAbs: now, deadlineAbs: now + B.JOB_WINDOW_H, deadlineHour: hourOf(now + B.JOB_WINDOW_H) }
@@ -63,7 +69,7 @@ export function accept(id) {
   if (removeMarker) removeMarker()
   removeMarker = w.addMarker({ id: 'job:' + j.id, gx: sa.gx, gy: sa.gy, r: 1.6, label: 'Làm việc: ' + j.title, onInteract: () => work() })
   w.setGps(site)
-  say(`Nhận việc: ${j.title} — đi theo chấm vàng tới ${site.label}.`); sfx('click')
+  say(`Nhận việc: ${j.title} — đi theo la bàn dưới chân (hoặc bấm Auto-Walk trong app Việc Vặt 24h) tới ${site.label}.`); sfx('click')
   bus.emit('job:accepted', { job: { ...State.job } }); changed('job'); changed('board'); updateChip()
   return true
 }
@@ -92,9 +98,13 @@ async function work() {
   try { res = await MG.start(j.minigame, { variant: j.variant, mult, title: j.title }) } catch (e) { console.error(e); res = { quit: true } }
   working = false
   if (State.job !== j) return
-  if (res.quit) { j.stage = 'goto'; say('Bạn bỏ dở. Việc vẫn còn đó, quay lại vòng sáng để làm tiếp.'); changed('job'); updateChip(); return }
+  if (res.failed) {   // chuyến bị huỷ (vd. xích lô đâm người): không có công, việc kết thúc, tiền phạt đã trừ ở mini-game
+    say(`Chuyến "${j.title}" bị hủy${res.fine ? ' — bồi thường ' + fmt(res.fine) : ''}.`); addMood(-3)
+    State.job = null; clearUI(); bus.emit('job:cancelled', { job: { ...j }, reason: 'crash' }); changed('job'); return
+  }
+  if (res.quit) { j.stage = 'goto'; say('Bạn bỏ dở. Việc vẫn còn đó, quay lại vòng sáng để làm tiếp (nhớ còn hạn).'); changed('job'); updateChip(); return }
   const pay = earn(res.pay, j.title)
-  addStamina(-j.staminaCost); addMood(res.score >= 80 ? 1 : res.score < 25 ? -2 : 0)
+  addStamina(-j.staminaCost); const SM = B.SCORE_MOOD; addMood(res.score >= SM.good ? SM.goodMood : res.score < SM.bad ? SM.badMood : 0)
   State.stats.jobsDone++
   j.stage = 'done'; j.paid = pay; j.score = res.score
   say(`Xong việc "${j.title}": +${fmt(pay)} (${res.score} điểm)`)
@@ -112,7 +122,7 @@ export function tick() {
     addMood(B.FAIL_MOOD); say(`Hết giờ, mất việc "${j.title}".`); sfx('error')
     bus.emit('job:cancelled', { job: { ...j }, reason: 'timeout' }); changed('job')
   }
-  if (State.board.some((x) => x.expiresAbs <= nowAbs())) refillBoard(false)
+  if (State.board.some((x) => x.expiresAbs <= nowAbs()) || (++tickN % 8 === 0 && State.board.some((x) => !siteOpen(siteById(x.siteId) || { open: true })))) refillBoard(false)
   updateChip()
 }
 export function afterLoad() { clearUI(); if (W()) { State.board = []; refillBoard(true) } }
@@ -134,7 +144,7 @@ function updateChip() {
   const left = Math.max(0, j.deadlineAbs - nowAbs())
   c.textContent = ''
   const t = document.createElement('div'); t.style.cssText = 'color:#ffd96a;font-weight:800'; t.textContent = j.title
-  const s = document.createElement('div'); s.textContent = `${j.arrived ? 'Bấm E / chạm vòng sáng để làm' : 'Đi theo chấm vàng tới ' + (siteById(j.siteId)?.label || 'điểm làm việc')} · hạn ${hh(j.deadlineAbs)} (${left.toFixed(1)}h)`
+  const s = document.createElement('div'); s.textContent = `${j.arrived ? 'Bấm E / chạm vòng sáng để làm' : 'Theo vòng la bàn dưới chân tới ' + (siteById(j.siteId)?.label || 'điểm làm việc')} · hạn ${hh(j.deadlineAbs)} (còn ${fmtDec(left)} giờ)`
   const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Hủy việc'; b.style.cssText = 'margin-top:4px;background:#3a2c26;color:#f4efe2;border:1px solid #6b5f45;border-radius:6px;padding:3px 12px;font:inherit;cursor:pointer;min-height:44px;min-width:44px'
   b.addEventListener('click', () => cancel())
   c.append(t, s, b); c.style.display = ''

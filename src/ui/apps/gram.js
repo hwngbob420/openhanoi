@@ -1,18 +1,19 @@
 // App Phố Thị Gram: feed check-in vui các địa danh. Thích bài tăng tâm trạng nhẹ qua API gameplay (nếu có), không thì chỉ hiển thị.
 import { h, icon } from '../theme.js'
+import { autoWalkButton } from '../autowalk.js'
 import { G, pois, distTiles, fmtDist } from '../gp.js'
 import { bus } from '../../core/bus.js'
 
 const CAP = {
   bridge: ['Cầu Thê Húc đỏ rực, check-in cái rồi đi ăn kem Tràng Tiền!', '#caudo #hoguom'],
   temple: ['Đền Ngọc Sơn yên bình giữa hồ. Xin một quẻ may mắn, cầu cho ví đầy.', '#ngocson'],
-  gate: ['Ô Quan Chưởng: cổng thành cuối cùng của Thăng Long. Xe máy vẫn lách qua ngon lành.', '#oquanchuong'],
-  walkstreet: ['Phố đi bộ cuối tuần: guitar, bong bóng và kem cây. Đời vẫn đẹp.', '#phidibo'],
-  traincafe: ['Cà phê đường tàu: ly cà phê trứng này đáng để chờ tàu ba phút.', '#cafeduongtau'],
+  gate: ['Ô Quan Chưởng: cửa ô duy nhất còn lại của Thăng Long. Xe máy vẫn lách qua ngon lành.', '#oquanchuong'],
+  walkstreet: ['Phố đi bộ cuối tuần: guitar, bong bóng và kem cây. Đời vẫn đẹp.', '#phodibo'],
+  traincafe: ['Cà phê đường tàu: tách cà phê trứng này đáng để ngồi chờ tàu qua.', '#cafeduongtau'],
   market: ['Chợ phố cổ: mặc cả thành công, được tặng thêm mớ rau thơm.', '#chophoco'],
-  play: ['Khu vui chơi sắp mở cửa, hóng quá trời!', '#sapmocua'],
+  play: ['Khu vui chơi sắp mở cửa, hóng quá đi mất!', '#sapmocua'],
   park: ['Công viên sáng sớm: bác tập dưỡng sinh, cháu tập ngồi nhìn.', '#congvien'],
-  glass: ['Khu cao ốc kính lấp lánh. Lương tháng sau chắc mua nổi một viên gạch.', '#caoc'],
+  glass: ['Khu cao ốc kính lấp lánh. Lương tháng sau chắc mua nổi một viên gạch.', '#caooc'],
   ngo: ['Ngõ ngoằn nghèo: Google Maps cũng xin đầu hàng. Phở bò tái ở cuối ngõ.', '#ngonho'],
   rail: ['Phố tàu hỏa: tàu qua là cả phố nín thở, ai cũng giơ điện thoại.', '#photauhoa'],
 }
@@ -62,7 +63,8 @@ export default {
           h('p', { class: 'hx-desc', text: cap[0] }), h('div', { class: 'hx-sm', text: cap[1] }),
           h('div', { class: 'hx-row sp', style: 'margin-top:4px' },
             h('button', { class: 'hx-like' + (liked ? ' on' : ''), 'data-act': 'like', onclick: () => like(ctx, p) }, icon('heart', 24), String(n)),
-            h('button', { class: 'hx-btn', style: 'min-height:44px', onclick: () => { try { window.__worldAPI.setGps(p) } catch (e) { return } ctx.sfx('click'); ctx.toast('Đã bật chỉ đường: ' + p.label); ctx.closePhone() } }, icon('map-pin', 24), 'Dẫn đường')))))
+            h('button', { class: 'hx-btn', style: 'min-height:44px', onclick: () => { try { window.__worldAPI.setGps(p) } catch (e) { return } ctx.sfx('click'); ctx.toast('Đã bật chỉ đường: ' + p.label); ctx.closePhone() } }, icon('map-pin', 24), 'Dẫn đường')),
+          autoWalkButton(ctx, p))))
     }
     return root
   },

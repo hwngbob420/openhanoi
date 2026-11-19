@@ -1,12 +1,16 @@
 // Khung điện thoại: trượt lên từ đáy, màn hình chủ 5 app, thanh trạng thái, nút Quay lại / Chủ.
 import { bus } from '../core/bus.js'
 import { h, icon, vnd, hhmm, APP_COLORS } from './theme.js'
-import { S, hour, day, isMock } from './gp.js'
+import { S, hour, day, isMock, distTiles, fmtDist } from './gp.js'
+import { autoWalkButton } from './autowalk.js'
 import jobs from './apps/jobs.js'
 import ride from './apps/ride.js'
 import debts from './apps/debts.js'
 import shop from './apps/shop.js'
 import gram, { trackVisits } from './apps/gram.js'
+
+// nhà người chơi (world thêm site 'home' ở đợt 4; chưa có thì null)
+const homeSite = () => { try { const s = window.__worldAPI?.getSites?.('home')?.[0]; return s && Number.isFinite(s.gx) && Number.isFinite(s.gy) ? s : null } catch (e) { return null } }
 
 const APPS = [jobs, ride, debts, shop, gram]
 const SHORT = { jobs: 'Việc Vặt 24h', ride: 'Xe Ôm Công Nghệ', debts: 'Sổ Nợ Trả Góp', shop: 'Shop Thời Trang', gram: 'Phố Thị Gram' }
@@ -50,9 +54,27 @@ export function createPhone({ sfx, toast, onOpenChange }) {
     const grid = h('div', { class: 'hx-grid' })
     for (const a of APPS) grid.append(h('button', { class: 'hx-tile', 'data-app': a.id, onclick: () => { sfx('click'); api.open(a.id) } },
       h('span', { class: 'ico', style: 'background:' + APP_COLORS[a.id] }, icon(a.icon, 36)), h('span', { class: 'lb', text: SHORT[a.id] })))
-    root.append(grid)
+    const tired = (+S().stamina || 0) < 25 && S().stamina != null
+    const homeCard = homeWalkCard(tired)
+    if (tired) root.append(homeCard, grid); else root.append(grid, homeCard)
     if (isMock()) root.append(h('span', { class: 'hx-demo', text: 'Dữ liệu giả (gameplay chưa nối)' }))
     return root
+  }
+  // thẻ "Về nhà (Auto-Walk)": nổi lên đầu màn hình chủ khi thể lực thấp, kèm gợi ý nghỉ / ăn
+  function homeWalkCard(tired) {
+    const s = homeSite()
+    const card = h('div', { class: 'hx-card hx-homecard' + (tired ? ' tired' : '') })
+    if (tired) card.append(h('div', { class: 'hx-tiredtip' }, icon('zap', 24), h('span', { text: 'Thể lực thấp! Về phòng trọ nghỉ hoặc đi ăn phở.' })))
+    const d = s ? distTiles(s) : null
+    card.append(h('div', { class: 'hx-row sp' }, h('span', { class: 'hx-title', text: s ? (s.label || 'Phòng trọ của bạn') : 'Phòng trọ của bạn' }), s ? h('span', { class: 'hx-sm', 'data-live': 'homedist', text: fmtDist(d) }) : null))
+    if (s) {
+      card.append(autoWalkButton(ctx, { ...s, label: s.label || 'nhà' },{ label: 'Về nhà (Auto-Walk)', icon: 'home', cls: 'pri', act: 'gohome' }))
+      ctx.live(() => { const e = card.querySelector('[data-live=homedist]'); if (e) e.textContent = fmtDist(distTiles(s)) })
+    } else {
+      card.append(h('button', { class: 'hx-btn blk pri', 'data-act': 'gohome', disabled: true, style: 'margin-top:8px' }, icon('home', 24), h('span', { text: 'Về nhà (Auto-Walk)' })),
+        h('div', { class: 'hx-sm', style: 'margin-top:6px', text: 'Chưa tìm thấy phòng trọ trên bản đồ.' }))
+    }
+    return card
   }
   function appView(a) {
     const root = h('div', null, h('div', { style: 'padding:10px 10px 0' }, h('div', { class: 'hx-head' },

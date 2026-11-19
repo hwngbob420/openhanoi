@@ -1,5 +1,5 @@
 // Không khí: mưa rào (nhiễu lọc, lặp mượt) và chuông gác chắn tàu (leng keng lặp khi train:bell on).
-// Sấm từng tiếng do world lo (world.js tự có WebAudio cho sấm) nên ở đây KHÔNG làm sấm, chỉ thêm ầm ì nền khi giông.
+// Sấm từng tiếng là sfx 'thunder' (sfx.js, ĐỢT 4); ở đây chỉ có ầm ì nền khi giông. Mọi node nối vào `out` (nhóm ambience của mixer).
 import { render } from './sfx.js'
 import { zzfxPlay } from './zzfx.js'
 
@@ -28,22 +28,26 @@ export function createAmbience(ctx, out) {
     level = Math.max(0, Math.min(1, +level || 0)); rain = level
     const t = ctx.currentTime
     if (level > 0) startSrc()
-    rainGain.gain.cancelScheduledValues(t); rainGain.gain.setTargetAtTime(level * 0.36, t, 1.2)
-    rumGain.gain.cancelScheduledValues(t); rumGain.gain.setTargetAtTime(level > 0.75 ? 0.3 : 0, t, 1.5)
+    // ĐỢT 4: nền mưa hạ ~6 dB (mưa 0.5) tới ~8 dB (giông 1): hệ số cũ level*0.36 -> level*0.36*(0.54-0.14*level); ầm nền 0.3 -> 0.12
+    rainGain.gain.cancelScheduledValues(t); rainGain.gain.setTargetAtTime(level * 0.36 * (0.54 - 0.14 * level), t, 1.2)
+    rumGain.gain.cancelScheduledValues(t); rumGain.gain.setTargetAtTime(level > 0.75 ? 0.12 : 0, t, 1.5)
     lp.frequency.setTargetAtTime(5500 + level * 2500, t, 1)
   }
 
   // ---- chuông gác chắn: "leng keng" lặp mỗi 430ms ----
   const bellS = render('bell').samples
-  let bellTimer = 0, bellFlip = false, bellVol = 0.7
+  let bellTimer = 0, bellFlip = false, bellVol = 0.7, bellSp = null
   function bellOnce() {
     if (ctx.state !== 'running') return
-    const g = ctx.createGain(); g.gain.value = bellVol; g.connect(out)
+    let sp = null; try { sp = bellSp && bellSp() } catch (e) { sp = null }        // {gain,pan} theo khoảng cách tới barie; null = không biết vị trí
+    if (sp && sp.gain < 0.004) { bellFlip = !bellFlip; return }                    // quá xa: không tạo node nào
+    const g = ctx.createGain(); g.gain.value = bellVol * (sp ? sp.gain : 1)
+    if (sp && ctx.createStereoPanner) { const pn = ctx.createStereoPanner(); pn.pan.value = sp.pan; g.connect(pn); pn.connect(out) } else g.connect(out)
     const src = zzfxPlay(ctx, g, bellS, 1)
     src.playbackRate.value = (bellFlip = !bellFlip) ? 1 : 0.84            // leng (cao) - keng (thấp)
   }
-  function bell(on, vol = 0.7) {
-    bellVol = vol
+  function bell(on, vol = 0.7, spatialFn) {
+    bellVol = vol; if (spatialFn !== undefined) bellSp = spatialFn
     if (on && !bellTimer) { bellOnce(); bellTimer = setInterval(bellOnce, 430) }
     else if (!on && bellTimer) { clearInterval(bellTimer); bellTimer = 0 }
   }
